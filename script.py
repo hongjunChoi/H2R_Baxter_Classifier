@@ -44,7 +44,7 @@ class GaussianMapCell:
         self.blue = blue
         self.z = z
     def __repr__(self):
-        return "GaussianMapCell(%s, %s, %s)" % (repr(self.red), repr(self.green), repr(self.blue))
+        return "GaussianMapCell(%s, %s, %s, %s)" % (repr(self.red), repr(self.green), repr(self.blue), repr(self.z))
 
 class GaussianMap:
     @staticmethod
