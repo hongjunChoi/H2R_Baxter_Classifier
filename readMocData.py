@@ -122,42 +122,41 @@ def readMatFromYaml(fs):
 
 def main():
 
-    for fname in glob("left/*/*/ein/sceneModel/model.yml"):
-        print fname
+    # for fname in glob("left/*/*/ein/sceneModel/model.yml"):
 
-        f = open(fname) 
+    fname = 'depthdata1.yml'
 
-        lines = []
-        # ignore the %YAML:1.0, because the python parser doesn't handle 1.0.
-        f.readline() 
+    f = open(fname) 
 
-        for line in f:
-            # for some reason the python parser doesn't like this line either.
-            if "background_pose" in line:
-                continue
-            lines.append(line)
-        data = "\n".join(lines)
-        
-        ymlobject = yaml.load(data)
-        #print ymlobject
-        scene = ymlobject["Scene"]
-        observed_map = GaussianMap.fromYaml(scene["observed_map"])
-        image = observed_map.toImage()
-        cv2.imwrite("observed.png", image)
-        cv2.imshow("observed map", image)
-        
-        
-        
-        
-        print "observed map: ", observed_map.width, "x", observed_map.height
-        dimage = readMatFromYaml(scene["discrepancy_magnitude"])
-        cv2.imshow("discrepancy magnitude", dimage)
+    lines = []
+    # ignore the %YAML:1.0, because the python parser doesn't handle 1.0.
+    f.readline() 
 
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+    for line in f:
+        # for some reason the python parser doesn't like this line either.
+        if "background_pose" in line:
+            continue
+        lines.append(line)
+    data = "\n".join(lines)
+    
+    ymlobject = yaml.load(data)
+    #print ymlobject
+    scene = ymlobject["Scene"]
+    observed_map = GaussianMap.fromYaml(scene["observed_map"])
+    image = observed_map.toImage()
+    cv2.imwrite("observed.png", image)
+    cv2.imshow("observed map", image)
+        
+        
+    print "observed map: ", observed_map.width, "x", observed_map.height
+    dimage = readMatFromYaml(scene["discrepancy_magnitude"])
+    cv2.imshow("discrepancy magnitude", dimage)
 
-        #cells = scene["cells"]
-        #print "cells", len(cells)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    #cells = scene["cells"]
+    #print "cells", len(cells)
 
 
 if __name__ == "__main__":
