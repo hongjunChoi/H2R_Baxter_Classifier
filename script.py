@@ -73,18 +73,6 @@ class GaussianMap:
         self.cell_width = cell_width
         self.cells = cells
         
-    # def toImage(self):
-    #     data = []
-    #     for x in range(0, self.width):
-    #         row = []
-    #         for y in range(0, self.height):
-    #             cell = self.cells[x  + self.width * y]
-    #             row.append((cell.blue.mu, cell.green.mu, cell.red.mu))
-    #             #print "row", row
-    #         data.append(row)
-    #     imgYCC = na.array(data, dtype=na.float32) / 255.0
-    #     imgRGB = cv2.cvtColor(imgYCC, cv2.COLOR_YCR_CB2BGR)
-    #     return imgRGB
 
 def readBinaryFromYaml(yamlList):
     data = "".join(yamlList)
@@ -137,7 +125,8 @@ def main(fname):
     scene = ymlobject["Scene"]
     observed_map = GaussianMap.fromYaml(scene["observed_map"])
     print "observed map: ", observed_map.width, "x", observed_map.height
-    print observed_map.cells
+    for x in observed_map.cells:
+        print x.z.mu
 
 
 
