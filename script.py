@@ -3,6 +3,7 @@ import sys
 from base64 import b64decode
 import zlib
 import struct
+import json
 
 
 class GaussianMapChannel:
@@ -118,15 +119,41 @@ def main(fname):
         if "background_pose" in line:
             continue
         lines.append(line)
+
     data = "\n".join(lines)
-    
     ymlobject = yaml.load(data)
-    # print ymlobject
     scene = ymlobject["Scene"]
+
     observed_map = GaussianMap.fromYaml(scene["observed_map"])
-    print "observed map: ", observed_map.width, "x", observed_map.height
-    for x in observed_map.cells:
-        print x.z.mu
+
+    print "observed map has width : ", observed_map.width, "   height : ", observed_map.height
+    row = observed_map.height
+    col = observed_map.width
+    width_len = 0.3
+    heigth_len = 0.3
+
+    data = []
+    for index in range(len(observed_map.cells)):
+        x = float(int(index/row) * width_len/col)
+        y = float(int(index%col) * width_len/row)
+        z = observed_map.cells[index].z.mu
+        point = {"x" : x, "y" : y, "z" : z}
+        print point
+        data.append(point)
+
+    # Open a file for writing
+    out_file = open("data.json","w")
+
+    # Save the dictionary into this file
+    # (the 'indent=4' is optional, but makes it more readable)
+    json.dump(data,out_file, indent=4)                                    
+
+    # Close the file
+    out_file.close()
+
+
+
+        
 
 
 
