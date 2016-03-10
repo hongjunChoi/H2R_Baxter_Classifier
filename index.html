@@ -52,31 +52,29 @@
 
 				scene = new THREE.Scene();
 
-				var geometry = new THREE.BoxGeometry( 20, 20, 20 );
+				var geometry = new THREE.BoxGeometry( 1, 1, 1 );
 				var material = new THREE.MeshNormalMaterial( { overdraw: 0.5 } );
 
 				group = new THREE.Group();
 
 				loadJSON("data.json", function(response) {
 			        var actual_JSON = JSON.parse(response);
-			        console.log(actual_JSON.length)
-			        for ( var i = 0; i < 200; i ++ ) {
 
-						var mesh = new THREE.Mesh( geometry, material );
-						mesh.position.x = Math.random() * 2000 - 1000;
-						mesh.position.y = Math.random() * 2000 - 1000;
-						mesh.position.z = Math.random() * 2000 - 1000;
-
-						mesh.rotation.x = 2 * Math.PI;
-						mesh.rotation.y = 2 * Math.PI;
-						mesh.matrixAutoUpdate = false;
-						mesh.updateMatrix();
-						group.add( mesh );
-
+			        for(var i = 0; i < actual_JSON.length; i++ ) {
+			        	var z = parseFloat(actual_JSON[i]["z"]);
+			        	if(z > 0){
+			        		var mesh = new THREE.Mesh( geometry, material );
+							mesh.position.x = 1000*parseFloat(actual_JSON[i]["x"]);
+							mesh.position.y = 1000*parseFloat(actual_JSON[i]["y"]);
+							mesh.position.z = 1000*z;
+							mesh.rotation.x = 2 * Math.PI;
+							mesh.rotation.y = 2 * Math.PI;
+							mesh.matrixAutoUpdate = false;
+							mesh.updateMatrix();
+							group.add( mesh );
+			        	}
 					}
 			    });
-
-				
 
 				scene.add( group );
 
