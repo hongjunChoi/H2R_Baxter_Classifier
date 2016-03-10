@@ -129,16 +129,15 @@ def main(fname):
     print "observed map has width : ", observed_map.width, "   height : ", observed_map.height
     row = observed_map.height
     col = observed_map.width
-    width_len = 0.3
-    heigth_len = 0.3
+    width_len = 0.5
+    height_len = 0.5
 
     data = []
     for index in range(len(observed_map.cells)):
         x = float(int(index/row) * width_len/col)
-        y = float(int(index%col) * width_len/row)
+        y = float(int(index%col) * height_len/row)
         z = observed_map.cells[index].z.mu
         point = {"x" : x, "y" : y, "z" : z}
-        print point
         data.append(point)
 
     # Open a file for writing
