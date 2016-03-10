@@ -14,14 +14,14 @@
 				overflow:hidden;
 			}
 		</style>
+		
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
 	</head>
 	<body>
-
+		<script type="text/javascript" src="/data.json"></script>
 		<script src="js/three.min.js"></script>
-
 		<script src="js/renderers/Projector.js"></script>
 		<script src="js/renderers/CanvasRenderer.js"></script>
-
 		<script src="js/libs/stats.min.js"></script>
 
 		<script>
@@ -57,19 +57,26 @@
 
 				group = new THREE.Group();
 
-				for ( var i = 0; i < 200; i ++ ) {
+				loadJSON("data.json", function(response) {
+			        var actual_JSON = JSON.parse(response);
+			        console.log(actual_JSON.length)
+			        for ( var i = 0; i < 200; i ++ ) {
 
-					var mesh = new THREE.Mesh( geometry, material );
-					mesh.position.x = Math.random() * 2000 - 1000;
-					mesh.position.y = Math.random() * 2000 - 1000;
-					mesh.position.z = Math.random() * 2000 - 1000;
-					mesh.rotation.x = Math.random() * 2 * Math.PI;
-					mesh.rotation.y = Math.random() * 2 * Math.PI;
-					mesh.matrixAutoUpdate = false;
-					mesh.updateMatrix();
-					group.add( mesh );
+						var mesh = new THREE.Mesh( geometry, material );
+						mesh.position.x = Math.random() * 2000 - 1000;
+						mesh.position.y = Math.random() * 2000 - 1000;
+						mesh.position.z = Math.random() * 2000 - 1000;
 
-				}
+						mesh.rotation.x = 2 * Math.PI;
+						mesh.rotation.y = 2 * Math.PI;
+						mesh.matrixAutoUpdate = false;
+						mesh.updateMatrix();
+						group.add( mesh );
+
+					}
+			    });
+
+				
 
 				scene.add( group );
 
@@ -89,6 +96,27 @@
 
 				window.addEventListener( 'resize', onWindowResize, false );
 
+			}
+
+			function loadJSON(file, callback) {   
+			    var xobj = new XMLHttpRequest();
+			    xobj.overrideMimeType("application/json");
+			    xobj.open('GET', file, true); // Replace 'my_data' with the path to your file
+			    xobj.onreadystatechange = function () {
+			          if (xobj.readyState == 4 && xobj.status == "200") {
+			            // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+			            callback(xobj.responseText);
+			          }
+			    };
+			    xobj.send(null);  
+			 }
+			 
+
+			function load() {
+			    loadJSON("data.json", function(response) {
+			        var actual_JSON = JSON.parse(response);
+			        // console.log(actual_JSON);
+			    });
 			}
 
 			function onWindowResize() {
