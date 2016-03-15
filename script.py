@@ -134,6 +134,7 @@ def main(fname, datafile):
 
     data = []
     for index in range(len(observed_map.cells)):
+        # TODO: make sure this part is correct !
         x = float(int(index/row) * width_len/col)
         y = float(int(index%col) * height_len/row)
         z = observed_map.cells[index].z.mu
