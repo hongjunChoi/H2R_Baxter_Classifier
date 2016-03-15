@@ -108,7 +108,7 @@ def readMatFromYaml(fs):
     return array
 
 
-def main(fname):
+def main(fname, datafile):
 
     f = open(fname) 
 
@@ -141,7 +141,7 @@ def main(fname):
         data.append(point)
 
     # Open a file for writing
-    out_file = open("data.json","w")
+    out_file = open(datafile, "w")
 
     # Save the dictionary into this file
     # (the 'indent=4' is optional, but makes it more readable)
@@ -157,4 +157,4 @@ def main(fname):
 
 
 if __name__ == "__main__":
-	main(sys.argv[1])
+	main(sys.argv[1], sys.argv[2])
