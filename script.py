@@ -138,7 +138,11 @@ def main(fname, datafile):
         x = float(int(index/row) * width_len/col)
         y = float(int(index%col) * height_len/row)
         z = observed_map.cells[index].z.mu
-        point = {"x" : x, "y" : y, "z" : z}
+        r = int(observed_map.cells[index].red.mu)
+        g = int(observed_map.cells[index].green.mu)
+        b = int(observed_map.cells[index].blue.mu)
+
+        point = {"x" : x, "y" : y, "z" : z, "r": r, "g" : g, "b": b}
         data.append(point)
 
     # Open a file for writing

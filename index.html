@@ -18,7 +18,6 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
 	</head>
 	<body>
-		<script type="text/javascript" src="a_block_scene_top_min.json"></script>
 		<script src="js/three.min.js"></script>
 		<script src="js/renderers/Projector.js"></script>
 		<script src="js/renderers/CanvasRenderer.js"></script>
@@ -49,20 +48,22 @@
 
 				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
 				camera.position.z = 500;
-
 				scene = new THREE.Scene();
-
 				var geometry = new THREE.BoxGeometry( 1, 1, 1 );
-				var material = new THREE.MeshNormalMaterial( { overdraw: 0.5 } );
-
 				group = new THREE.Group();
 				
-				loadJSON("a_block_scene_top_min.json", function(response) {
+				loadJSON("a_block_top_min.json", function(response) {
 			        var actual_JSON = JSON.parse(response);
 
 			        for(var i = 0; i < actual_JSON.length; i++ ) {
 			        	var z = parseFloat(actual_JSON[i]["z"]);
 			        	if(z > 0){
+			        		var r = Math.round(actual_JSON[i]["r"]).toString()
+			        		var g = Math.round(actual_JSON[i]["g"]).toString()
+			        		var b = Math.round(actual_JSON[i]["b"]).toString()
+
+			        		var c = "rgb(" + r + ", " + g + ", " + b +  ")";
+			        		var material = new THREE.MeshBasicMaterial( { color: c } );
 			        		var mesh = new THREE.Mesh( geometry, material );
 							mesh.position.x = 1000*parseFloat(actual_JSON[i]["x"]);
 							mesh.position.y = 1000*parseFloat(actual_JSON[i]["y"]);
@@ -77,6 +78,11 @@
 			    });
 
 				scene.add( group );
+
+				// var material = new THREE.MeshLambertMaterial( { side: THREE.DoubleSide } );
+				// object = new THREE.Mesh( new THREE.PlaneGeometry( 100, 100, 4, 4 ), material );
+				// object.position.set( 0, 0, 1 );
+				// scene.add( object );
 
 				renderer = new THREE.CanvasRenderer();
 				renderer.setClearColor( 0xffffff );
@@ -109,13 +115,6 @@
 			    xobj.send(null);  
 			 }
 			 
-
-			function load() {
-			    loadJSON("a_block_scene_top_min.json", function(response) {
-			        var actual_JSON = JSON.parse(response);
-			        // console.log(actual_JSON);
-			    });
-			}
 
 			function onWindowResize() {
 
