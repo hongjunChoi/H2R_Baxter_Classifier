@@ -141,9 +141,9 @@ def main(fname, datafile):
         r = int(observed_map.cells[index].red.mu)
         g = int(observed_map.cells[index].green.mu)
         b = int(observed_map.cells[index].blue.mu)
-
-        point = {"x" : x, "y" : y, "z" : z, "r": r, "g" : g, "b": b}
-        data.append(point)
+        if z > 0:
+            point = {"x" : x, "y" : y, "z" : z, "r": r, "g" : g, "b": b}
+            data.append(point)
 
     # Open a file for writing
     out_file = open(datafile, "w")
