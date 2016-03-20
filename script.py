@@ -112,11 +112,14 @@ def variance_filter_rgb(r_var, g_var, b_var, r, g, b):
         return False
     return True
 
+<<<<<<< HEAD
 def variance_filter_z(z_var, z):
     if (z_var-z)*(z_var-z) > 200:
         return False
     return True
 
+=======
+>>>>>>> acfe06c6f953de5a3e81896813abae2458e75050
 def main(fname, datafile):
 
     f = open(fname) 
@@ -138,6 +141,7 @@ def main(fname, datafile):
     print "observed map has width : ", observed_map.width, "   height : ", observed_map.height
     row = observed_map.height
     col = observed_map.width
+<<<<<<< HEAD
     width_len =  0.5
     height_len = 0.5
 
@@ -162,6 +166,19 @@ def main(fname, datafile):
                         "g" : g_mu, "b": b_mu, "z_var" : z_var, "r_var": r_var, "g_var": g_var, "b_var":b_var}
 
                 data.append(point)
+=======
+    width_len = 0.5
+    height_len = 0.5
+
+    data = []
+    for index in range(len(observed_map.cells)):
+        # TODO: make sure this part is correct !
+        x = float(int(index/row) * width_len/col)
+        y = float(int(index%col) * height_len/row)
+        z = observed_map.cells[index].z.mu
+        point = {"x" : x, "y" : y, "z" : z}
+        data.append(point)
+>>>>>>> acfe06c6f953de5a3e81896813abae2458e75050
 
     # Open a file for writing
     out_file = open(datafile, "w")
@@ -174,7 +191,12 @@ def main(fname, datafile):
     out_file.close()
 
 
+<<<<<<< HEAD
   
+=======
+
+        
+>>>>>>> acfe06c6f953de5a3e81896813abae2458e75050
 
 
 

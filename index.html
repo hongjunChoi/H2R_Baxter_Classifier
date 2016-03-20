@@ -18,7 +18,8 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
 	</head>
 	<body>
-
+		
+		<!-- <script type="text/javascript" src="a_block_scene_top_min.json"></script> -->
 		<script src="js/three.min.js"></script>
 		<script src="js/TrackballControls.js"></script>
 		<script src="js/OrbitControls.js"></script>
@@ -64,11 +65,12 @@
 				camera.position.z = 1;
 
 
+
 				scene = new THREE.Scene();
 				var geometry = new THREE.BoxGeometry( 1, 1, 1 );
 				group = new THREE.Group();
 
-				var material = new THREE.MeshNormalMaterial( { overdraw: 0.5 } );
+				// var material = new THREE.MeshNormalMaterial( { overdraw: 0.5 } );
 
 
 				//  var ground = new THREE.Mesh( new THREE.PlaneGeometry( 2000,
@@ -80,15 +82,17 @@
 				//   ground.position.y = -.02 + 2000;
 				// scene.add(ground);
 				
+
 				group = new THREE.Group();
 				x_pos = 0;
 				y_pos = 0;
 				z_pos = 0;
-				loadJSON("a_block_top_min_rgb.json", function(response) {
+				loadJSON("a_block_scene_top_min.json", function(response) {
 			        var actual_JSON = JSON.parse(response);
 
 			        for(var i = 0; i < actual_JSON.length; i++ ) {
 			        	var z = parseFloat(actual_JSON[i]["z"]);
+
 			        	if(z > 0.05){
 			        		var r = Math.round(actual_JSON[i]["r"]).toString()
 			        		var g = Math.round(actual_JSON[i]["g"]).toString()
@@ -99,10 +103,12 @@
 							mesh.position.x = 3000*parseFloat(actual_JSON[i]["x"]);
 							mesh.position.y = 3000*parseFloat(actual_JSON[i]["y"]);
 							mesh.position.z = 1500*z;
+
 							mesh.rotation.x = 2 * Math.PI;
 							mesh.rotation.y = 2 * Math.PI;
 							mesh.matrixAutoUpdate = false;
 							mesh.updateMatrix();
+
 							if (x_pos == 0 && y_pos == 0 && z_pos == 0) {
 								x_pos = mesh.position.x;
 								y_pos = mesh.position.y;
@@ -148,6 +154,7 @@
 
 			}
 
+
 			function filter(r, g, b){
 				if(r >= 106 && r <= 126 && g >= 105 && g <= 145 && b >= 77 && b <= 97){
 				
@@ -156,6 +163,7 @@
 				}
 				return false;
 			}
+
 
 			function loadJSON(file, callback) {   
 			    var xobj = new XMLHttpRequest();
@@ -188,46 +196,6 @@
 			// 	mouseX = ( event.clientX - windowHalfX ) * 10;
 			// 	mouseY = ( event.clientY - windowHalfY ) * 10;
 
-			// }
-
-
-			function onDocumentMouseDown( event ) {
-				event.preventDefault();
-				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-				document.addEventListener( 'mouseup', onDocumentMouseUp, false );
-				document.addEventListener( 'mouseout', onDocumentMouseOut, false );
-				mouseXOnMouseDown = event.clientX - windowHalfX;
-				targetRotationOnMouseDown = targetRotation;
-			}
-			function onDocumentMouseMove( event ) {
-				mouseX = event.clientX - windowHalfX;
-				targetRotation = targetRotationOnMouseDown + ( mouseX - mouseXOnMouseDown ) * 0.02;
-			}
-			function onDocumentMouseUp( event ) {
-				document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
-				document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
-				document.removeEventListener( 'mouseout', onDocumentMouseOut, false );
-			}
-			function onDocumentMouseOut( event ) {
-				document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
-				document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
-				document.removeEventListener( 'mouseout', onDocumentMouseOut, false );
-			}
-			function onDocumentTouchStart( event ) {
-				if ( event.touches.length == 1 ) {
-					event.preventDefault();
-					mouseXOnMouseDown = event.touches[ 0 ].pageX - windowHalfX;
-					targetRotationOnMouseDown = targetRotation;
-				}
-			}
-			function onDocumentTouchMove( event ) {
-				if ( event.touches.length == 1 ) {
-					event.preventDefault();
-					mouseX = event.touches[ 0 ].pageX - windowHalfX;
-					targetRotation = targetRotationOnMouseDown + ( mouseX - mouseXOnMouseDown ) * 0.05;
-				}
-			}
-			//
 
 			function animate() {
 
