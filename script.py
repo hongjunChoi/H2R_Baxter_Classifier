@@ -129,23 +129,35 @@ def main(fname, datafile):
     print "observed map has width : ", observed_map.width, "   height : ", observed_map.height
     row = observed_map.height
     col = observed_map.width
-    width_len = 0.5
+    width_len =  0.5
     height_len = 0.5
 
     data = []
-    for index in range(len(observed_map.cells)):
-        # TODO: make sure this part is correct !
-        x = float(int(index/row) * width_len/col)
-        y = float(int(index%col) * height_len/row)
-        z = observed_map.cells[index].z.mu
-        r = int(observed_map.cells[index].red.mu)
-        g = int(observed_map.cells[index].green.mu)
-        b = int(observed_map.cells[index].blue.mu)
-        if z > 0:
-            point = {"x" : x, "y" : y, "z" : z, "r": r, "g" : g, "b": b}
-            data.append(point)
+    c = 0
+    #     # TODO: make sure this part is correct !
+    for x in range(0, col):
+        for y in range(0, row):
+            index = x + col * y;
+            cell = observed_map.cells[index]
+            z_mu = float(observed_map.cells[index].z.mu)
+            r_mu = int(observed_map.cells[index].red.mu)
+            g_mu = int(observed_map.cells[index].green.mu)
+            b_mu = int(observed_map.cells[index].blue.mu)
+            z_var = float(observed_map.cells[index].z.sigmasquared)
+            r_var = float(observed_map.cells[index].red.sigmasquared)
+            g_var = float(observed_map.cells[index].green.sigmasquared)
+            b_var = float(observed_map.cells[index].blue.sigmasquared)
+
+            if z_mu > 0:
+                point = {"x" : x*(width_len/col), "y" : y*(height_len/row), "z" : z_mu*0.5, "r": r_mu, "g" : g_mu, "b": b_mu,
+                        "z_var" : z_var, "r_var": r_var, "g_var": g_var, "b_var":b_var}
+
+             
+
+                data.append(point)
 
     # Open a file for writing
+    print "number of high variances  : " + str(c)
     out_file = open(datafile, "w")
 
     # Save the dictionary into this file
