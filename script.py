@@ -107,6 +107,15 @@ def readMatFromYaml(fs):
     array = na.transpose(array.reshape((m.rows, m.cols, m.channels)), axes=(1,0,2))
     return array
 
+def variance_filter_rgb(r_var, g_var, b_var, r, g, b):
+    if (r_var-r)*(r_var-r)+(g_var-g)*(g_var-g)+(b_var-b)*(b_var-b) > 100:
+        return False
+    return True
+
+def variance_filter_z(z_var, z):
+    if (z_var-z)*(z_var-z) > 200:
+        return False
+    return True
 
 def main(fname, datafile):
 
@@ -133,7 +142,6 @@ def main(fname, datafile):
     height_len = 0.5
 
     data = []
-    c = 0
     #     # TODO: make sure this part is correct !
     for x in range(0, col):
         for y in range(0, row):
@@ -149,15 +157,13 @@ def main(fname, datafile):
             b_var = float(observed_map.cells[index].blue.sigmasquared)
 
             if z_mu > 0:
-                point = {"x" : x*(width_len/col), "y" : y*(height_len/row), "z" : z_mu*0.5, "r": r_mu, "g" : g_mu, "b": b_mu,
+                if variance_filter_rgb(r_var, g_var, b_var, 10, 10, 10) and variance_filter_z(z_var, 10):
+                    point = {"x" : x*(width_len/col), "y" : y*(height_len/row), "z" : z_mu*0.5, "r": r_mu, "g" : g_mu, "b": b_mu,
                         "z_var" : z_var, "r_var": r_var, "g_var": g_var, "b_var":b_var}
 
-             
-
-                data.append(point)
+                    data.append(point)
 
     # Open a file for writing
-    print "number of high variances  : " + str(c)
     out_file = open(datafile, "w")
 
     # Save the dictionary into this file
@@ -168,8 +174,7 @@ def main(fname, datafile):
     out_file.close()
 
 
-
-        
+  
 
 
 
