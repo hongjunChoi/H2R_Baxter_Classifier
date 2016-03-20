@@ -18,8 +18,11 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
 	</head>
 	<body>
-		<script type="text/javascript" src="a_block_scene_top_min.json"></script>
+		
+		<!-- <script type="text/javascript" src="a_block_scene_top_min.json"></script> -->
 		<script src="js/three.min.js"></script>
+		<script src="js/TrackballControls.js"></script>
+		<script src="js/OrbitControls.js"></script>
 		<script src="js/renderers/Projector.js"></script>
 		<script src="js/renderers/CanvasRenderer.js"></script>
 		<script src="js/libs/stats.min.js"></script>
@@ -34,6 +37,12 @@
 
 			var mouseX = 0, mouseY = 0;
 
+			var targetRotation = 0;
+			var targetRotationOnMouseDown = 0;
+			var mouseX = 0;
+			var mouseXOnMouseDown = 0;
+
+
 			var windowHalfX = window.innerWidth / 2;
 			var windowHalfY = window.innerHeight / 2;
 
@@ -42,22 +51,39 @@
 			init();
 			animate();
 
+
+
 			function init() {
 
 				container = document.createElement( 'div' );
 				document.body.appendChild( container );
 
-				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
-				camera.position.z = 500;
+				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000);
+				// camera.position.z = 500;
+				camera.position.y = 4;
+				camera.position.z = 1;
 
 				scene = new THREE.Scene();
 
 				var geometry = new THREE.BoxGeometry( 1, 1, 1 );
 				var material = new THREE.MeshNormalMaterial( { overdraw: 0.5 } );
 
-				group = new THREE.Group();
+
+				//  var ground = new THREE.Mesh( new THREE.PlaneGeometry( 2000,
+				//     2000, 2), new THREE.MeshBasicMaterial(
+				//     { color: 0xaaaaaa}
+				//     )
+				//   );
+				//   ground.rotation.x = -Math.PI/2;
+				//   ground.position.y = -.02 + 2000;
+
 				
-				loadJSON("a_block_scene_top_min.json", function(response) {
+				// scene.add(ground);
+				group = new THREE.Group();
+				x_pos = 0;
+				y_pos = 0;
+				z_pos = 0;
+				loadJSON("a_block_top_min_rgb.json", function(response) {
 			        var actual_JSON = JSON.parse(response);
 
 			        for(var i = 0; i < actual_JSON.length; i++ ) {
@@ -71,6 +97,11 @@
 							mesh.rotation.y = 2 * Math.PI;
 							mesh.matrixAutoUpdate = false;
 							mesh.updateMatrix();
+							if (x_pos == 0 && y_pos == 0 && z_pos == 0) {
+								x_pos = mesh.position.x;
+								y_pos = mesh.position.y;
+								z_pos = mesh.position.z;
+							};
 							group.add( mesh );
 			        	}
 					}
@@ -84,6 +115,11 @@
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				container.appendChild( renderer.domElement );
 
+
+				camera_controls = new THREE.OrbitControls( camera );
+   				camera_controls.addEventListener( 'change', renderer );
+
+
 				stats = new Stats();
 				stats.domElement.style.position = 'absolute';
 				stats.domElement.style.top = '0px';
@@ -91,8 +127,12 @@
 				container.appendChild( stats.domElement );
 
 				//
+				// document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+				// document.addEventListener( 'touchstart', onDocumentTouchStart, false );
+				// document.addEventListener( 'touchmove', onDocumentTouchMove, false );
 
-				window.addEventListener( 'resize', onWindowResize, false );
+				// window.addEventListener( 'resize', onWindowResize, false );
+
 
 			}
 
@@ -111,7 +151,7 @@
 			 
 
 			function load() {
-			    loadJSON("a_block_scene_top_min.json", function(response) {
+			    loadJSON("a_block_top_min_rgb.json", function(response) {
 			        var actual_JSON = JSON.parse(response);
 			        // console.log(actual_JSON);
 			    });
@@ -129,29 +169,71 @@
 
 			}
 
-			function onDocumentMouseMove(event) {
+			// function onDocumentMouseMove(event) {
 
-				mouseX = ( event.clientX - windowHalfX ) * 10;
-				mouseY = ( event.clientY - windowHalfY ) * 10;
+			// 	mouseX = ( event.clientX - windowHalfX ) * 10;
+			// 	mouseY = ( event.clientY - windowHalfY ) * 10;
 
+			// }
+
+
+			function onDocumentMouseDown( event ) {
+				event.preventDefault();
+				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+				document.addEventListener( 'mouseout', onDocumentMouseOut, false );
+				mouseXOnMouseDown = event.clientX - windowHalfX;
+				targetRotationOnMouseDown = targetRotation;
 			}
-
+			function onDocumentMouseMove( event ) {
+				mouseX = event.clientX - windowHalfX;
+				targetRotation = targetRotationOnMouseDown + ( mouseX - mouseXOnMouseDown ) * 0.02;
+			}
+			function onDocumentMouseUp( event ) {
+				document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
+				document.removeEventListener( 'mouseout', onDocumentMouseOut, false );
+			}
+			function onDocumentMouseOut( event ) {
+				document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
+				document.removeEventListener( 'mouseout', onDocumentMouseOut, false );
+			}
+			function onDocumentTouchStart( event ) {
+				if ( event.touches.length == 1 ) {
+					event.preventDefault();
+					mouseXOnMouseDown = event.touches[ 0 ].pageX - windowHalfX;
+					targetRotationOnMouseDown = targetRotation;
+				}
+			}
+			function onDocumentTouchMove( event ) {
+				if ( event.touches.length == 1 ) {
+					event.preventDefault();
+					mouseX = event.touches[ 0 ].pageX - windowHalfX;
+					targetRotation = targetRotationOnMouseDown + ( mouseX - mouseXOnMouseDown ) * 0.05;
+				}
+			}
 			//
 
 			function animate() {
 
 				requestAnimationFrame( animate );
-
+				camera_controls.target.x = x_pos;//robot.links[robot.base].geom.position.x;
+			    camera_controls.target.y = y_pos;//robot.links[robot.base].geom.position.y;
+			    camera_controls.target.z = z_pos;//robot.links[robot.base].geom.position.z;
 				render();
 				stats.update();
+
 
 			}
 
 			function render() {
-
-				camera.position.x += ( mouseX - camera.position.x ) * .05;
-				camera.position.y += ( - mouseY - camera.position.y ) * .05;
-				camera.lookAt( scene.position );
+				// group.rotation.y += ( targetRotation - group.rotation.y ) * 0.05;
+				// camera.position.x = windowHalfX;
+				// camera.position.y = windowHalfY;
+				// camera.position.x += ( mouseX - camera.position.x ) * .05;
+				// camera.position.y += ( - mouseY - camera.position.y ) * .05;
+				// camera.lookAt( scene.position );
 
 				// var currentSeconds = Date.now();
 				// group.rotation.x = Math.sin( currentSeconds * 0.0007 ) * 0.5;
