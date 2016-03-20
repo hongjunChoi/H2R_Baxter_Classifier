@@ -156,12 +156,12 @@ def main(fname, datafile):
             g_var = float(observed_map.cells[index].green.sigmasquared)
             b_var = float(observed_map.cells[index].blue.sigmasquared)
 
-            if z_mu > 0:
-                if variance_filter_rgb(r_var, g_var, b_var, 10, 10, 10) and variance_filter_z(z_var, 10):
-                    point = {"x" : x*(width_len/col), "y" : y*(height_len/row), "z" : z_mu*0.5, "r": r_mu, "g" : g_mu, "b": b_mu,
-                        "z_var" : z_var, "r_var": r_var, "g_var": g_var, "b_var":b_var}
+            
+            if z_mu > 0 and variance_filter_rgb(r_var, g_var, b_var, 10, 10, 10) and variance_filter_z(z_var, 10):
+                point = {"x" : x*(width_len/col), "y" : y*(height_len/row), "z" : z_mu*0.5, "r": r_mu, 
+                        "g" : g_mu, "b": b_mu, "z_var" : z_var, "r_var": r_var, "g_var": g_var, "b_var":b_var}
 
-                    data.append(point)
+                data.append(point)
 
     # Open a file for writing
     out_file = open(datafile, "w")

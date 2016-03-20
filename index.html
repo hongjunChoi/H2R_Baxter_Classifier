@@ -18,11 +18,7 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
 	</head>
 	<body>
-<<<<<<< HEAD
-=======
-		
-		<!-- <script type="text/javascript" src="a_block_scene_top_min.json"></script> -->
->>>>>>> acfe06c6f953de5a3e81896813abae2458e75050
+
 		<script src="js/three.min.js"></script>
 		<script src="js/TrackballControls.js"></script>
 		<script src="js/OrbitControls.js"></script>
@@ -61,21 +57,17 @@
 				container = document.createElement( 'div' );
 				document.body.appendChild( container );
 
-<<<<<<< HEAD
-				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
-				camera.position.z = 500;
-=======
+
 				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000);
 				// camera.position.z = 500;
 				camera.position.y = 4;
 				camera.position.z = 1;
 
->>>>>>> acfe06c6f953de5a3e81896813abae2458e75050
+
 				scene = new THREE.Scene();
 				var geometry = new THREE.BoxGeometry( 1, 1, 1 );
-<<<<<<< HEAD
 				group = new THREE.Group();
-=======
+
 				var material = new THREE.MeshNormalMaterial( { overdraw: 0.5 } );
 
 
@@ -86,10 +78,8 @@
 				//   );
 				//   ground.rotation.x = -Math.PI/2;
 				//   ground.position.y = -.02 + 2000;
-
->>>>>>> acfe06c6f953de5a3e81896813abae2458e75050
-				
 				// scene.add(ground);
+				
 				group = new THREE.Group();
 				x_pos = 0;
 				y_pos = 0;
@@ -181,16 +171,6 @@
 			 }
 			 
 
-<<<<<<< HEAD
-=======
-			function load() {
-			    loadJSON("a_block_top_min_rgb.json", function(response) {
-			        var actual_JSON = JSON.parse(response);
-			        // console.log(actual_JSON);
-			    });
-			}
-
->>>>>>> acfe06c6f953de5a3e81896813abae2458e75050
 			function onWindowResize() {
 
 				windowHalfX = window.innerWidth / 2;
