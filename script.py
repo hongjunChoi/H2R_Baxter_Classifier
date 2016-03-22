@@ -134,7 +134,9 @@ def main(fname, datafile):
         lines.append(line)
 
     data = "\n".join(lines)
+
     ymlobject = yaml.load(data)
+
     scene = ymlobject["Scene"]
 
     observed_map = GaussianMap.fromYaml(scene["observed_map"])
@@ -183,4 +185,5 @@ def main(fname, datafile):
 
 
 if __name__ == "__main__":
-	main(sys.argv[1], sys.argv[2])
+
+    main(sys.argv[1], sys.argv[2])
