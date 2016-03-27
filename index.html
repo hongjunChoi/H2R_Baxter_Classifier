@@ -67,32 +67,39 @@
 				
 				group = new THREE.Group();
 
-
-
-
-							
-
-
-
-
 				loadJSON("a_block_scene_top_min.json", function(response) {
 			        var actual_JSON = JSON.parse(response);
+			        var info = actual_JSON[actual_JSON.length-1];
+			        console.log(actual_JSON.length)
+			        var x_max = info["x_max"];
+			        var y_max = info["y_max"];
+			        var y_min = info["y_min"];
+			        var x_min = info["x_min"];
+			        //console.log("x : " + x_min + "  - " + x_max + "    and  y : " + y_min + " - " + y_max)
+			        for(var i = 0; i < actual_JSON.length-1; i++ ) {
 
-			        for(var i = 0; i < actual_JSON.length; i++ ) {
+			        	if( filter_edge(x_max, y_max, x_min, y_min, actual_JSON[i]["x"], actual_JSON[i]["y"], 0.15) ){
+			        		console.log("skipping");
+							continue;	
+						}
+
 			        	var z = parseFloat(actual_JSON[i]["z"]);
 		        		var r = Math.round(actual_JSON[i]["r"]).toString()
 		        		var g = Math.round(actual_JSON[i]["g"]).toString()
 		        		var b = Math.round(actual_JSON[i]["b"]).toString()
 	        			var c = "rgb(" + r + ", " + g + ", " + b +  ")";
 						var material = new THREE.MeshBasicMaterial( { color: c } );
-
+						if(x_max < parseFloat(actual_JSON[i]["x"])){
+							x_max = parseFloat(actual_JSON[i]["x"]);
+						}
 						var mesh = new THREE.Mesh( geometry, material );
 						mesh.position.x = 1000*parseFloat(actual_JSON[i]["x"]);
 						mesh.position.y = 1000*parseFloat(actual_JSON[i]["y"]);
-						mesh.position.z = 1000*z;
+						mesh.position.z = 300*z;
+
 						xCount = xCount + 1000*parseFloat(actual_JSON[i]["x"]);
 						yCount = yCount + 1000*parseFloat(actual_JSON[i]["y"]);
-						zCount = zCount + 1000 * z;
+						zCount = zCount + 300 * z;
 						count = count + 1.0;
 						mesh.rotation.x = 2 * Math.PI;
 						mesh.rotation.y = 2 * Math.PI;
@@ -105,10 +112,6 @@
 					xPos = xCount / count;
 					yPos = yCount / count;
 					zPos = zCount / count;
-
-				    console.log(xPos);
-				    console.log(yPos);
-				    console.log(zPos);
 
 				    scene.add( group );
 
@@ -128,6 +131,19 @@
 					camera.lookAt(scenePosition);
 					renderer.render(scene, camera);
 			    });
+			}
+
+			function filter_edge(x_max, y_max, x_min, y_min, x, y ,l){
+				a = (x-x_min)/(x_max - x_min) 
+				b = (y-y_min)/(y_max - y_min) 
+
+				if(a< l || a >1-l){
+					return true;
+				}
+				if(b < l || b > (1-1.5*l)){
+					return true;
+				}
+				return false;
 			}
 
 			function loadJSON(file, callback) {   
@@ -195,52 +211,6 @@
 				clickCount = clickCount + 1;
 			 });
 
-			// function load() {
-			//     loadJSON("a_block_top_marginals.json", function(response) {
-			//         var actual_JSON = JSON.parse(response);
-			//         // console.log(actual_JSON);
-			//     });
-			// }
-
-			// function onWindowResize() {
-
-			// 	windowHalfX = window.innerWidth / 2;
-			// 	windowHalfY = window.innerHeight / 2;
-
-			// 	camera.aspect = window.innerWidth / window.innerHeight;
-			// 	camera.updateProjectionMatrix();
-
-			// 	renderer.setSize( window.innerWidth, window.innerHeight );
-
-			// }
-
-			// function render() {
-
-			// 	//document.addEventListener('click', function() {
-			// 	//camera.position.x += ( mouseX - camera.position.x ) * .05;
-			// 	//camera.position.y += ( - mouseY - camera.position.y ) * .05;
-			// 	//camera.lookAt( scene.position );
-			// 	//});
-			// 	// var currentSeconds = Date.now();
-			// 	// group.rotation.x = Math.sin( currentSeconds * 0.0007 ) * 0.5;
-			// 	// group.rotation.y = Math.sin( currentSeconds * 0.0003 ) * 0.5;
-			// 	// group.rotation.z = Math.sin( currentSeconds * 0.0002 ) * 0.5;
-
-			// 	renderer.render( scene, camera );
-
-			// }
-			// document.addEventListener('mousemove', function() {
-			// 	//camera.position.x = scene.position.x + mouseX;//(mouseX - camera.position.x) * 0.05;
-			// 	//camera.position.y = scene.position.y + mouseY;//(- mouseY - camera.position.y) * 0.05;
-				
-			// //	var currentSeconds = Date.now();
-				
-			// 	camera.position.x = scene.position.x;//Math.sin(currentSeconds/10*Math.PI/180) * Math.cos(currentSeconds/12*Math.PI/180) * 1000;
-   //  				camera.position.y = scene.position.y;//Math.sin(currentSeconds/10*Math.PI/180) * Math.sin(currentSeconds/12*Math.PI/180) * 1000;		
-			// //	camera.position.z = scene.position.z + 500;//Math.cos(currentSeconds/10*Math.PI/180) * 1000;
-			// 	camera.lookAt(scene.position);
-			// 	renderer.render(scene, camera);
-			// })
 
 		</script>
 

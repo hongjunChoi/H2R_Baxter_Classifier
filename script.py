@@ -127,50 +127,69 @@ def main(fname, datafile):
 
     lines = []
     f.readline() 
-
+    background_pose = None
     for line in f:
         if "background_pose" in line:
             continue
         lines.append(line)
 
     data = "\n".join(lines)
-
     ymlobject = yaml.load(data)
-
     scene = ymlobject["Scene"]
-
     observed_map = GaussianMap.fromYaml(scene["observed_map"])
 
-    print "observed map has width : ", observed_map.width, "   height : ", observed_map.height
+
     row = observed_map.height
     col = observed_map.width
-    width_len =  0.5
-    height_len = 0.5
+    cell_width = observed_map.cell_width
 
     data = []
-    #     # TODO: make sure this part is correct !
+
+    x_max = 0
+    y_max = 0
+    y_min = float('inf')
+    x_min = float('inf')
+    z_min = float('inf')
+    z_max = 0
+
     for x in range(0, col):
         for y in range(0, row):
             index = x + col * y;
             cell = observed_map.cells[index]
             z_mu = float(observed_map.cells[index].z.mu)
-            r_mu = int(observed_map.cells[index].red.mu)
-            g_mu = int(observed_map.cells[index].green.mu)
-            b_mu = int(observed_map.cells[index].blue.mu)
-            z_var = float(observed_map.cells[index].z.sigmasquared)
-            r_var = float(observed_map.cells[index].red.sigmasquared)
-            g_var = float(observed_map.cells[index].green.sigmasquared)
-            b_var = float(observed_map.cells[index].blue.sigmasquared)
-
             
             if z_mu > 0:
-                point = {"x" : x*(width_len/col), "y" : y*(height_len/row), "z" : z_mu*0.5, "r": r_mu, 
+                x_len = x*(cell_width) 
+                y_len = y*(cell_width)
+                if x_len > x_max:
+                    x_max = x_len
+                if y_len > y_max:
+                    y_max = y_len
+                if y_len < y_min:
+                    y_min = y_len
+                if x_len < x_min:
+                    x_min = x_len
+                if z_mu < z_min:
+                    z_min = z_mu
+                if z_mu > z_max:
+                    z_max = z_mu
+
+                r_mu = int(observed_map.cells[index].red.mu)
+                g_mu = int(observed_map.cells[index].green.mu)
+                b_mu = int(observed_map.cells[index].blue.mu)
+                z_var = float(observed_map.cells[index].z.sigmasquared)
+                r_var = float(observed_map.cells[index].red.sigmasquared)
+                g_var = float(observed_map.cells[index].green.sigmasquared)
+                b_var = float(observed_map.cells[index].blue.sigmasquared)
+
+                point = {"x" : x*(cell_width), "y" : y*(cell_width), "z" : z_mu, "r": r_mu, 
                         "g" : g_mu, "b": b_mu, "z_var" : z_var, "r_var": r_var, "g_var": g_var, "b_var":b_var}
 
                 data.append(point)
 
+    data.append({"x_max" : x_max, "y_max":y_max, "x_min": x_min, "y_min": y_min, "z_min" : z_min, "z_max": z_max})   
 
-    # Open a file for writing
+    # Open a file for writings
     out_file = open(datafile, "w")
 
     # Save the dictionary into this file
