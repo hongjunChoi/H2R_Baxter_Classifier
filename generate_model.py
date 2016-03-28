@@ -4,6 +4,7 @@ from base64 import b64decode
 import zlib
 import struct
 import json
+import numpy as np
 
 
 class GaussianMapChannel:
@@ -243,7 +244,7 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
             if z_mu > 0 and z_mu < cube_info['size']:
                 ray_origin = get_ray_origin(slug_info, x, y, cell_length)
                 ray_direction = get_ray_direction(slug_info)
-                sparse_map = ray_cast(sparse_map, ray_origin, ray_direction, z_mu)
+                sparse_map = ray_cast(sparse_map, ray_origin, ray_direction, z_mu, cube_info)
 
     return sparse_map
 
@@ -251,12 +252,43 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
 
 def q_to_euler(qw, qx, qy, qz):
 
+    test = qx*qy + qz*qw;
+    heading = 0
+    attitude = 0
+    bank = 0
+
+    if test > 0.499:  # singularity at north pole
+        heading = 2 * np.arctan2(qx, qw);
+        attitude = np.pi/2;
+        bank = 0;
+
+    
+    if test < -0.499: # singularity at south pole
+        heading = -2 * np.arctan2(qx, qw)
+        attitude = - np.pi/2
+        bank = 0
+
+    else:
+        sqx = qx*qx
+        sqy = qy*qy
+        sqz = qz*qz
+        heading = np.arctan2(2*qy*qw-2*qx*qz , 1 - 2*sqy - 2*sqz);
+        attitude = np.arcsin(2*test);
+        bank = np.arctan2(2*qx*qw-2*qy*qz , 1 - 2*sqx - 2*sqz)
+
+    x = np.cos(heading) * np.cos(attitude)
+    y = np.sin(heading) * np.cos(attitude)
+    z = np.sin(attitude)
+
+    return {'x': x, 'y': y,'z': z}
 
 
 
-def ray_cast(sparse_map, origin, direction, z):
+
+def ray_cast(sparse_map, origin, direction, z, cube_info):
 
 
+    return sparse_map
 
 def get_ray_direction(slug_info):
 
