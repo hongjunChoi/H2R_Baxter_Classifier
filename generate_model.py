@@ -200,6 +200,7 @@ def get_slug_info(filename, max_length):
                         'z': float(background_pose[2].split(':')[1]), 'qw' :float(background_pose[3].split(':')[1]), 
                         'qx': float(background_pose[4].split(':')[1]), 'qy':float(background_pose[5].split(':')[1]), 
                         'qz': float(background_pose[6].split(':')[1])}
+
     return info
 
 
@@ -248,8 +249,7 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
 
     return sparse_map
 
-
-
+# returns a directional unit vector hashtable of {x , y, z}
 def q_to_euler(qw, qx, qy, qz):
 
     test = qx*qy + qz*qw;
@@ -285,16 +285,19 @@ def q_to_euler(qw, qx, qy, qz):
 
 
 
-def ray_cast(sparse_map, origin, direction, z, cube_info):
-
-
-    return sparse_map
 
 def get_ray_direction(slug_info):
-
+    quaternion = slug_info['position']
+    qw = quaternion['qw']
+    qx = quaternion['qx']
+    qy = quaternion['qy']
+    qz = quaternion['qz']
+    direction = q_to_euler(qw, qx, qy, qz)
+    return direction
 
 
 def get_ray_origin(slug_info, x, y, cell_length):
+    #origin + cell_length* x * cos(angle)
 
 
 
@@ -307,6 +310,22 @@ def decode_key(key):
     return {'x': round(float(temp[0]),3) , 'y': round(float(temp[1]),3), 'z':round(float(temp[2]),3)} 
 
 
+
+
+# TODO : CODY SHOULD IMPLEMENT THIS FUNCTION
+# INPUTS
+#  - sparse_map : hashtable of data key being "x_y_z" and value being data that we store including confidence score. 
+#                  use encode_key(), decode_key() function
+#  - origin : hashmap with key x, y, z => global location where the ray starts
+#  - direction : hashmap with key x, y, z => represents the unit direction vector of the ray
+#  - z : float => represents the length of the ray
+#  - cube info => hashtable of key 'size' => length of each edge of the cube 
+#                 and 'cube_origin' => global location of (0, 0, 0) of the cube
+#                 cube_info['cube_origin'] is also a dictionary with keys "x_origin", "y_origin", "z_origin"
+#
+# OUTPUT : an updated sparse_map hashtable with updated confidence score 
+def ray_cast(sparse_map, origin, direction, z, cube_info):
+    return sparse_map
 
 
 
