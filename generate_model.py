@@ -284,8 +284,6 @@ def q_to_euler(qw, qx, qy, qz):
 
 
 
-
-
 def get_ray_direction(slug_info):
     quaternion = slug_info['position']
     qw = quaternion['qw']
@@ -294,12 +292,6 @@ def get_ray_direction(slug_info):
     qz = quaternion['qz']
     direction = q_to_euler(qw, qx, qy, qz)
     return direction
-
-
-def get_ray_origin(slug_info, x, y, cell_length):
-    #origin + cell_length* x * cos(angle)
-
-
 
 
 def encode_key(x, y, z):
@@ -324,6 +316,11 @@ def quaternion_to_rotation_matrix(qw, qx, qy, qz):
     m[2][1] = 2*qy*qz - 2*qw*qx
     m[2][2] = 1- 2*qx*qx - 2*qy*qy
     return m
+
+
+def get_ray_origin(slug_info, x, y, cell_length):
+    #origin + cell_length* x * cos(angle)
+    return 
 
 
 
@@ -359,7 +356,6 @@ def main(top_view, other_views, file_name):
     # for now, I set (0, 0, 0) location of the cube as 0.8 * (min x, min y, min z) 
     # also the length (size) of the cube is set to be 1.5 * max(x_max - x_min, y_max - y_min, z_max - z_min)
     # TODO: CODY needs to change this as necessary
-
     sparse_map = {}
     top_down_view_info = get_info_from_top_view(top_view)
     #the global location of  (0, 0, 0) cell in the cube  
@@ -403,6 +399,8 @@ def main(top_view, other_views, file_name):
 
     # Close the file
     out_file.close()
+
+    return 
 
 
 
