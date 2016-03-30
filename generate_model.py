@@ -305,10 +305,25 @@ def get_ray_origin(slug_info, x, y, cell_length):
 def encode_key(x, y, z):
     return str(round(x, 3)) + "_" + str(round(y, 3)) + "_" + str(round(z, 3))
 
+
 def decode_key(key):
     temp = key.split('_')
     return {'x': round(float(temp[0]),3) , 'y': round(float(temp[1]),3), 'z':round(float(temp[2]),3)} 
 
+
+#returns rotation matrix M from quaterniion
+def quaternion_to_rotation_matrix(qw, qx, qy, qz):
+    m = np.zeros((3, 3))
+    m[0][0] = 1- 2*qy*qy - 2*qz*qz
+    m[0][1] = 2*qx*qy + 2*qw*qz
+    m[0][2] = 2*qx*qz - 2*qw*qy
+    m[1][0] = 2*qx*qy - 2*qw*qz
+    m[1][1] = 1- 2*qx*qx - 2*qz*qz
+    m[1][2] = 2*qy*qz + 2*qw*qx
+    m[2][0] = 2*qx*qz + 2*qw*qy
+    m[2][1] = 2*qy*qz - 2*qw*qx
+    m[2][2] = 1- 2*qx*qx - 2*qy*qy
+    return m
 
 
 
@@ -334,6 +349,10 @@ def ray_cast(sparse_map, origin, direction, z, cube_info):
 ################################################################################################
 
 def main(top_view, other_views, file_name):
+    # PAREMETER TUNING 
+    GRID_SIZE = 1000 # there are GRID_SIZE^3 cells in the cube
+
+
     # 0. CREATE CUBE DIMENSION AND SPARSE MAP 
     # setting spase map and size of the cube from the top down view 
     # from the top down view, obtain the dimensions of the cube
@@ -352,15 +371,22 @@ def main(top_view, other_views, file_name):
                         top_down_view_info['y_max']-top_down_view_info['y_min'],
                         top_down_view_info['z_max']-top_down_view_info['z_min'])
 
-    cube_info = {'size' : cube_size, 'cube_origin' : cube_origin}
+    cube_info = {'size' : cube_size, 'cube_origin' : cube_origin, 'grid_size' : GRID_SIZE, 'cell_width' : float(cube_size/GRID_SIZE)}
+
+
+
 
     # 1. RAY CAST FROM TOP DOWN VIEW SLUG
     sparse_map = read_from_yml(top_view, sparse_map, top_down_view_info, cube_info)
+
+
 
     # 2. RAY CAST FROM OTHER VIEWS 
     for other_view in other_views:
         view_info = get_slug_info(other_view, cube_size)
         sparse_map = read_from_yml(other_view, sparse_map, view_info, cube_info)
+
+
 
 
     # 3. WRITE SPARSE MAP INTO JSON FILE
