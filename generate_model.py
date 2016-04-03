@@ -337,9 +337,257 @@ def get_ray_origin(slug_info, x, y, cell_length):
 #
 # OUTPUT : an updated sparse_map hashtable with updated confidence score 
 def ray_cast(sparse_map, origin, direction, z, cube_info):
+    #ray info
+    ray_x = origin['x']
+    ray_y = origin['y']
+    ray_z = origin['z']
+    direction_x = direction['x']
+    direction_y = direction['y']
+    direction_z = direction['z']
+    
+    #cube info
+    cube_origin_x = cube_info['cube_origin']['x_origin']
+    cube_origin_y = cube_info['cube_origin']['y_origin']
+    cube_origin_z = cube_info['cube_origin']['z_origin']
+    grid_size = cube_info['grid_size']
+    cell_width = cube_info['cell_width']
+
+    mutable_grid_size = grid_size
+
+    intersecting = True
+    while intersecting:
+        next_intersecting = False
+        #x left and right plane check
+        for y in range(0, mutable_grid_size):
+            x = 0
+            for z in range(0, mutable_grid_size):
+                #two booleans, the first indicating if there was an intersection, and the second indicating if the intersection was an occupied observation
+                intersect = rayIntersects(ray_x, ray_y, ray_z, direction_x, direction_y, direction_z, z, cube_origin_x + x * cell_width, cube_origin_y + y * cell_width, cube_origin_z + z * cell_width, cell_width)
+                if intersect[0]:
+                    offset = (grid_size - mutable_grid_size) / 2
+                    key = encode_key(x + offset, y + offset, z + offset)
+                    if intersect[1]:
+                        #when the cube contains something
+                        if key in sparse_map:
+                            sparse_map[key] = sparse_map[key] + 1
+                        else:
+                            sparse_map[key] = 1
+                    else:
+                        #when the cube is intersected, but doesn't contain the z value, AKA nothing there
+                        next_intersecting = True
+                        if key in sparse_map:
+                            sparse_map[key] = sparse_map[key] - 1
+                        else:
+                            sparse_map[key] = -1
+
+            x = mutable_grid_size - 1
+            for z in range(0, mutable_grid_size):
+                #two booleans, the first indicating if there was an intersection, and the second indicating if the intersection was an occupied observation
+                intersect = rayIntersects(ray_x, ray_y, ray_z, direction_x, direction_y, direction_z, z, cube_origin_x + x * cell_width, cube_origin_y + y * cell_width, cube_origin_z + z * cell_width, cell_width)
+                if intersect[0]:
+                    offset = (grid_size - mutable_grid_size) / 2
+                    key = encode_key(x + offset, y + offset, z + offset)
+                    if intersect[1]:
+                        #when the cube contains something
+                        if key in sparse_map:
+                            sparse_map[key] = sparse_map[key] + 1
+                        else:
+                            sparse_map[key] = 1
+                    else:
+                        #when the cube is intersected, but doesn't contain the z value, AKA nothing there
+                        next_intersecting = True
+                        if key in sparse_map:
+                            sparse_map[key] = sparse_map[key] - 1
+                        else:
+                            sparse_map[key] = -1
+
+        #y bottom and top plane check
+        for z in range(0, mutable_grid_size):
+            y = 0
+            for x in range(0, mutable_grid_size):
+                #two booleans, the first indicating if there was an intersection, and the second indicating if the intersection was an occupied observation
+                intersect = rayIntersects(ray_x, ray_y, ray_z, direction_x, direction_y, direction_z, z, cube_origin_x + x * cell_width, cube_origin_y + y * cell_width, cube_origin_z + z * cell_width, cell_width)
+                if intersect[0]:
+                    offset = (grid_size - mutable_grid_size) / 2
+                    key = encode_key(x + offset, y + offset, z + offset)
+                    if intersect[1]:
+                        #when the cube contains something
+                        if key in sparse_map:
+                            sparse_map[key] = sparse_map[key] + 1
+                        else:
+                            sparse_map[key] = 1
+                    else:
+                        #when the cube is intersected, but doesn't contain the z value, AKA nothing there
+                        next_intersecting = True
+                        if key in sparse_map:
+                            sparse_map[key] = sparse_map[key] - 1
+                        else:
+                            sparse_map[key] = -1
+
+            y = mutable_grid_size - 1
+            for x in range(0, mutable_grid_size):
+                #two booleans, the first indicating if there was an intersection, and the second indicating if the intersection was an occupied observation
+                intersect = rayIntersects(ray_x, ray_y, ray_z, direction_x, direction_y, direction_z, z, cube_origin_x + x * cell_width, cube_origin_y + y * cell_width, cube_origin_z + z * cell_width, cell_width)
+                if intersect[0]:
+                    offset = (grid_size - mutable_grid_size) / 2
+                    key = encode_key(x + offset, y + offset, z + offset)
+                    if intersect[1]:
+                        #when the cube contains something
+                        if key in sparse_map:
+                            sparse_map[key] = sparse_map[key] + 1
+                        else:
+                            sparse_map[key] = 1
+                    else:
+                        #when the cube is intersected, but doesn't contain the z value, AKA nothing there
+                        next_intersecting = True
+                        if key in sparse_map:
+                            sparse_map[key] = sparse_map[key] - 1
+                        else:
+                            sparse_map[key] = -1
+
+        #z far and near plane check
+        for y in range(0, mutable_grid_size):
+            z = 0
+            for x in range(0, mutable_grid_size):
+                #two booleans, the first indicating if there was an intersection, and the second indicating if the intersection was an occupied observation
+                intersect = rayIntersects(ray_x, ray_y, ray_z, direction_x, direction_y, direction_z, z, cube_origin_x + x * cell_width, cube_origin_y + y * cell_width, cube_origin_z + z * cell_width, cell_width)
+                if intersect[0]:
+                    offset = (grid_size - mutable_grid_size) / 2
+                    key = encode_key(x + offset, y + offset, z + offset)
+                    if intersect[1]:
+                        #when the cube contains something
+                        if key in sparse_map:
+                            sparse_map[key] = sparse_map[key] + 1
+                        else:
+                            sparse_map[key] = 1
+                    else:
+                        #when the cube is intersected, but doesn't contain the z value, AKA nothing there
+                        next_intersecting = True
+                        if key in sparse_map:
+                            sparse_map[key] = sparse_map[key] - 1
+                        else:
+                            sparse_map[key] = -1
+
+            z = mutable_grid_size - 1
+            for x in range(0, mutable_grid_size):
+                #two booleans, the first indicating if there was an intersection, and the second indicating if the intersection was an occupied observation
+                intersect = rayIntersects(ray_x, ray_y, ray_z, direction_x, direction_y, direction_z, z, cube_origin_x + x * cell_width, cube_origin_y + y * cell_width, cube_origin_z + z * cell_width, cell_width)
+                if intersect[0]:
+                    offset = (grid_size - mutable_grid_size) / 2
+                    key = encode_key(x + offset, y + offset, z + offset)
+                    if intersect[1]:
+                        #when the cube contains something
+                        if key in sparse_map:
+                            sparse_map[key] = sparse_map[key] + 1
+                        else:
+                            sparse_map[key] = 1
+                    else:
+                        #when the cube is intersected, but doesn't contain the z value, AKA nothing there
+                        next_intersecting = True
+                        if key in sparse_map:
+                            sparse_map[key] = sparse_map[key] - 1
+                        else:
+                            sparse_map[key] = -1
+
+        cube_origin_x = cube_origin_x + cell_width
+        cube_origin_y = cube_origin_y + cell_width
+        cube_origin_z = cube_origin_z + cell_width
+        mutable_grid_size = mutable_grid_size - 2
+        intersecting = next_intersecting
+
     return sparse_map
 
+def rayIntersects(ray_x, ray_y, ray_z, direction_x, direction_y, direction_z, z, cube_origin_x, cube_origin_y, cube_origin_z, cell_width):
+    #checking if the cube contains the endpoint
+    x = ray_x + direction_x * z
+    y = ray_y + direction_y * z
+    z = ray_z + direction_z * z
+    containedX = (x > cube_origin_x) && (x < cube_origin_x + cell_width)
+    containedY = (y > cube_origin_y) && (y < cube_origin_y + cell_width) 
+    containedZ = (z > cube_origin_z) && (z < cube_origin_z + cell_width)
+    if (containedX && containedY) && containedZ:
+        toReturn = []
+        toReturn.append(True)
+        toReturn.append(True)
+        return toReturn
 
+    #checking the 6 sides of the cube
+    # left x plane
+    intersect_value = (cube_origin_x - ray_x) / direction_x
+    intersect_y = ray_y + intersect_value * direction_y
+    intersect_z = ray_z + intersect_value * direction_z
+    if (intersect_value > 0) && (intersect_value <= z):
+        if (intersect_y > cube_origin_y) && (intersect_y < (cube_origin_y + cell_width)):
+            if (intersect_z > cube_origin_z) && (intersect_z < (cube_origin_z + cell_width)):
+                toReturn = []
+                toReturn.append(True)
+                toReturn.append(False)
+                return toReturn
+
+    # right x plane
+    intersect_value = ((cube_origin_x + cell_width) - ray_x) / direction_x
+    intersect_y = ray_y + intersect_value * direction_y
+    intersect_z = ray_z + intersect_value * direction_z
+    if (intersect_value > 0) && (intersect_value <= z):
+        if (intersect_y > cube_origin_y) && (intersect_y < (cube_origin_y + cell_width)):
+            if (intersect_z > cube_origin_z) && (intersect_z < (cube_origin_z + cell_width)):
+                toReturn = []
+                toReturn.append(True)
+                toReturn.append(False)
+                return toReturn
+
+    # top y plane
+    intersect_value = ((cube_origin_y + cell_width) - ray_y) / direction_y
+    intersect_x = ray_x + intersect_value * direction_x
+    intersect_z = ray_z + intersect_value * direction_z
+    if (intersect_value > 0) && (intersect_value <= z):
+        if (intersect_x > cube_origin_x) && (intersect_x < (cube_origin_x + cell_width)):
+            if (intersect_z > cube_origin_z) && (intersect_z < (cube_origin_z + cell_width)):
+                toReturn = []
+                toReturn.append(True)
+                toReturn.append(False)
+                return toReturn
+
+    # bottom y plane
+    intersect_value = (cube_origin_y - ray_y) / direction_y
+    intersect_x = ray_x + intersect_value * direction_x
+    intersect_z = ray_z + intersect_value * direction_z
+    if (intersect_value > 0) && (intersect_value <= z):
+        if (intersect_x > cube_origin_x) && (intersect_x < (cube_origin_x + cell_width)):
+            if (intersect_z > cube_origin_z) && (intersect_z < (cube_origin_z + cell_width)):
+                toReturn = []
+                toReturn.append(True)
+                toReturn.append(False)
+                return toReturn
+
+    # near z plane
+    intersect_value = ((cube_origin_z + cell_width) - ray_z) / direction_z
+    intersect_x = ray_x + intersect_value * direction_x
+    intersect_y = ray_y + intersect_value * direction_y
+    if (intersect_value > 0) && (intersect_value <= z):
+        if (intersect_x > cube_origin_x) && (intersect_x < (cube_origin_x + cell_width)):
+            if (intersect_y > cube_origin_y) && (intersect_y < (cube_origin_y + cell_width)):
+                toReturn = []
+                toReturn.append(True)
+                toReturn.append(False)
+                return toReturn
+
+    # far z plane
+    intersect_value = (cube_origin_z - ray_z) / direction_z
+    intersect_x = ray_x + intersect_value * direction_x
+    intersect_y = ray_y + intersect_value * direction_y
+    if (intersect_value > 0) && (intersect_value <= z):
+        if (intersect_x > cube_origin_x) && (intersect_x < (cube_origin_x + cell_width)):
+            if (intersect_y > cube_origin_y) && (intersect_y < (cube_origin_y + cell_width)):
+                toReturn = []
+                toReturn.append(True)
+                toReturn.append(False)
+                return toReturn
+
+    toReturn = []
+    toReturn.append(False)
+    toReturn.append(False)
+    return toReturn
 
 ################################################################################################
 ################################################################################################
