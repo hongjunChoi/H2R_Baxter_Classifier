@@ -613,8 +613,8 @@ def rayIntersects(ray_x, ray_y, ray_z, direction_x, direction_y, direction_z, z,
 
 def main(top_view, other_views, file_name):
     # PAREMETER TUNING 
-    GRID_SIZE = 1000 # there are GRID_SIZE^3 cells in the cube
-
+    GRID_SIZE = 1000 # there are GRID_SIZE^3 cells in the cube / number of smalls cubes in one edge
+    PADDING_RATE = 1.2 # how much more space are we going to consider other than (min - max)
 
     # 0. CREATE CUBE DIMENSION AND SPARSE MAP 
     # setting spase map and size of the cube from the top down view 
@@ -624,14 +624,23 @@ def main(top_view, other_views, file_name):
     # TODO: CODY needs to change this as necessary
     sparse_map = {}
     top_down_view_info = get_info_from_top_view(top_view)
-    #the global location of  (0, 0, 0) cell in the cube  
-    cube_origin = {'x_origin': 0.8*top_down_view_info['x_min'], 'y_origin': 0.8*top_down_view_info['y_min']
-                    'z_origin' : 0.8*top_down_view_info['z_min']}
 
-    # the size of the cube edge (length of the edge of cube)
-    cube_size = 1.5 * max(top_down_view_info['x_max']-top_down_view_info['x_min'], 
-                        top_down_view_info['y_max']-top_down_view_info['y_min'],
-                        top_down_view_info['z_max']-top_down_view_info['z_min'])
+    x_size = max(abs(top_down_view_info['x_min'] - top_down_view_info['x_avg']), 
+            abs(top_down_view_info['x_max'] - top_down_view_info['x_avg']) )
+
+    y_size = max(abs(top_down_view_info['y_min'] - top_down_view_info['y_avg']), 
+            abs(top_down_view_info['y_max'] - top_down_view_info['y_avg']) )
+
+    z_size = max(abs(top_down_view_info['z_min'] - top_down_view_info['z_avg']), 
+            abs(top_down_view_info['z_max'] - top_down_view_info['z_avg']) )
+
+    cube_size = max(x_size, y_size, z_size)*2*PADDING_RATE
+
+    #the global location of  (0, 0, 0) cell in the cube  
+    cube_origin = { 'x_origin': top_down_view_info['x_avg'] - cube_size/2, 
+                    'y_origin': top_down_view_info['y_avg'] - cube_size/2,
+                    'z_origin' : top_down_view_info['z_avg'] - cube_size/2}
+
 
     cube_info = {'size' : cube_size, 'cube_origin' : cube_origin, 'grid_size' : GRID_SIZE, 'cell_width' : float(cube_size/GRID_SIZE)}
 
