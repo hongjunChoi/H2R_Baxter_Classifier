@@ -1,34 +1,31 @@
+
+import numpy as np
+
+
+#returns rotation matrix M from quaterniion
+def quaternion_to_rotation_matrix(qw, qx, qy, qz):
+    m = np.zeros((3, 3))
+    m[0][0] = 1- 2*qy*qy - 2*qz*qz
+    m[0][1] = 2*qx*qy + 2*qw*qz
+    m[0][2] = 2*qx*qz - 2*qw*qy
+    m[1][0] = 2*qx*qy - 2*qw*qz
+    m[1][1] = 1- 2*qx*qx - 2*qz*qz
+    m[1][2] = 2*qy*qz + 2*qw*qx
+    m[2][0] = 2*qx*qz + 2*qw*qy
+    m[2][1] = 2*qy*qz - 2*qw*qx
+    m[2][2] = 1- 2*qx*qx - 2*qy*qy
+    return m
+
+
+
 if __name__ == "__main__":
-    import numpy as np
-    qw = 1
-    qx = 0
-    qy = 0
-    qz = 0  
-    test = qx*qy + qz*qw;
-    heading = 0
-    attitude = 0
-    bank = 0
 
-    if test > 0.499:  # singularity at north pole
-        heading = 2 * np.arctan2(qx, qw);
-        attitude = np.pi/2;
-        bank = 0;
-
-    
-    elif test < -0.499: # singularity at south pole
-        heading = -2 * np.arctan2(qx, qw)
-        attitude = - np.pi/2
-        bank = 0
-
-    else:
-        sqx = qx*qx
-        sqy = qy*qy
-        sqz = qz*qz
-        heading = np.arctan2(2*qy*qw-2*qx*qz , 1 - 2*sqy - 2*sqz);
-        attitude = np.arcsin(2*test);
-        bank = np.arctan2(2*qx*qw-2*qy*qz , 1 - 2*sqx - 2*sqz)
-
-    x = np.cos(heading) * np.cos(attitude)
-    y = np.sin(heading) * np.cos(attitude)
-    z = np.sin(attitude)
-    print "x : " + str(x) + " y :" + str(y) + "z : " + str(z)
+	qw = 1
+	qx = 0
+	qy = 0
+	qz = 0
+	rotation_matrix = quaternion_to_rotation_matrix(qw, qx, qy, qz)
+	rotation_matrix = np.transpose(rotation_matrix)
+ 	direction_vector = np.dot(rotation_matrix, np.array([0, 0, 1]))
+	direction_vector = direction_vector/np.sum(direction_vector)
+	print {'x': direction_vector[0], 'y': direction_vector[1],'z': direction_vector[2]}

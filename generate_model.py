@@ -210,6 +210,25 @@ def get_info_from_top_view(file_name):
 
 
 
+def get_ray_origin(slug_info, x, y, cell_length):
+    #origin + cell_length* x * cos(angle)
+    default_pos = slug_info['position']
+    rotation_matrix = quaternion_to_rotation_matrix(slug_info['position']['pw'],
+                                                    slug_info['position']['px'], 
+                                                    slug_info['position']['py'], 
+                                                    slug_info['position']['pz'])
+
+    #rotation matrix  has property  inverse = transpose
+    inverse_matrix = rotation_matrix.transpose()
+    vector = np.array(x*cell_width, y*cell_width, 0)
+    current_vector = np.dot(inverse, vector)
+
+    x = round(float(current_vector[0] + default_pos['x']), 3)
+    y = round(float(current_vector[1] + default_pos['y']), 3)
+    z = round(float(current_vector[2] + default_pos['z']), 3)
+    return {'x' : x, 'y':  y  , 'z' : z}
+
+
 #Given a yml file, read all the data, put the confidence score in the sparse map and return the updated sparse map
 #INPUT : info hashtable obtained from get_slug_info(), yml file name, and sparse map hashtable 
 #
@@ -243,7 +262,7 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
             z_mu = float(observed_map.cells[index].z.mu)
             
             if z_mu > 0 and z_mu < cube_info['size']:
-                ray_origin = get_ray_origin(slug_info, x, y, cell_length)
+                ray_origin = get_ray_origin(cube_info ,slug_info, x, y, cell_length)
                 ray_direction = get_ray_direction(slug_info)
                 sparse_map = ray_cast(sparse_map, ray_origin, ray_direction, z_mu, cube_info)
 
@@ -251,36 +270,40 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
 
 # returns a directional unit vector hashtable of {x , y, z}
 def q_to_euler(qw, qx, qy, qz):
+    # test = qx*qy + qz*qw;
+    # heading = 0
+    # attitude = 0
+    # bank = 0
 
-    test = qx*qy + qz*qw;
-    heading = 0
-    attitude = 0
-    bank = 0
-
-    if test > 0.499:  # singularity at north pole
-        heading = 2 * np.arctan2(qx, qw);
-        attitude = np.pi/2;
-        bank = 0;
+    # if test > 0.499:  # singularity at north pole
+    #     heading = 2 * np.arctan2(qx, qw);
+    #     attitude = np.pi/2;
+    #     bank = 0;
 
     
-    if test < -0.499: # singularity at south pole
-        heading = -2 * np.arctan2(qx, qw)
-        attitude = - np.pi/2
-        bank = 0
+    # if test < -0.499: # singularity at south pole
+    #     heading = -2 * np.arctan2(qx, qw)
+    #     attitude = - np.pi/2
+    #     bank = 0
 
-    else:
-        sqx = qx*qx
-        sqy = qy*qy
-        sqz = qz*qz
-        heading = np.arctan2(2*qy*qw-2*qx*qz , 1 - 2*sqy - 2*sqz);
-        attitude = np.arcsin(2*test);
-        bank = np.arctan2(2*qx*qw-2*qy*qz , 1 - 2*sqx - 2*sqz)
+    # else:
+    #     sqx = qx*qx
+    #     sqy = qy*qy
+    #     sqz = qz*qz
+    #     heading = np.arctan2(2*qy*qw-2*qx*qz , 1 - 2*sqy - 2*sqz);
+    #     attitude = np.arcsin(2*test);
+    #     bank = np.arctan2(2*qx*qw-2*qy*qz , 1 - 2*sqx - 2*sqz)
 
-    x = np.cos(heading) * np.cos(attitude)
-    y = np.sin(heading) * np.cos(attitude)
-    z = np.sin(attitude)
+    # x = np.cos(heading) * np.cos(attitude)
+    # y = np.sin(heading) * np.cos(attitude)
+    # z = np.sin(attitude)
 
-    return {'x': x, 'y': y,'z': z}
+    rotation_matrix = quaternion_to_rotation_matrix(qw, qx, qy, qz)
+    rotation_matrix = np.transpose(rotation_matrix)
+    direction_vector = np.dot(rotation_matrix, np.array([0, 0, 1]))
+    direction_vector = direction_vector/np.sum(direction_vector)
+
+    return {'x': direction_vector[0], 'y': direction_vector[1],'z': direction_vector[2]}
 
 
 
@@ -316,11 +339,6 @@ def quaternion_to_rotation_matrix(qw, qx, qy, qz):
     m[2][1] = 2*qy*qz - 2*qw*qx
     m[2][2] = 1- 2*qx*qx - 2*qy*qy
     return m
-
-
-def get_ray_origin(slug_info, x, y, cell_length):
-    #origin + cell_length* x * cos(angle)
-    return 
 
 
 
@@ -618,8 +636,6 @@ def main(top_view, other_views, file_name):
     cube_info = {'size' : cube_size, 'cube_origin' : cube_origin, 'grid_size' : GRID_SIZE, 'cell_width' : float(cube_size/GRID_SIZE)}
 
 
-
-
     # 1. RAY CAST FROM TOP DOWN VIEW SLUG
     sparse_map = read_from_yml(top_view, sparse_map, top_down_view_info, cube_info)
 
@@ -629,8 +645,6 @@ def main(top_view, other_views, file_name):
     for other_view in other_views:
         view_info = get_slug_info(other_view, cube_size)
         sparse_map = read_from_yml(other_view, sparse_map, view_info, cube_info)
-
-
 
 
     # 3. WRITE SPARSE MAP INTO JSON FILE
@@ -649,7 +663,6 @@ def main(top_view, other_views, file_name):
     out_file.close()
 
     return 
-
 
 
 
