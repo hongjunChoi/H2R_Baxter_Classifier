@@ -164,6 +164,11 @@ def get_slug_info(filename, max_length):
     x_min = float('inf')
     z_min = float('inf')
     z_max = 0
+    x_avg = 0
+    y_avg = 0
+    z_avg = 0
+    count = 0
+
 
     for x in range(0, col):
         for y in range(0, row):
@@ -174,6 +179,11 @@ def get_slug_info(filename, max_length):
             if z_mu > 0 and z_mu < max_length:
                 x_len = x*(cell_width) 
                 y_len = y*(cell_width)
+                x_avg = x_avg + x_len
+                y_avg = y_avg + y_len
+                z_avg = z_avg + z_mu
+                count = count + 1
+
                 if x_len > x_max:
                     x_max = x_len
                 if y_len > y_max:
@@ -196,6 +206,10 @@ def get_slug_info(filename, max_length):
     info['y_min'] = round(y_min, 3)
     info['z_max'] = round(z_max, 3)
     info['z_min'] = round(z_min, 3)
+    info['x_avg'] = round(x_avg/count)
+    info['y_avg'] = round(y_avg/count)
+    info['z_avg'] = round(z_avg/count)
+    
     info['position'] = { 'x' : float(background_pose[0].split(':')[1]), 'y' : float(background_pose[1].split(':')[1]), 
                         'z': float(background_pose[2].split(':')[1]), 'qw' :float(background_pose[3].split(':')[1]), 
                         'qx': float(background_pose[4].split(':')[1]), 'qy':float(background_pose[5].split(':')[1]), 
