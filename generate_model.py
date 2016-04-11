@@ -6,6 +6,7 @@ import struct
 import json
 import numpy as np
 import math
+from scipy.ndimage.filters import gaussian_filter
 
 class Observation:
     observationCount = 0
@@ -451,6 +452,9 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
 
     return sparse_map
 
+
+
+
 ################################################################################################
 ################################################################################################
 ################################################################################################
@@ -501,6 +505,7 @@ def main(top_view, other_views, file_name):
     for other_view in other_views:
         view_info = get_slug_info(other_view, cube_size)
         sparse_map = read_from_yml(other_view, sparse_map, view_info, cube_info)
+
 
     # 3. WRITE SPARSE MAP INTO JSON FILE
     data = []
