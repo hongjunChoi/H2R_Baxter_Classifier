@@ -121,6 +121,21 @@ def variance_filter_z(z_var, z):
     return True
 
 
+def convertYCrCB_BGR(y,cr,cb):
+    data = []
+    delta = 0.5
+    r = min(1, max(0, y + 1.403*(cr - delta)))
+    g = min(1, max(0, y - 0.714*(cr - delta) - 0.344*(cb - delta)))
+    b = min(1, max(0, y + 1.733*(cb - delta)))
+    r *= 255.0
+    g *= 255.0
+    b *= 255.0
+    data.append(b)
+    data.append(g)
+    data.append(r)
+    return data
+
+
 def main(fname, datafile):
 
     f = open(fname) 
@@ -174,9 +189,13 @@ def main(fname, datafile):
                 if z_mu > z_max:
                     z_max = z_mu
 
-                r_mu = int(observed_map.cells[index].red.mu)
-                g_mu = int(observed_map.cells[index].green.mu)
-                b_mu = int(observed_map.cells[index].blue.mu)
+                r = float(observed_map.cells[index].red.mu)/255.0
+                g = float(observed_map.cells[index].green.mu)/255.0
+                b = float(observed_map.cells[index].blue.mu)/255.0
+                bgr_array = convertYCrCB_BGR(b, g, r)
+                b_mu = int(bgr_array[0])
+                g_mu = int(bgr_array[1])
+                r_mu = int(bgr_array[2])
                 z_var = float(observed_map.cells[index].z.sigmasquared)
                 r_var = float(observed_map.cells[index].red.sigmasquared)
                 g_var = float(observed_map.cells[index].green.sigmasquared)

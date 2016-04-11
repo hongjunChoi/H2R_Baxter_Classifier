@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>three.js canvas - geometry - hierarchy</title>
+		<title>SLVG Visualizer</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
@@ -25,9 +25,13 @@
 
 		<script>
 
-			var zoomScaleX = 150;
-			var zoomScaleY = 150;
-			var zoomScaleZ = 150;
+			var zoomScaleX = 100;
+			var zoomScaleY = 100;
+			var zoomScaleZ = 100;
+
+			var xScale = 200;
+			var yScale = 200;
+			var zScale = 125;
 
 			var container, stats;
 
@@ -67,7 +71,7 @@
 				
 				group = new THREE.Group();
 
-				loadJSON("a_block_scene_top_min.json", function(response) {
+				loadJSON("test2.json", function(response) {
 			        var actual_JSON = JSON.parse(response);
 			        var info = actual_JSON[actual_JSON.length-1];
 			        console.log(actual_JSON.length)
@@ -93,13 +97,13 @@
 							x_max = parseFloat(actual_JSON[i]["x"]);
 						}
 						var mesh = new THREE.Mesh( geometry, material );
-						mesh.position.x = 1000*parseFloat(actual_JSON[i]["x"]);
-						mesh.position.y = 1000*parseFloat(actual_JSON[i]["y"]);
-						mesh.position.z = 300*z;
+						mesh.position.x = xScale*parseFloat(actual_JSON[i]["x"]);
+						mesh.position.y = yScale*parseFloat(actual_JSON[i]["y"]);
+						mesh.position.z = zScale*z;
 
-						xCount = xCount + 1000*parseFloat(actual_JSON[i]["x"]);
-						yCount = yCount + 1000*parseFloat(actual_JSON[i]["y"]);
-						zCount = zCount + 300 * z;
+						xCount = xCount + xScale*parseFloat(actual_JSON[i]["x"]);
+						yCount = yCount + yScale*parseFloat(actual_JSON[i]["y"]);
+						zCount = zCount + zScale * z;
 						count = count + 1.0;
 						mesh.rotation.x = 2 * Math.PI;
 						mesh.rotation.y = 2 * Math.PI;
