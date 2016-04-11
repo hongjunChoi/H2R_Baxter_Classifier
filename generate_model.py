@@ -367,6 +367,7 @@ def ray_cast(sparse_map, origin, direction, z, cube_info):
     cumulative_z = 0.01
     previous = ""
 
+
     while cumulative_z <= z:
         curr_x = ray_x + direction_x * cumulative_z
         curr_y = ray_y + direction_y * cumulative_z
@@ -390,6 +391,7 @@ def ray_cast(sparse_map, origin, direction, z, cube_info):
                             observation = sparse_map[key]
                             observation.occupancyCount = observation.occupancyCount + 1
                             observation.occupancyConfidence = observation.occupancyCount / observation.observationCount
+                        # in this case, we need to check whether or not there's an observation object in sparse_map already
                         else:
                             if key in sparse_map:
                                 observation = sparse_map[key]
@@ -401,6 +403,7 @@ def ray_cast(sparse_map, origin, direction, z, cube_info):
                                 observation.observationCount = 1
                                 observation.occupancyCount = 1
                                 observation.occupancyConfidence = observation.occupancyCount / observation.observationCount
+                            previous = key
 
                     # add an unoccupied observation to this cell's observation object
                     else if key != previous:
@@ -411,9 +414,10 @@ def ray_cast(sparse_map, origin, direction, z, cube_info):
                         else:
                             observation = Observation()
                             observation.observationCount = 1
+                        previous = key
 
         #ensures that we don't skip over checking the exact location of intersection
-        if (cumulative_z + delta_z) >= z:
+        if (cumulative_z != z) && ((cumulative_z + delta_z) >= z):
             cumulative_z = z
         else:
             cumulative_z = cumulative_z + delta_z
