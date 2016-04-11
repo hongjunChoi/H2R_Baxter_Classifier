@@ -285,9 +285,9 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
         for y in range(0, row):
             index = x + col * y;
             cell = observed_map.cells[index]
-            r =
-            g =
-            b =
+            r = float(cell.red.mu)
+            g = float(cell.green.mu)
+            b = float(cell.blue.mu)
             z_mu = float(observed_map.cells[index].z.mu)
             
             if z_mu > 0 and z_mu < cube_info['size']:
@@ -459,6 +459,7 @@ def main(top_view, other_views, file_name):
     # PAREMETER TUNING 
     GRID_SIZE = 1000 # there are GRID_SIZE^3 cells in the cube / number of smalls cubes in one edge
     PADDING_RATE = 1.2 # how much more space are we going to consider other than (min - max)
+    THRESHOLD  = 0.8
 
     # 0. CREATE CUBE DIMENSION AND SPARSE MAP 
     # setting spase map and size of the cube from the top down view 
@@ -506,8 +507,9 @@ def main(top_view, other_views, file_name):
     print " ======  writing to file ======"
     for key in sparse_map:
         position = decode_key(key)
-        data.append({'x': position['x']*cube_info["cell_width"] , 'y': position['y']*cube_info["cell_width"] , 'z': position['z']*cube_info["cell_width"] , 
-            'score': sparse_map[key].occupancyConfidence })
+        if sparse_map[key].occupancyConfidence >= THRESHOLD:
+            data.append({'x': position['x']*cube_info["cell_width"] , 'y': position['y']*cube_info["cell_width"] , 'z': position['z']*cube_info["cell_width"] , 
+                'score': sparse_map[key].occupancyConfidence , 'r' : sparse_map[key].r, 'g': sparse_map[key].g, 'b': sparse_map[key].b})
 
     out_file = open(file_name, "w")
 
