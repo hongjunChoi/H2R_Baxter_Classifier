@@ -346,7 +346,19 @@ def quaternion_to_rotation_matrix(qw, qx, qy, qz):
     m[2][2] = 1- 2*qx*qx - 2*qy*qy
     return m
 
-
+def convertYCrCB_BGR(y,cr,cb):
+    data = []
+    delta = 0.5
+    r = min(1, max(0, y + 1.403*(cr - delta)))
+    g = min(1, max(0, y - 0.714*(cr - delta) - 0.344*(cb - delta)))
+    b = min(1, max(0, y + 1.733*(cb - delta)))
+    r *= 255.0
+    g *= 255.0
+    b *= 255.0
+    data.append(b)
+    data.append(g)
+    data.append(r)
+    return data
 
 # TODO : CODY SHOULD IMPLEMENT THIS FUNCTION
 # INPUTS
@@ -512,9 +524,19 @@ def main(top_view, other_views, file_name):
     print " ======  writing to file ======"
     for key in sparse_map:
         position = decode_key(key)
+        y = float(sparse_map[key].b)/255.0
+        cr = float(sparse_map[key].g)/255.0
+        cb = float(sparse_map[key].r)/255.0
+        bgr_array = convertYCrCB_BGR(y, cr, cb)
+        b_mu = int(bgr_array[0])
+        g_mu = int(bgr_array[1])
+        r_mu = int(bgr_array[2])
+        
+        
+
         if sparse_map[key].occupancyConfidence >= THRESHOLD:
             data.append({'x': position['x']*cube_info["cell_width"] , 'y': position['y']*cube_info["cell_width"] , 'z': position['z']*cube_info["cell_width"] , 
-                'score': sparse_map[key].occupancyConfidence , 'r' : sparse_map[key].r, 'g': sparse_map[key].g, 'b': sparse_map[key].b})
+                'score': sparse_map[key].occupancyConfidence , 'r' : r_mu, 'g': g_mu, 'b': b_mu})
 
     out_file = open(file_name, "w")
 
