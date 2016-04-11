@@ -81,9 +81,7 @@
 			        var x_min = info["x_min"];
 			        //console.log("x : " + x_min + "  - " + x_max + "    and  y : " + y_min + " - " + y_max)
 			        for(var i = 0; i < actual_JSON.length-1; i++ ) {
-
 			        	if( filter_edge(x_max, y_max, x_min, y_min, actual_JSON[i]["x"], actual_JSON[i]["y"], 0.15) ){
-			        		console.log("skipping");
 							continue;	
 						}
 
@@ -92,11 +90,15 @@
 		        		var g = Math.round(actual_JSON[i]["g"]).toString()
 		        		var b = Math.round(actual_JSON[i]["b"]).toString()
 	        			var c = "rgb(" + r + ", " + g + ", " + b +  ")";
+
 						var material = new THREE.MeshBasicMaterial( { color: c } );
+
 						if(x_max < parseFloat(actual_JSON[i]["x"])){
 							x_max = parseFloat(actual_JSON[i]["x"]);
 						}
+
 						var mesh = new THREE.Mesh( geometry, material );
+
 						mesh.position.x = xScale*parseFloat(actual_JSON[i]["x"]);
 						mesh.position.y = yScale*parseFloat(actual_JSON[i]["y"]);
 						mesh.position.z = zScale*z;
@@ -104,6 +106,7 @@
 						xCount = xCount + xScale*parseFloat(actual_JSON[i]["x"]);
 						yCount = yCount + yScale*parseFloat(actual_JSON[i]["y"]);
 						zCount = zCount + zScale * z;
+
 						count = count + 1.0;
 						mesh.rotation.x = 2 * Math.PI;
 						mesh.rotation.y = 2 * Math.PI;
