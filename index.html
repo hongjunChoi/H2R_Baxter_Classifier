@@ -17,7 +17,6 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
 	</head>
 	<body>
-		<script type="text/javascript" src="a_block_scene_top_min.json"></script>
 		<script src="js/three.min.js"></script>
 		<script src="js/renderers/Projector.js"></script>
 		<script src="js/renderers/CanvasRenderer.js"></script>
@@ -31,7 +30,7 @@
 
 			var xScale = 200;
 			var yScale = 200;
-			var zScale = 125;
+			var zScale = 200;
 
 			var container, stats;
 
@@ -44,13 +43,9 @@
 			var zPos = 0;
 
 			var count = 0;
-
 			var camera, scene, renderer;
-
 			var geometry, group;
-
 			var mouseX = 0, mouseY = 0;
-
 			var windowHalfX = window.innerWidth / 2;
 			var windowHalfY = window.innerHeight / 2;
 
@@ -73,17 +68,8 @@
 
 				loadJSON("test2.json", function(response) {
 			        var actual_JSON = JSON.parse(response);
-			        var info = actual_JSON[actual_JSON.length-1];
-			        console.log(actual_JSON.length)
-			        var x_max = info["x_max"];
-			        var y_max = info["y_max"];
-			        var y_min = info["y_min"];
-			        var x_min = info["x_min"];
-			        //console.log("x : " + x_min + "  - " + x_max + "    and  y : " + y_min + " - " + y_max)
+
 			        for(var i = 0; i < actual_JSON.length-1; i++ ) {
-			        	if( filter_edge(x_max, y_max, x_min, y_min, actual_JSON[i]["x"], actual_JSON[i]["y"], 0.15) ){
-							continue;	
-						}
 
 			        	var z = parseFloat(actual_JSON[i]["z"]);
 		        		var r = Math.round(actual_JSON[i]["r"]).toString()
@@ -91,12 +77,12 @@
 		        		var b = Math.round(actual_JSON[i]["b"]).toString()
 	        			var c = "rgb(" + r + ", " + g + ", " + b +  ")";
 
+	        			// color changing to make sure z is ray length  ( not the height from the table )
+	        			// if(z < 1.1){
+	        			// 	c = "rgb(0, 0, 0)";
+	        			// }
+
 						var material = new THREE.MeshBasicMaterial( { color: c } );
-
-						if(x_max < parseFloat(actual_JSON[i]["x"])){
-							x_max = parseFloat(actual_JSON[i]["x"]);
-						}
-
 						var mesh = new THREE.Mesh( geometry, material );
 
 						mesh.position.x = xScale*parseFloat(actual_JSON[i]["x"]);

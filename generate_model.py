@@ -409,7 +409,7 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                     key_y = math.floor(y / cell_width)
                     key_z = math.floor(z / cell_width)
                     key = encode_key(key_x, key_y, key_z)
-                    print key
+                    
                     # add an occupied observation to this cell's observation object
                     if cumulative_z == z_len:
                         # in this case, there should already be something in sparse_map, so a null pointer shouldn't be thrown
