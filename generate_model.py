@@ -150,14 +150,30 @@ def get_slug_info(filename, max_length):
     f = open(filename) 
     lines = []
     f.readline() 
-    background_pose  = None
+
+    pose_info = ""
+    while True:
+        c = f.read(1)
+        pose_info = pose_info + c
+        if c == "}":
+            break   
+
+    background_pose = pose_info.split('{')[1].split('}')[0]
+    background_pose = background_pose.split(",")
+    
+    for i in range(len(background_pose)):
+        background_pose[i] = background_pose[i].strip()
+
+
+    start_line = pose_info.split("background_pose")[0].split("\n")
+    for line in start_line:
+        lines.append(line)
+
     for line in f:
         if "background_pose" in line:
-            background_pose = line.split('{')[1].split('}')[0]
-            background_pose = background_pose.replace(".", "")
-            background_pose = background_pose.split(",")
             continue
         lines.append(line)
+
 
     data = "\n".join(lines)
     ymlobject = yaml.load(data)
@@ -187,7 +203,7 @@ def get_slug_info(filename, max_length):
             index = x + col * y;
             cell = observed_map.cells[index]
             z_mu = float(observed_map.cells[index].z.mu)
-            
+         
             if z_mu > 0 and z_mu < max_length:
                 x_len = x*(cell_width) 
                 y_len = y*(cell_width)
@@ -218,14 +234,15 @@ def get_slug_info(filename, max_length):
     info['y_min'] = round(y_min, 3)
     info['z_max'] = round(z_max, 3)
     info['z_min'] = round(z_min, 3)
-    info['x_avg'] = round(x_avg/count)
-    info['y_avg'] = round(y_avg/count)
-    info['z_avg'] = round(z_avg/count)
+    info['x_avg'] = round(float(x_avg/count), 3)
+    info['y_avg'] = round(float(y_avg/count), 3)
+    info['z_avg'] = round(float(z_avg/count), 3)
     
     info['position'] = { 'x' : float(background_pose[0].split(':')[1]), 'y' : float(background_pose[1].split(':')[1]), 
                         'z': float(background_pose[2].split(':')[1]), 'qw' :float(background_pose[3].split(':')[1]), 
                         'qx': float(background_pose[4].split(':')[1]), 'qy':float(background_pose[5].split(':')[1]), 
                         'qz': float(background_pose[6].split(':')[1])}
+
 
     return info
 
@@ -237,7 +254,7 @@ def get_info_from_top_view(file_name):
 
 
 def get_ray_origin(slug_info, x, y, cell_length):
-    #origin + cell_length* x * cos(angle)
+        
     default_pos = slug_info['position']
     rotation_matrix = quaternion_to_rotation_matrix(slug_info['position']['qw'],
                                                     slug_info['position']['qx'], 
@@ -245,9 +262,9 @@ def get_ray_origin(slug_info, x, y, cell_length):
                                                     slug_info['position']['qz'])
 
     #rotation matrix  has property  inverse = transpose
-    cell_width = slug_info["cell_len"]
-    vector = np.array([x*cell_width, y*cell_width, 0])
+    vector = np.array([x*cell_length, y*cell_length, 0])
     current_vector = np.dot(rotation_matrix, vector)
+    
 
     x = round(float(current_vector[0] + default_pos['x']), 3)
     y = round(float(current_vector[1] + default_pos['y']), 3)
@@ -278,6 +295,7 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
 
     row = observed_map.height
     col = observed_map.width
+
     cell_length = observed_map.cell_width
 
     print " ====== starting ray casting ========"
@@ -290,15 +308,16 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
             g = float(cell.green.mu)
             b = float(cell.blue.mu)
             z_mu = float(observed_map.cells[index].z.mu)
-            
+
             if z_mu > 0 and z_mu < cube_info['size']:
-                print "ray casting "
                 ray_origin = get_ray_origin(slug_info, x, y, cell_length)
                 ray_direction = get_ray_direction(slug_info)
+
+                
                 sparse_map = ray_cast(sparse_map, ray_origin, ray_direction, z_mu, cube_info, r, g, b)
 
     print "===== end of ray casting ========= "
-
+    print "length of sparse map is " + str(len(sparse_map))
     return sparse_map
 
 # returns a directional unit vector hashtable of {x , y, z}
@@ -391,6 +410,7 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
     delta_z = 0.01
     cumulative_z = 0.01
     previous = ""
+    
 
     while cumulative_z <= z_len:
         
@@ -401,6 +421,8 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
         x = curr_x - cube_origin_x
         y = curr_y - cube_origin_y
         z = curr_z - cube_origin_z
+
+        
 
         if (x >= 0) and (x <= grid_size * cell_width):
             if (y >= 0) and (y <= grid_size * cell_width):
@@ -474,7 +496,7 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
 def main(top_view, other_views, file_name):
     # PAREMETER TUNING 
     GRID_SIZE = 1000 # there are GRID_SIZE^3 cells in the cube / number of smalls cubes in one edge
-    PADDING_RATE = 1.2 # how much more space are we going to consider other than (min - max)
+    PADDING_RATE = 1.3 # how much more space are we going to consider other than (min - max)
     THRESHOLD  = 0.8
 
     # 0. CREATE CUBE DIMENSION AND SPARSE MAP 
@@ -498,16 +520,23 @@ def main(top_view, other_views, file_name):
     cube_size = max(x_size, y_size, z_size)*2*PADDING_RATE
 
     #the global location of  (0, 0, 0) cell in the cube  
-    cube_origin = { 'x_origin': top_down_view_info['x_avg'] - cube_size/2, 
-                    'y_origin': top_down_view_info['y_avg'] - cube_size/2,
-                    'z_origin' : top_down_view_info['z_avg'] - cube_size/2}
+    cube_origin = { 'x_origin': top_down_view_info['position']['x'] + top_down_view_info['x_min'], 
+                    'y_origin': top_down_view_info['position']['y'] + top_down_view_info['y_min'], 
+                    'z_origin': top_down_view_info['position']['z'] + top_down_view_info['z_min'] }
 
+
+    # print "====================="
+    # print top_down_view_info
+    # print cube_origin
+    # print cube_size
+    # print "===================="
 
     cube_info = {'size' : cube_size, 'cube_origin' : cube_origin, 'grid_size' : GRID_SIZE, 'cell_width' : float(cube_size/GRID_SIZE)}
 
 
     # 1. RAY CAST FROM TOP DOWN VIEW SLUG
     print "===== reading from top down view ====== "
+
     sparse_map = read_from_yml(top_view, sparse_map, top_down_view_info, cube_info)
 
 
@@ -532,11 +561,11 @@ def main(top_view, other_views, file_name):
         g_mu = int(bgr_array[1])
         r_mu = int(bgr_array[2])
         
-        
-
         if sparse_map[key].occupancyConfidence >= THRESHOLD:
             data.append({'x': position['x']*cube_info["cell_width"] , 'y': position['y']*cube_info["cell_width"] , 'z': position['z']*cube_info["cell_width"] , 
                 'score': sparse_map[key].occupancyConfidence , 'r' : r_mu, 'g': g_mu, 'b': b_mu})
+
+
 
     out_file = open(file_name, "w")
 
