@@ -496,8 +496,8 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
 def main(top_view, other_views, file_name):
     # PAREMETER TUNING 
     GRID_SIZE = 1000 # there are GRID_SIZE^3 cells in the cube / number of smalls cubes in one edge
-    PADDING_RATE = 1.3 # how much more space are we going to consider other than (min - max)
-    THRESHOLD  = 0.8
+    PADDING_RATE = 1.2 # how much more space are we going to consider other than (min - max)
+    THRESHOLD  = 0.9
 
     # 0. CREATE CUBE DIMENSION AND SPARSE MAP 
     # setting spase map and size of the cube from the top down view 
@@ -508,16 +508,19 @@ def main(top_view, other_views, file_name):
     sparse_map = {}
     top_down_view_info = get_info_from_top_view(top_view)
 
-    x_size = max(abs(top_down_view_info['x_min'] - top_down_view_info['x_avg']), 
-            abs(top_down_view_info['x_max'] - top_down_view_info['x_avg']) )
+    # x_size = max(abs(top_down_view_info['x_min'] - top_down_view_info['x_avg']), 
+    #         abs(top_down_view_info['x_max'] - top_down_view_info['x_avg']) )
 
-    y_size = max(abs(top_down_view_info['y_min'] - top_down_view_info['y_avg']), 
-            abs(top_down_view_info['y_max'] - top_down_view_info['y_avg']) )
+    # y_size = max(abs(top_down_view_info['y_min'] - top_down_view_info['y_avg']), 
+    #         abs(top_down_view_info['y_max'] - top_down_view_info['y_avg']) )
 
-    z_size = max(abs(top_down_view_info['z_min'] - top_down_view_info['z_avg']), 
-            abs(top_down_view_info['z_max'] - top_down_view_info['z_avg']) )
+    # z_size = max(abs(top_down_view_info['z_min'] - top_down_view_info['z_avg']), 
+    #         abs(top_down_view_info['z_max'] - top_down_view_info['z_avg']) )
 
-    cube_size = max(x_size, y_size, z_size)*2*PADDING_RATE
+    x_size = abs(top_down_view_info['x_min'] - top_down_view_info['x_max']) 
+    y_size = abs(top_down_view_info['y_min'] - top_down_view_info['y_max']) 
+    z_size = abs(top_down_view_info['z_min'] - top_down_view_info['z_max']) 
+    cube_size = max(x_size, y_size, z_size)
 
     #the global location of  (0, 0, 0) cell in the cube  
     cube_origin = { 'x_origin': top_down_view_info['position']['x'] + top_down_view_info['x_min'], 
@@ -536,13 +539,11 @@ def main(top_view, other_views, file_name):
 
     # 1. RAY CAST FROM TOP DOWN VIEW SLUG
     print "===== reading from top down view ====== "
-
     sparse_map = read_from_yml(top_view, sparse_map, top_down_view_info, cube_info)
 
 
 
     # 2. RAY CAST FROM OTHER VIEWS 
-    
     for other_view in other_views:
         view_info = get_slug_info(other_view, cube_size)
         sparse_map = read_from_yml(other_view, sparse_map, view_info, cube_info)
@@ -550,6 +551,7 @@ def main(top_view, other_views, file_name):
 
     # 3. WRITE SPARSE MAP INTO JSON FILE
     data = []
+    n_count = 0
     print " ======  writing to file ======"
     for key in sparse_map:
         position = decode_key(key)
@@ -561,17 +563,23 @@ def main(top_view, other_views, file_name):
         g_mu = int(bgr_array[1])
         r_mu = int(bgr_array[2])
         
+        if sparse_map[key].occupancyConfidence < THRESHOLD:
+            n_count = n_count + 1
+
         if sparse_map[key].occupancyConfidence >= THRESHOLD:
             data.append({'x': position['x']*cube_info["cell_width"] , 'y': position['y']*cube_info["cell_width"] , 'z': position['z']*cube_info["cell_width"] , 
                 'score': sparse_map[key].occupancyConfidence , 'r' : r_mu, 'g': g_mu, 'b': b_mu})
 
 
+    print " noise count is : " + str(n_count)
 
     out_file = open(file_name, "w")
 
     # Save the dictionary into this file
     # (the 'indent=4' is optional, but makes it more readable)
-    json.dump(data, out_file, indent=4)                                    
+
+    final_data = {"data" : data , "info" : top_down_view_info}
+    json.dump(final_data, out_file, indent=4)                                    
 
     # Close the file
     out_file.close()
