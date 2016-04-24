@@ -246,6 +246,34 @@ def get_slug_info(filename, max_length):
 
     return info
 
+def get_view_info(filename):
+    info = {}
+    f = open(filename) 
+    lines = []
+    f.readline() 
+
+    pose_info = ""
+    while True:
+        c = f.read(1)
+        pose_info = pose_info + c
+        if c == "}":
+            break   
+
+    background_pose = pose_info.split('{')[1].split('}')[0]
+    background_pose = background_pose.split(",")
+    
+    for i in range(len(background_pose)):
+        background_pose[i] = background_pose[i].strip()
+
+    
+    info['position'] = { 'x' : float(background_pose[0].split(':')[1]), 'y' : float(background_pose[1].split(':')[1]), 
+                        'z': float(background_pose[2].split(':')[1]), 'qw' :float(background_pose[3].split(':')[1]), 
+                        'qx': float(background_pose[4].split(':')[1]), 'qy':float(background_pose[5].split(':')[1]), 
+                        'qz': float(background_pose[6].split(':')[1])}
+
+
+    return info
+
 
 
 def get_info_from_top_view(file_name):
@@ -545,7 +573,7 @@ def main(top_view, other_views, file_name):
 
     # 2. RAY CAST FROM OTHER VIEWS 
     for other_view in other_views:
-        view_info = get_slug_info(other_view, cube_size)
+        view_info = get_view_info(other_view)
         sparse_map = read_from_yml(other_view, sparse_map, view_info, cube_info)
 
 
