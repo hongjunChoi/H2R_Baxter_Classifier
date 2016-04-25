@@ -1,222 +1,232 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<title>SLVG Visualizer</title>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<style>
-			body {
-				background:#fff;
-				padding:0;
-				margin:0;
-				font-weight: bold;
-				overflow:hidden;
-			}
-		</style>
-		
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
-	</head>
-	<body>
-		<script src="js/three.min.js"></script>
-		<script src="js/renderers/Projector.js"></script>
-		<script src="js/renderers/CanvasRenderer.js"></script>
-		<script src="js/libs/stats.min.js"></script>
 
-		<script>
+<head>
+    <title>SLVG Visualizer</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+    body {
+        background: #fff;
+        padding: 0;
+        margin: 0;
+        font-weight: bold;
+        overflow: hidden;
+    }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+</head>
 
-			var zoomScaleX = 100;
-			var zoomScaleY = 100;
-			var zoomScaleZ = 100;
+<body>
+    <script src="js/three.min.js"></script>
+    <script src="js/renderers/Projector.js"></script>
+    <script src="js/renderers/CanvasRenderer.js"></script>
+    <script src="js/libs/stats.min.js"></script>
+    <script>
+    var zoomScaleX = 2000;
+    var zoomScaleY = 2000;
+    var zoomScaleZ = 2000;
 
-			var xScale = 200;
-			var yScale = 200;
-			var zScale = 200;
+    var xScale = 200;
+    var yScale = 200;
+    var zScale = 200;
 
-			var container, stats;
+    var container, stats;
 
-			var xCount = 0;
-			var yCount = 0;
-			var zCount = 0;
+    var xCount = 0;
+    var yCount = 0;
+    var zCount = 0;
 
-			var xPos = 0;
-			var yPos = 0;
-			var zPos = 0;
+    var xPos = 0;
+    var yPos = 0;
+    var zPos = 0;
 
-			var count = 0;
-			var camera, scene, renderer;
-			var geometry, group;
-			var mouseX = 0, mouseY = 0;
-			var windowHalfX = window.innerWidth / 2;
-			var windowHalfY = window.innerHeight / 2;
+    var count = 0;
+    var camera, scene, renderer;
+    var geometry, group;
+    var mouseX = 0,
+        mouseY = 0;
+    var windowHalfX = window.innerWidth / 2;
+    var windowHalfY = window.innerHeight / 2;
 
-			init();
+    init();
 
-			var scenePosition = new THREE.Vector3( 1, 0, 0 );
+    var scenePosition = new THREE.Vector3(1, 0, 0);
 
-			function init() {
+    function init() {
 
-				container = document.createElement( 'div' );
-				document.body.appendChild( container );
+        container = document.createElement('div');
+        document.body.appendChild(container);
 
-				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
-				scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 10000);
+        scene = new THREE.Scene();
 
-				var geometry = new THREE.BoxGeometry( 1, 1, 1 );
-				var material = new THREE.MeshNormalMaterial( { overdraw: 0.5 } );
-				
-				group = new THREE.Group();
+        var geometry = new THREE.BoxGeometry(1, 1, 1);
+        var material = new THREE.MeshNormalMaterial({
+            overdraw: 0.5
+        });
 
-				loadJSON("result.json", function(response) {
+        group = new THREE.Group();
 
-			        var actual_JSON = JSON.parse(response);
-			        var info  = actual_JSON["info"];
-			        actual_JSON = actual_JSON["data"];
-		
-			        for(var i = 0; i < actual_JSON.length; i++ ) {
+        loadJSON("result.json", function(response) {
 
-			        	if( filter_edge(info, parseFloat(actual_JSON[i]["x"]), parseFloat(actual_JSON[i]["y"]), 0.25)){
-			        		console.log("1");
-			        		continue;
-			        	}
+            var actual_JSON = JSON.parse(response);
+            // var info = actual_JSON["info"];
+            // actual_JSON = actual_JSON["data"];
+            alert(actual_JSON.length)
+            for (var i = 0; i < actual_JSON.length; i++) {
 
-			        	var z = parseFloat(actual_JSON[i]["z"]);
-		        		var r = Math.round(actual_JSON[i]["r"]).toString()
-		        		var g = Math.round(actual_JSON[i]["g"]).toString()
-		        		var b = Math.round(actual_JSON[i]["b"]).toString()
-	        			var c = "rgb(" + r + ", " + g + ", " + b +  ")";
-
-						var material = new THREE.MeshBasicMaterial( { color: c } );
-						var mesh = new THREE.Mesh( geometry, material );
-
-						mesh.position.x = xScale*parseFloat(actual_JSON[i]["x"]);
-						mesh.position.y = yScale*parseFloat(actual_JSON[i]["y"]);
-						mesh.position.z = zScale*z;
-
-						xCount = xCount + xScale*parseFloat(actual_JSON[i]["x"]);
-						yCount = yCount + yScale*parseFloat(actual_JSON[i]["y"]);
-						zCount = zCount + zScale * z;
-
-						count = count + 1.0;
-						mesh.rotation.x = 2 * Math.PI;
-						mesh.rotation.y = 2 * Math.PI;
-						mesh.matrixAutoUpdate = false;
-						mesh.updateMatrix();
-						group.add( mesh );
-						
-					}
-
-					xPos = xCount / count;
-					yPos = yCount / count;
-					zPos = zCount / count;
-
-				    scene.add( group );
-
-					renderer = new THREE.CanvasRenderer();
-					renderer.setClearColor( 0xffffff );
-					renderer.setPixelRatio( window.devicePixelRatio );
-					renderer.setSize( window.innerWidth, window.innerHeight );
-					container.appendChild( renderer.domElement );
-
-					stats = new Stats();
-					stats.domElement.style.position = 'absolute';
-					stats.domElement.style.top = '0px';
-					stats.domElement.style.zIndex = 100;
-					container.appendChild( stats.domElement );
-
-					scenePosition = new THREE.Vector3(xPos, yPos, zPos);
-					camera.lookAt(scenePosition);
-					renderer.render(scene, camera);
-			    });
-			}
-
-			function filter_edge(info, x, y, threshold){
-				var x_max = info["x_max"];
-				var y_max = info["y_max"];
-				var x_min = info["x_min"];
-				var y_min = info["y_min"];
-
-				// console.log(" x : " +  x  + "/ x min : " + x_min + "/ x_max : " + x_max + 
-				// 	'/ y : ' + y + "/ y_min " + y_min  + "/ y_max : " + y_max);
-
-				var a = Math.abs(x)/Math.abs(x_max - x_min); 
-				var b = Math.abs(y)/Math.abs(y_max - y_min);
-
-				if( a < threshold || a > (1-threshold) ) {
-					return true;
-				}
-				if(b < threshold || b > (1-threshold) ){
-					return true;
-				}
-				return false;
-			}
-
-			function loadJSON(file, callback) {   
-			    var xobj = new XMLHttpRequest();
-			    xobj.overrideMimeType("application/json");
-			    xobj.open('GET', file, true); // Replace 'my_data' with the path to your file
-			    xobj.onreadystatechange = function () {
-			          if (xobj.readyState == 4 && xobj.status == "200") {
-			            // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
-			            callback(xobj.responseText);
-			          }
-			    };
-			    xobj.send(null);  
-			 }
-			 
-			 var clickCount = 0;
-
-			 document.addEventListener('click', function() {
-
-			 	//top pos z
-			 	if((clickCount % 5) == 0) {
-				 	camera.position.x = xPos;
-				 	camera.position.y = yPos;
-				 	camera.position.z = zPos + zoomScaleZ;
-				 	camera.lookAt(scenePosition);
-					renderer.render(scene, camera);
-				}
-
-				//from pos x
-			 	if((clickCount % 5) == 1) {
-				 	camera.position.x = xPos + zoomScaleX;
-				 	camera.position.y = yPos;
-				 	camera.position.z = zPos;
-				 	camera.lookAt(scenePosition);
-					renderer.render(scene, camera);
-				}
-
-				//from neg x
-			 	if((clickCount % 5) == 2) {
-				 	camera.position.x = xPos + -1 * zoomScaleX;
-				 	camera.position.y = yPos;
-				 	camera.position.z = zPos;
-				 	camera.lookAt(scenePosition);
-					renderer.render(scene, camera);
-				}
-
-				//from pos y 
-			 	if((clickCount % 5) == 3) {
-				 	camera.position.x = xPos;
-				 	camera.position.y = yPos + zoomScaleY;
-				 	camera.position.z = zPos;
-				 	camera.lookAt(scenePosition);
-					renderer.render(scene, camera);
-				}
-
-				//from neg y
-			 	if((clickCount % 5) == 4) {
-				 	camera.position.x = xPos;
-				 	camera.position.y = yPos + -1 * zoomScaleY;
-				 	camera.position.z = zPos;
-				 	camera.lookAt(scenePosition);
-					renderer.render(scene, camera);
-				}
-
-				clickCount = clickCount + 1;
-			 });
+                // if( filter_edge(info, parseFloat(actual_JSON[i]["x"]), parseFloat(actual_JSON[i]["y"]), 0.25)){
+                //  console.log("1");
+                //  continue;
+                // }
 
 
-		</script>
+                // var r = Math.round(actual_JSON[i]["r"]).toString()
+                // var g = Math.round(actual_JSON[i]["g"]).toString()
+                // var b = Math.round(actual_JSON[i]["b"]).toString()
+                // var c = "rgb(" + r + ", " + g + ", " + b + ")";
 
-	</body>
+                var c = "rgb(0, 0, 0)";
+
+                if (actual_JSON[i]['plane'] == true) {
+                    c = "rgb(255, 0 , 0 )"
+                }
+
+                var material = new THREE.MeshBasicMaterial({
+                    color: c
+                });
+                var mesh = new THREE.Mesh(geometry, material);
+
+                mesh.position.x = xScale * parseFloat(actual_JSON[i]["x"]);
+                mesh.position.y = yScale * parseFloat(actual_JSON[i]["y"]);
+                mesh.position.z = zScale * parseFloat(actual_JSON[i]["z"]);
+
+                // console.log("x : " + parseFloat(actual_JSON[i]["x"]) + " / y : " + parseFloat(actual_JSON[i]["y"]) + " / z: " + parseFloat(actual_JSON[i]["z"]));
+
+                xCount = xCount + xScale * parseFloat(actual_JSON[i]["x"]);
+                yCount = yCount + yScale * parseFloat(actual_JSON[i]["y"]);
+                zCount = zCount + zScale * parseFloat(actual_JSON[i]["z"]);
+
+                count = count + 1.0;
+                mesh.rotation.x = 2 * Math.PI;
+                mesh.rotation.y = 2 * Math.PI;
+                mesh.matrixAutoUpdate = false;
+                mesh.updateMatrix();
+                group.add(mesh);
+
+            }
+
+            xPos = xCount / count;
+            yPos = yCount / count;
+            zPos = zCount / count;
+
+            scene.add(group);
+
+            renderer = new THREE.CanvasRenderer();
+            renderer.setClearColor(0xffffff);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            stats = new Stats();
+            stats.domElement.style.position = 'absolute';
+            stats.domElement.style.top = '0px';
+            stats.domElement.style.zIndex = 100;
+            container.appendChild(stats.domElement);
+
+            scenePosition = new THREE.Vector3(xPos, yPos, zPos);
+            camera.lookAt(scenePosition);
+            renderer.render(scene, camera);
+        });
+    }
+
+    function filter_edge(info, x, y, threshold) {
+        var x_max = info["x_max"];
+        var y_max = info["y_max"];
+        var x_min = info["x_min"];
+        var y_min = info["y_min"];
+
+        // console.log(" x : " +  x  + "/ x min : " + x_min + "/ x_max : " + x_max + 
+        //  '/ y : ' + y + "/ y_min " + y_min  + "/ y_max : " + y_max);
+
+        var a = Math.abs(x) / Math.abs(x_max - x_min);
+        var b = Math.abs(y) / Math.abs(y_max - y_min);
+
+        if (a < threshold || a > (1 - threshold)) {
+            return true;
+        }
+        if (b < threshold || b > (1 - threshold)) {
+            return true;
+        }
+        return false;
+    }
+
+    function loadJSON(file, callback) {
+        var xobj = new XMLHttpRequest();
+        xobj.overrideMimeType("application/json");
+        xobj.open('GET', file, true); // Replace 'my_data' with the path to your file
+        xobj.onreadystatechange = function() {
+            if (xobj.readyState == 4 && xobj.status == "200") {
+                // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+                callback(xobj.responseText);
+            }
+        };
+        xobj.send(null);
+    }
+
+    var clickCount = 0;
+
+    document.addEventListener('click', function() {
+
+        //top pos z
+        if ((clickCount % 5) == 0) {
+            camera.position.x = xPos;
+            camera.position.y = yPos;
+            camera.position.z = zPos + zoomScaleZ;
+            camera.lookAt(scenePosition);
+            renderer.render(scene, camera);
+        }
+
+        //from pos x
+        if ((clickCount % 5) == 1) {
+            camera.position.x = xPos + zoomScaleX;
+            camera.position.y = yPos;
+            camera.position.z = zPos;
+            camera.lookAt(scenePosition);
+            renderer.render(scene, camera);
+        }
+
+        //from neg x
+        if ((clickCount % 5) == 2) {
+            camera.position.x = xPos + -1 * zoomScaleX;
+            camera.position.y = yPos;
+            camera.position.z = zPos;
+            camera.lookAt(scenePosition);
+            renderer.render(scene, camera);
+        }
+
+        //from pos y 
+        if ((clickCount % 5) == 3) {
+            camera.position.x = xPos;
+            camera.position.y = yPos + zoomScaleY;
+            camera.position.z = zPos;
+            camera.lookAt(scenePosition);
+            renderer.render(scene, camera);
+        }
+
+        //from neg y
+        if ((clickCount % 5) == 4) {
+            camera.position.x = xPos;
+            camera.position.y = yPos + -1 * zoomScaleY;
+            camera.position.z = zPos;
+            camera.lookAt(scenePosition);
+            renderer.render(scene, camera);
+        }
+
+        clickCount = clickCount + 1;
+    });
+    </script>
+</body>
+
 </html>
