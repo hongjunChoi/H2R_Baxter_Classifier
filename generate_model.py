@@ -245,8 +245,8 @@ def get_slug_info(filename, max_length):
     
     info['position'] = { 'x' : float(background_pose[0].split(':')[1]), 'y' : float(background_pose[1].split(':')[1]), 
                         'z': float(background_pose[2].split(':')[1]), 'qw' : float(background_pose[3].split(':')[1]), 
-                        'qx': float(background_pose[4].split(':')[1]), 'qy': float(background_pose[5].split(':')[1]), 
-                        'qz': float(background_pose[6].split(':')[1])}
+                        'qx': float(background_pose[4].split(':')[1]), 'qy':  float(background_pose[5].split(':')[1]), 
+                        'qz':  float(background_pose[6].split(':')[1])}
 
 
     return info
@@ -343,13 +343,15 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
             b = float(cell.blue.mu)
             z_mu = float(observed_map.cells[index].z.mu)
 
+            ray_origin = get_ray_origin(slug_info, x, y, cell_length)
+            
             if z_mu > 0:
-                ray_origin = get_ray_origin(slug_info, x, y, cell_length)
-                if x % 15 == 0 and y & 15 == 0:
+                z_mu = 0.466 - z_mu
+
+                if x % 14 == 0 and y % 14 == 0:
                     data = { 'x' : ray_origin['x'] , 'y' : ray_origin['y'] , 'z' : ray_origin['z'], 'plane' : True}
                     planes.append(data)
 
-                
                 sparse_map = ray_cast(sparse_map, ray_origin, ray_direction, z_mu, cube_info, r, g, b)
 
 
@@ -368,9 +370,8 @@ def get_ray_direction(slug_info):
     qz = quaternion['qz']
 
     rotation_matrix = quaternion_to_rotation_matrix(qw, qx, qy, qz)
-    direction_vector = np.dot(rotation_matrix, np.array([0, 0, 1]))
+    direction_vector = np.dot(rotation_matrix, np.array([0, 0, -1]))
     return {'x': direction_vector[0], 'y': direction_vector[1],'z': direction_vector[2]}
-
 
 
 
@@ -547,6 +548,7 @@ def main(top_view, other_views, file_name):
     sparse_map = {}
     top_down_view_info = get_info_from_top_view(top_view)
 
+    print top_down_view_info
     # x_size = max(abs(top_down_view_info['x_min'] - top_down_view_info['x_avg']), 
     #         abs(top_down_view_info['x_max'] - top_down_view_info['x_avg']) )
 

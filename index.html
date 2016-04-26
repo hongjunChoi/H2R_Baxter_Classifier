@@ -23,9 +23,9 @@
     <script src="js/renderers/CanvasRenderer.js"></script>
     <script src="js/libs/stats.min.js"></script>
     <script>
-    var zoomScaleX = 2000;
-    var zoomScaleY = 2000;
-    var zoomScaleZ = 2000;
+    var zoomScaleX = 1000;
+    var zoomScaleY = 1000;
+    var zoomScaleZ = 1000;
 
     var xScale = 200;
     var yScale = 200;
@@ -87,7 +87,7 @@
                 // var b = Math.round(actual_JSON[i]["b"]).toString()
                 // var c = "rgb(" + r + ", " + g + ", " + b + ")";
 
-                var c = "rgb(0, 0, 0)";
+                var c = "rgb(0, 255, 0)";
 
                 if (actual_JSON[i]['plane'] == true) {
                     c = "rgb(255, 0 , 0 )"
@@ -146,9 +146,6 @@
         var y_max = info["y_max"];
         var x_min = info["x_min"];
         var y_min = info["y_min"];
-
-        // console.log(" x : " +  x  + "/ x min : " + x_min + "/ x_max : " + x_max + 
-        //  '/ y : ' + y + "/ y_min " + y_min  + "/ y_max : " + y_max);
 
         var a = Math.abs(x) / Math.abs(x_max - x_min);
         var b = Math.abs(y) / Math.abs(y_max - y_min);
