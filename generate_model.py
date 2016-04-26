@@ -359,6 +359,15 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
     return sparse_map
 
 
+# Multiply 2 quaternions, r and q, together
+# INPUT - r : {qx, qy, qz, qw}, q: {qx, qy, qz, qw}
+# OUTPUT - {qx, qy, qz, qw}
+def multiply_quaternion(r, q):
+    t0 = r['qw']*q['qw'] - r['qx']*q['qx'] - r['qy']*q['qy'] - r['qz']*q['qz']
+    t1 = r['qw']*q['qx'] + r['qx']*q['qw'] - r['qy']*q['qz'] + r['qz']*q['qy']
+    t2 = r['qw']*q['qy'] + r['qx']*q['qz'] + r['qy']*q['qw'] - r['qz']*q['qx'] 
+    t3 = r['qw']*q['qz'] - r['qx']*q['qy'] + r['qy']*q['qx'] + r['qz']*q['qw'] 
+    return {'qw': t0, 'qx': t1, 'qy': t2, 'qz': t3}
 
 def get_ray_direction(slug_info):
     quaternion = slug_info['position']
