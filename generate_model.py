@@ -380,12 +380,9 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
                 new_data = {"x" : old_ray_origin['x'], 'y' : old_ray_origin['y'], 'z' : old_ray_origin['z']}
                 old_planes.append(new_data)
 
-            if z_mu > 0:
-                z_mu = 0.466 - z_mu
-
-                
-
-                sparse_map = ray_cast(sparse_map, ray_origin, ray_direction, z_mu, cube_info, r, g, b)
+            if z_mu > 0:  
+                if x%7 == 0 and y % 7 == 0:
+                    sparse_map = ray_cast(sparse_map, ray_origin, ray_direction, z_mu, cube_info, r, g, b)
 
 
     print "===== end of ray casting ========= "
@@ -413,7 +410,7 @@ def get_ray_direction(slug_info):
     qz = quaternion['qz']
 
     rotation_matrix = quaternion_to_rotation_matrix(qw, qx, qy, qz)
-    direction_vector = np.dot(rotation_matrix, np.array([0, 0, -1]))
+    direction_vector = np.dot(rotation_matrix, np.array([0, 0, 1]))
 
     return {'x': direction_vector[0], 'y': direction_vector[1],'z': direction_vector[2]}
 
@@ -442,8 +439,8 @@ def quaternion_to_rotation_matrix(qw, qx, qy, qz):
     m[2][0] = 2*qx*qz - 2*qw*qy
     m[2][1] = 2*qy*qz + 2*qw*qx
     m[2][2] = 1- 2*qx*qx - 2*qy*qy
-
-    return m
+    return np.linalg.inv(m)
+    #return m
 
 def convertYCrCB_BGR(y,cr,cb):
     data = []
