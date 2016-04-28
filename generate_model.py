@@ -97,7 +97,8 @@ def readBinaryFromYaml(yamlList):
     return decompressed
 
 hit_points = []
-planes = []
+old_planes = []
+new_planes = []
 
 doubleunpacker = struct.Struct('d')
 uintunpacker = struct.Struct('I')
@@ -286,9 +287,10 @@ def get_info_from_top_view(file_name):
 
 
 
-def get_ray_origin(slug_info, x, y, cell_length):
+def get_old_ray_origin(slug_info, x, y, cell_length):
         
     default_pos = slug_info['position']
+
     rotation_matrix = quaternion_to_rotation_matrix(slug_info['position']['qw'],
                                                     slug_info['position']['qx'], 
                                                     slug_info['position']['qy'], 
@@ -296,6 +298,31 @@ def get_ray_origin(slug_info, x, y, cell_length):
 
     #rotation matrix  has property  inverse = transpose
     vector = np.array([x*cell_length, y*cell_length, 0])
+    current_vector = np.dot(rotation_matrix, vector)
+    
+
+    x = round(float(current_vector[0] + default_pos['x']), 3)
+    y = round(float(current_vector[1] + default_pos['y']), 3)
+    z = round(float(current_vector[2] + default_pos['z']), 3)
+
+    return {'x' : x, 'y':  y  , 'z' : z}
+
+
+
+
+
+def get_ray_origin(slug_info, x, y, cell_length):
+        
+    default_pos = slug_info['position']
+
+    rotation_matrix = quaternion_to_rotation_matrix(slug_info['position']['qw'],
+                                                    slug_info['position']['qx'], 
+                                                    slug_info['position']['qy'], 
+                                                    slug_info['position']['qz'])
+
+    #rotation matrix  has property  inverse = transpose
+    z_max = 0.388
+    vector = np.array([x*cell_length, y*cell_length, z_max])
     current_vector = np.dot(rotation_matrix, vector)
     
 
@@ -343,14 +370,20 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
             b = float(cell.blue.mu)
             z_mu = float(observed_map.cells[index].z.mu)
 
+            old_ray_origin = get_old_ray_origin(slug_info, x, y, cell_length)
             ray_origin = get_ray_origin(slug_info, x, y, cell_length)
             
+            if x % 14 == 0 and y % 14 == 0:
+                data = { 'x' : ray_origin['x'] , 'y' : ray_origin['y'] , 'z' : ray_origin['z'], 'plane' : True}
+                new_planes.append(data)
+
+                new_data = {"x" : old_ray_origin['x'], 'y' : old_ray_origin['y'], 'z' : old_ray_origin['z']}
+                old_planes.append(new_data)
+
             if z_mu > 0:
                 z_mu = 0.466 - z_mu
 
-                if x % 14 == 0 and y % 14 == 0:
-                    data = { 'x' : ray_origin['x'] , 'y' : ray_origin['y'] , 'z' : ray_origin['z'], 'plane' : True}
-                    planes.append(data)
+                
 
                 sparse_map = ray_cast(sparse_map, ray_origin, ray_direction, z_mu, cube_info, r, g, b)
 
@@ -373,6 +406,7 @@ def multiply_quaternion(r, q):
 
 def get_ray_direction(slug_info):
     quaternion = slug_info['position']
+    quaternion = multiply_quaternion(quaternion , {"qx": 0, "qy" : 1, "qz" : 0, "qw" : 0})
     qw = quaternion['qw']
     qx = quaternion['qx']
     qy = quaternion['qy']
@@ -380,6 +414,7 @@ def get_ray_direction(slug_info):
 
     rotation_matrix = quaternion_to_rotation_matrix(qw, qx, qy, qz)
     direction_vector = np.dot(rotation_matrix, np.array([0, 0, -1]))
+
     return {'x': direction_vector[0], 'y': direction_vector[1],'z': direction_vector[2]}
 
 
@@ -407,6 +442,7 @@ def quaternion_to_rotation_matrix(qw, qx, qy, qz):
     m[2][0] = 2*qx*qz - 2*qw*qy
     m[2][1] = 2*qy*qz + 2*qw*qx
     m[2][2] = 1- 2*qx*qx - 2*qy*qy
+
     return m
 
 def convertYCrCB_BGR(y,cr,cb):
@@ -628,7 +664,7 @@ def main(top_view, other_views, file_name):
     #final_data = {"data" : data , "info" : top_down_view_info}
     #json.dump(final_data, out_file, indent=4)                                    
 
-    temp = hit_points + planes
+    temp = hit_points + new_planes + old_planes
     json.dump(temp, out_file, indent=4) 
     # Close the file
     out_file.close()

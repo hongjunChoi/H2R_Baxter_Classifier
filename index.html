@@ -81,7 +81,6 @@
                 //  continue;
                 // }
 
-
                 // var r = Math.round(actual_JSON[i]["r"]).toString()
                 // var g = Math.round(actual_JSON[i]["g"]).toString()
                 // var b = Math.round(actual_JSON[i]["b"]).toString()
@@ -91,7 +90,10 @@
 
                 if (actual_JSON[i]['plane'] == true) {
                     c = "rgb(255, 0 , 0 )"
+                } else {
+                    c = "rgb(0, 0, 255)"
                 }
+
 
                 var material = new THREE.MeshBasicMaterial({
                     color: c
