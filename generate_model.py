@@ -361,9 +361,9 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
 
     print " ====== starting ray casting ========"
 
-    for x in range(0, col):
-        for y in range(0, row):
-            index = x + col * y;
+    for x in range((-1 * col / 2), (col / 2)):
+        for y in range((-1 * row / 2), (row / 2)):
+            index = (x + (col / 2)) + col * (y + (row / 2));
             cell = observed_map.cells[index]
             r = float(cell.red.mu)
             g = float(cell.green.mu)
