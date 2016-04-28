@@ -96,9 +96,9 @@ def readBinaryFromYaml(yamlList):
     decompressed = zlib.decompress(decoded)
     return decompressed
 
-hit_points = []
-old_planes = []
-new_planes = []
+#hit_points = []
+#old_planes = []
+#new_planes = []
 
 doubleunpacker = struct.Struct('d')
 uintunpacker = struct.Struct('I')
@@ -204,9 +204,10 @@ def get_slug_info(filename, max_length):
     count = 0
 
 
-    for x in range(0, col):
-        for y in range(0, row):
-            index = x + col * y;
+    for x in range((-1 * col / 2), (col / 2)):
+        for y in range((-1 * row / 2), (row / 2)):
+
+            index = (x + (col / 2)) + col * (y + (row / 2));
             cell = observed_map.cells[index]
             z_mu = float(observed_map.cells[index].z.mu)
          
@@ -230,6 +231,7 @@ def get_slug_info(filename, max_length):
                     z_min = z_mu
                 if z_mu > z_max:
                     z_max = z_mu
+
 
     info['cell_len'] = cell_width
     info['rows'] = row
@@ -379,7 +381,7 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
 
             #    new_data = {"x" : old_ray_origin['x'], 'y' : old_ray_origin['y'], 'z' : old_ray_origin['z']}
             #    old_planes.append(new_data)
-            
+
             #print "z : :" + str(z_mu) + " insied the loop !"
             if z_mu > 0:  
                 sparse_map = ray_cast(sparse_map, ray_origin, ray_direction, z_mu, cube_info, r, g, b)
@@ -488,12 +490,12 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
     cumulative_z = 0.01
     previous = ""
     
-    final_x = ray_x + direction_x * z_len 
-    final_y = ray_y + direction_y * z_len
-    final_z = ray_z + direction_z * z_len 
+    #final_x = ray_x + direction_x * z_len 
+    #final_y = ray_y + direction_y * z_len
+    #final_z = ray_z + direction_z * z_len 
 
-    data = {'x' : final_x, 'y' : final_y, 'z' : final_z }
-    hit_points.append(data)
+    #data = {'x' : final_x, 'y' : final_y, 'z' : final_z }
+    #hit_points.append(data)
 
     while cumulative_z <= z_len:
         
@@ -509,7 +511,6 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
         if (x >= 0) and (x <= grid_size * cell_width):
             if (y >= 0) and (y <= grid_size * cell_width):
                 if (z >= 0) and (z <= grid_size * cell_width):
-                    print "asdfasdf"
                     key_x = math.floor(x / cell_width)
                     key_y = math.floor(y / cell_width)
                     key_z = math.floor(z / cell_width)
@@ -580,7 +581,7 @@ def main(top_view, other_views, file_name):
     # PAREMETER TUNING 
     GRID_SIZE = 1000 # there are GRID_SIZE^3 cells in the cube / number of smalls cubes in one edge
     PADDING_RATE = 1.2 # how much more space are we going to consider other than (min - max)
-    THRESHOLD  = 0.9
+    THRESHOLD  = 0.8
 
     # 0. CREATE CUBE DIMENSION AND SPARSE MAP 
     # setting spase map and size of the cube from the top down view 
@@ -664,7 +665,10 @@ def main(top_view, other_views, file_name):
 
     #temp = new_planes + old_planes
 
-    json.dump( data, out_file, indent=4) 
+    print " ================== ABOUT TO WRTIE TO FILE =============="
+    print "length of final sparse map  : " + str(len(sparse_map))
+    json.dump(data, out_file, indent=4) 
+    
     # Close the file
     out_file.close()
 
