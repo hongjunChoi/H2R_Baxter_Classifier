@@ -312,7 +312,7 @@ def get_old_ray_origin(slug_info, x, y, cell_length):
 
 
 def get_ray_origin(slug_info, x, y, cell_length):
-        
+    z_max = 0.388
     default_pos = slug_info['position']
 
     rotation_matrix = quaternion_to_rotation_matrix(slug_info['position']['qw'],
@@ -439,8 +439,8 @@ def quaternion_to_rotation_matrix(qw, qx, qy, qz):
     m[2][0] = 2*qx*qz - 2*qw*qy
     m[2][1] = 2*qy*qz + 2*qw*qx
     m[2][2] = 1- 2*qx*qx - 2*qy*qy
-    return np.linalg.inv(m)
-    #return m
+    #return np.linalg.inv(m)
+    return m
 
 def convertYCrCB_BGR(y,cr,cb):
     data = []
