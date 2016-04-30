@@ -581,7 +581,7 @@ def main(top_view, other_views, file_name):
     # PAREMETER TUNING 
     GRID_SIZE = 1000 # there are GRID_SIZE^3 cells in the cube / number of smalls cubes in one edge
     PADDING_RATE = 1.2 # how much more space are we going to consider other than (min - max)
-    THRESHOLD  = 0.8
+    THRESHOLD  = 0.2
 
     # 0. CREATE CUBE DIMENSION AND SPARSE MAP 
     # setting spase map and size of the cube from the top down view 
@@ -645,10 +645,12 @@ def main(top_view, other_views, file_name):
         g_mu = int(bgr_array[1])
         r_mu = int(bgr_array[2])
         
+        print sparse_map[key].occupancyConfidence 
+
         if sparse_map[key].occupancyConfidence < THRESHOLD:
             n_count = n_count + 1
 
-        if sparse_map[key].occupancyConfidence >= THRESHOLD:
+        if sparse_map[key].occupancyConfidence >= 0:
             data.append({'x': position['x']*cube_info["cell_width"] , 'y': position['y']*cube_info["cell_width"] , 'z': position['z']*cube_info["cell_width"] , 
                 'score': sparse_map[key].occupancyConfidence , 'r' : r_mu, 'g': g_mu, 'b': b_mu})
 
@@ -667,6 +669,7 @@ def main(top_view, other_views, file_name):
 
     print " ================== ABOUT TO WRTIE TO FILE =============="
     print "length of final sparse map  : " + str(len(sparse_map))
+    print "length of data written to json after threshold  : " + str(len(data))
     json.dump(data, out_file, indent=4) 
     
     # Close the file
