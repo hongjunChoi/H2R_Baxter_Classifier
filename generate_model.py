@@ -203,34 +203,51 @@ def get_slug_info(filename, max_length):
     z_avg = 0
     count = 0
 
+    info['position'] = { 'x' : float(background_pose[0].split(':')[1]), 'y' : float(background_pose[1].split(':')[1]), 
+                        'z': float(background_pose[2].split(':')[1]), 'qw' : float(background_pose[3].split(':')[1]), 
+                        'qx': float(background_pose[4].split(':')[1]), 'qy':  float(background_pose[5].split(':')[1]), 
+                        'qz':  float(background_pose[6].split(':')[1])}
 
     for x in range((-1 * col / 2), (col / 2)):
         for y in range((-1 * row / 2), (row / 2)):
-
             index = (x + (col / 2)) + col * (y + (row / 2));
             cell = observed_map.cells[index]
             z_mu = float(observed_map.cells[index].z.mu)
-         
+
             if z_mu > 0 and z_mu < max_length:
-                x_len = x*(cell_width) 
-                y_len = y*(cell_width)
-                x_avg = x_avg + x_len
-                y_avg = y_avg + y_len
-                z_avg = z_avg + z_mu
+                #ray info
+                ray_origin = get_ray_origin(info, x, y, cell_width)
+                ray_direction = get_ray_direction(info)
+                ray_x = ray_origin['x']
+                ray_y = ray_origin['y']
+                ray_z = ray_origin['z']
+                direction_x = ray_direction['x']
+                direction_y = ray_direction['y']
+                direction_z = ray_direction['z']
+                
+                final_x = ray_x + direction_x * z_mu
+                final_y = ray_y + direction_y * z_mu
+                final_z = ray_z + direction_z * z_mu
+
+                x_avg = x_avg + final_x
+                y_avg = y_avg + final_y
+                z_avg = z_avg + final_z
                 count = count + 1
 
-                if x_len > x_max:
-                    x_max = x_len
-                if y_len > y_max:
-                    y_max = y_len
-                if y_len < y_min:
-                    y_min = y_len
-                if x_len < x_min:
-                    x_min = x_len
-                if z_mu < z_min:
-                    z_min = z_mu
-                if z_mu > z_max:
-                    z_max = z_mu
+                if final_x > x_max:
+                    x_max = final_x
+                if final_x < x_min:
+                    x_min = final_x
+
+                if final_y > y_max:
+                    y_max = final_y
+                if final_y < y_min:
+                    y_min = final_y
+                
+                if final_z < z_min:
+                    z_min = final_z
+                if final_z > z_max:
+                    z_max = final_z
 
 
     info['cell_len'] = cell_width
@@ -246,11 +263,6 @@ def get_slug_info(filename, max_length):
     info['y_avg'] = round(float(y_avg/count), 3)
     info['z_avg'] = round(float(z_avg/count), 3)
     
-    info['position'] = { 'x' : float(background_pose[0].split(':')[1]), 'y' : float(background_pose[1].split(':')[1]), 
-                        'z': float(background_pose[2].split(':')[1]), 'qw' : float(background_pose[3].split(':')[1]), 
-                        'qx': float(background_pose[4].split(':')[1]), 'qy':  float(background_pose[5].split(':')[1]), 
-                        'qz':  float(background_pose[6].split(':')[1])}
-
 
     return info
 
@@ -486,8 +498,8 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
     grid_size = cube_info['grid_size']
     cell_width = cube_info['cell_width']
 
-    delta_z = 0.01
-    cumulative_z = 0.01
+    delta_z = 0.001
+    cumulative_z = 0.001
     previous = ""
     
     #final_x = ray_x + direction_x * z_len 
@@ -507,7 +519,6 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
         y = curr_y - cube_origin_y
         z = curr_z - cube_origin_z
 
-        
         if (x >= 0) and (x <= grid_size * cell_width):
             if (y >= 0) and (y <= grid_size * cell_width):
                 if (z >= 0) and (z <= grid_size * cell_width):
@@ -527,6 +538,7 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                             observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
                             observation.occupancyConfidence = observation.occupancyCount / observation.observationCount
                             sparse_map[key] = observation
+                            print "ray cast type 1"
                         # in this case, we need to check whether or not there's an observation object in sparse_map already
                         else:
                             if key in sparse_map:
@@ -538,6 +550,7 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                                 observation.occupancyCount = observation.occupancyCount + 1
                                 observation.occupancyConfidence = observation.occupancyCount / observation.observationCount
                                 sparse_map[key] = observation
+                                print "ray cast type 2"
                             else:
                                 observation = Observation()
                                 observation.r = (observation.r * observation.observationCount + r) / (observation.observationCount + 1)
@@ -547,6 +560,7 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                                 observation.occupancyCount = 1
                                 observation.occupancyConfidence = observation.occupancyCount / observation.observationCount
                                 sparse_map[key] = observation
+                                print "ray cast type 3"
                             previous = key
 
                     # add an unoccupied observation to this cell's observation object
@@ -556,19 +570,54 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                             observation.observationCount = observation.observationCount + 1
                             observation.occupancyConfidence = observation.occupancyCount / observation.observationCount
                             sparse_map[key] = observation
+                            print "ray cast type 4"
                         else:
                             observation = Observation()
+                            observation.occupancyConfidence = 0
                             observation.observationCount = 1
                             sparse_map[key] = observation
+                            print "ray cast type 5"
                         previous = key
 
         #ensures that we don't skip over checking the exact location of intersection
         if (cumulative_z != z_len) and ((cumulative_z + delta_z) >= z_len):
+            print " \n\n\n======= IS THIS HAPPENING   ============\n\n\n"
             cumulative_z = z_len
         else:
             cumulative_z = cumulative_z + delta_z
 
     return sparse_map
+
+
+def set_cube_dimension(top_down_view_info, padding, grid_size):
+
+    x_size = max(abs(top_down_view_info['x_min'] - top_down_view_info['x_avg']), 
+         abs(top_down_view_info['x_max'] - top_down_view_info['x_avg']) )
+
+    y_size = max(abs(top_down_view_info['y_min'] - top_down_view_info['y_avg']), 
+         abs(top_down_view_info['y_max'] - top_down_view_info['y_avg']) )
+
+    z_size = max(abs(top_down_view_info['z_min'] - top_down_view_info['z_avg']), 
+         abs(top_down_view_info['z_max'] - top_down_view_info['z_avg']) )
+
+    half = max(x_size, y_size, z_size) * padding
+    cube_size = float(2*half)
+    cube_origin = { 'x_origin': top_down_view_info['x_avg'] - half,
+                    'y_origin': top_down_view_info['y_avg'] - half, 
+                    'z_origin': top_down_view_info['z_avg'] - half}
+
+    #x_size = abs(top_down_view_info['x_min'] - top_down_view_info['x_max']) 
+    #y_size = abs(top_down_view_info['y_min'] - top_down_view_info['y_max']) 
+    #z_size = abs(top_down_view_info['z_min'] - top_down_view_info['z_max']) 
+    
+
+    #the global location of  (0, 0, 0) cell in the cube  
+    #cube_origin = { 'x_origin': top_down_view_info['position']['x'] + top_down_view_info['x_min'], 
+    #                'y_origin': top_down_view_info['position']['y'] + top_down_view_info['y_min'], 
+    #                'z_origin': top_down_view_info['position']['z'] + top_down_view_info['z_min'] }
+
+    cube_info = {'size' : cube_size, 'cube_origin' : cube_origin, 'grid_size' : grid_size, 'cell_width' : float(cube_size/grid_size)}
+    return cube_info
 
 
 
@@ -583,45 +632,15 @@ def main(top_view, other_views, file_name):
     PADDING_RATE = 1.2 # how much more space are we going to consider other than (min - max)
     THRESHOLD  = 0.2
 
-    # 0. CREATE CUBE DIMENSION AND SPARSE MAP 
-    # setting spase map and size of the cube from the top down view 
-    # from the top down view, obtain the dimensions of the cube
-    # for now, I set (0, 0, 0) location of the cube as 0.8 * (min x, min y, min z) 
-    # also the length (size) of the cube is set to be 1.5 * max(x_max - x_min, y_max - y_min, z_max - z_min)
-    # TODO: CODY needs to change this as necessary
     sparse_map = {}
     top_down_view_info = get_info_from_top_view(top_view)
 
-    print top_down_view_info
-    # x_size = max(abs(top_down_view_info['x_min'] - top_down_view_info['x_avg']), 
-    #         abs(top_down_view_info['x_max'] - top_down_view_info['x_avg']) )
-
-    # y_size = max(abs(top_down_view_info['y_min'] - top_down_view_info['y_avg']), 
-    #         abs(top_down_view_info['y_max'] - top_down_view_info['y_avg']) )
-
-    # z_size = max(abs(top_down_view_info['z_min'] - top_down_view_info['z_avg']), 
-    #         abs(top_down_view_info['z_max'] - top_down_view_info['z_avg']) )
-
-    x_size = abs(top_down_view_info['x_min'] - top_down_view_info['x_max']) 
-    y_size = abs(top_down_view_info['y_min'] - top_down_view_info['y_max']) 
-    z_size = abs(top_down_view_info['z_min'] - top_down_view_info['z_max']) 
-    cube_size = max(x_size, y_size, z_size)
-
-    #the global location of  (0, 0, 0) cell in the cube  
-    cube_origin = { 'x_origin': top_down_view_info['position']['x'] + top_down_view_info['x_min'], 
-                    'y_origin': top_down_view_info['position']['y'] + top_down_view_info['y_min'], 
-                    'z_origin': top_down_view_info['position']['z'] + top_down_view_info['z_min'] }
-
-
-
-    cube_info = {'size' : cube_size, 'cube_origin' : cube_origin, 'grid_size' : GRID_SIZE, 'cell_width' : float(cube_size/GRID_SIZE)}
-
+    cube_info = set_cube_dimension(top_down_view_info, PADDING_RATE, GRID_SIZE)
     print "cube info : " + str(cube_info)
 
     # 1. RAY CAST FROM TOP DOWN VIEW SLUG
     print "===== reading from top down view ====== "
     sparse_map = read_from_yml(top_view, sparse_map, top_down_view_info, cube_info)
-
 
 
     # 2. RAY CAST FROM OTHER VIEWS 
