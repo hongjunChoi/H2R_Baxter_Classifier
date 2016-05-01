@@ -76,49 +76,49 @@
             alert(actual_JSON.length);
 
             for (var i = 0; i < actual_JSON.length; i++) {
-                if (i % 21 == 0) {
-                    // if( filter_edge(info, parseFloat(actual_JSON[i]["x"]), parseFloat(actual_JSON[i]["y"]), 0.25)){
-                    //  console.log("1");
-                    //  continue;
-                    // }
+                // if (i % 21 == 0) {
+                // if( filter_edge(info, parseFloat(actual_JSON[i]["x"]), parseFloat(actual_JSON[i]["y"]), 0.25)){
+                //  console.log("1");
+                //  continue;
+                // }
 
 
-                    var r = Math.round(actual_JSON[i]["r"]).toString()
-                    var g = Math.round(actual_JSON[i]["g"]).toString()
-                    var b = Math.round(actual_JSON[i]["b"]).toString()
-                    var c = "rgb(" + r + ", " + g + ", " + b + ")";
+                var r = Math.round(actual_JSON[i]["r"]).toString()
+                var g = Math.round(actual_JSON[i]["g"]).toString()
+                var b = Math.round(actual_JSON[i]["b"]).toString()
+                var c = "rgb(" + r + ", " + g + ", " + b + ")";
 
-                    // var c = "rgb(0, 255, 0)";
+                // var c = "rgb(0, 255, 0)";
 
-                    // if (actual_JSON[i]['plane'] == true) {
-                    //     c = "rgb(255, 0 , 0 )"
-                    // } else {
-                    //     c = "rgb(0, 0, 255)"
-                    // }
+                // if (actual_JSON[i]['plane'] == true) {
+                //     c = "rgb(255, 0 , 0 )"
+                // } else {
+                //     c = "rgb(0, 0, 255)"
+                // }
 
 
-                    var material = new THREE.MeshBasicMaterial({
-                        color: c
-                    });
-                    var mesh = new THREE.Mesh(geometry, material);
+                var material = new THREE.MeshBasicMaterial({
+                    color: c
+                });
+                var mesh = new THREE.Mesh(geometry, material);
 
-                    mesh.position.x = xScale * parseFloat(actual_JSON[i]["x"]);
-                    mesh.position.y = yScale * parseFloat(actual_JSON[i]["y"]);
-                    mesh.position.z = zScale * parseFloat(actual_JSON[i]["z"]);
+                mesh.position.x = xScale * parseFloat(actual_JSON[i]["x"]);
+                mesh.position.y = yScale * parseFloat(actual_JSON[i]["y"]);
+                mesh.position.z = zScale * parseFloat(actual_JSON[i]["z"]);
 
-                    // console.log("x : " + parseFloat(actual_JSON[i]["x"]) + " / y : " + parseFloat(actual_JSON[i]["y"]) + " / z: " + parseFloat(actual_JSON[i]["z"]));
+                // console.log("x : " + parseFloat(actual_JSON[i]["x"]) + " / y : " + parseFloat(actual_JSON[i]["y"]) + " / z: " + parseFloat(actual_JSON[i]["z"]));
 
-                    xCount = xCount + xScale * parseFloat(actual_JSON[i]["x"]);
-                    yCount = yCount + yScale * parseFloat(actual_JSON[i]["y"]);
-                    zCount = zCount + zScale * parseFloat(actual_JSON[i]["z"]);
+                xCount = xCount + xScale * parseFloat(actual_JSON[i]["x"]);
+                yCount = yCount + yScale * parseFloat(actual_JSON[i]["y"]);
+                zCount = zCount + zScale * parseFloat(actual_JSON[i]["z"]);
 
-                    count = count + 1.0;
-                    mesh.rotation.x = 2 * Math.PI;
-                    mesh.rotation.y = 2 * Math.PI;
-                    mesh.matrixAutoUpdate = false;
-                    mesh.updateMatrix();
-                    group.add(mesh);
-                }
+                count = count + 1.0;
+                mesh.rotation.x = 2 * Math.PI;
+                mesh.rotation.y = 2 * Math.PI;
+                mesh.matrixAutoUpdate = false;
+                mesh.updateMatrix();
+                group.add(mesh);
+                // }
             }
 
             xPos = xCount / count;

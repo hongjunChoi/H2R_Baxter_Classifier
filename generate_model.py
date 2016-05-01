@@ -536,9 +536,9 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                             observation.r = (observation.r * observation.observationCount + r) / (observation.observationCount + 1)
                             observation.g = (observation.g * observation.observationCount + g) / (observation.observationCount + 1)
                             observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
-                            observation.occupancyConfidence = observation.occupancyCount / observation.observationCount
+                            observation.occupancyConfidence = float(observation.occupancyCount / observation.observationCount)
                             sparse_map[key] = observation
-                            print "ray cast type 1"
+
                         # in this case, we need to check whether or not there's an observation object in sparse_map already
                         else:
                             if key in sparse_map:
@@ -548,9 +548,9 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                                 observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
                                 observation.observationCount = observation.observationCount + 1
                                 observation.occupancyCount = observation.occupancyCount + 1
-                                observation.occupancyConfidence = observation.occupancyCount / observation.observationCount
+                                observation.occupancyConfidence = float(observation.occupancyCount / observation.observationCount)
                                 sparse_map[key] = observation
-                                print "ray cast type 2"
+ 
                             else:
                                 observation = Observation()
                                 observation.r = (observation.r * observation.observationCount + r) / (observation.observationCount + 1)
@@ -558,9 +558,9 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                                 observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
                                 observation.observationCount = 1
                                 observation.occupancyCount = 1
-                                observation.occupancyConfidence = observation.occupancyCount / observation.observationCount
+                                observation.occupancyConfidence = float(observation.occupancyCount / observation.observationCount)
                                 sparse_map[key] = observation
-                                print "ray cast type 3"
+
                             previous = key
 
                     # add an unoccupied observation to this cell's observation object
@@ -568,20 +568,18 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                         if key in sparse_map:
                             observation = sparse_map[key]
                             observation.observationCount = observation.observationCount + 1
-                            observation.occupancyConfidence = observation.occupancyCount / observation.observationCount
+                            observation.occupancyConfidence = float(observation.occupancyCount / observation.observationCount)
                             sparse_map[key] = observation
-                            print "ray cast type 4"
+    
                         else:
                             observation = Observation()
                             observation.occupancyConfidence = 0
                             observation.observationCount = 1
                             sparse_map[key] = observation
-                            print "ray cast type 5"
                         previous = key
 
         #ensures that we don't skip over checking the exact location of intersection
         if (cumulative_z != z_len) and ((cumulative_z + delta_z) >= z_len):
-            print " \n\n\n======= IS THIS HAPPENING   ============\n\n\n"
             cumulative_z = z_len
         else:
             cumulative_z = cumulative_z + delta_z
@@ -630,7 +628,8 @@ def main(top_view, other_views, file_name):
     # PAREMETER TUNING 
     GRID_SIZE = 1000 # there are GRID_SIZE^3 cells in the cube / number of smalls cubes in one edge
     PADDING_RATE = 1.2 # how much more space are we going to consider other than (min - max)
-    THRESHOLD  = 0.2
+    THRESHOLD  = 0.5
+    MIN_OBSERVATION = 3
 
     sparse_map = {}
     top_down_view_info = get_info_from_top_view(top_view)
@@ -664,17 +663,16 @@ def main(top_view, other_views, file_name):
         g_mu = int(bgr_array[1])
         r_mu = int(bgr_array[2])
         
-        print sparse_map[key].occupancyConfidence 
-
-        if sparse_map[key].occupancyConfidence < THRESHOLD:
-            n_count = n_count + 1
-
-        if sparse_map[key].occupancyConfidence >= 0:
+        if sparse_map[key].observationCount > 1:
+            print "======== observation count is NOT ZERO!!  COUNT : " + str(sparse_map[key].observationCount)
+            
+        if sparse_map[key].occupancyConfidence >= THRESHOLD:
             data.append({'x': position['x']*cube_info["cell_width"] , 'y': position['y']*cube_info["cell_width"] , 'z': position['z']*cube_info["cell_width"] , 
                 'score': sparse_map[key].occupancyConfidence , 'r' : r_mu, 'g': g_mu, 'b': b_mu})
+        else:
+            n_count = n_count + 1
 
-
-    print " noise count is : " + str(n_count)
+    print " noise count is : " + str(n_count) + " among total of : " + str(len(sparse_map))
 
     out_file = open(file_name, "w")
 
