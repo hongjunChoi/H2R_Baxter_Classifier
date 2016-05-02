@@ -536,7 +536,7 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                             observation.r = (observation.r * observation.observationCount + r) / (observation.observationCount + 1)
                             observation.g = (observation.g * observation.observationCount + g) / (observation.observationCount + 1)
                             observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
-                            observation.occupancyConfidence = float(observation.occupancyCount / observation.observationCount)
+                            observation.occupancyConfidence = float(float(observation.occupancyCount)/float(observation.observationCount))
                             sparse_map[key] = observation
 
                         # in this case, we need to check whether or not there's an observation object in sparse_map already
@@ -548,7 +548,7 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                                 observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
                                 observation.observationCount = observation.observationCount + 1
                                 observation.occupancyCount = observation.occupancyCount + 1
-                                observation.occupancyConfidence = float(observation.occupancyCount / observation.observationCount)
+                                observation.occupancyConfidence = float(float(observation.occupancyCount) / float(observation.observationCount))
                                 sparse_map[key] = observation
  
                             else:
@@ -558,7 +558,7 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                                 observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
                                 observation.observationCount = 1
                                 observation.occupancyCount = 1
-                                observation.occupancyConfidence = float(observation.occupancyCount / observation.observationCount)
+                                observation.occupancyConfidence = float(float(observation.occupancyCount) / float(observation.observationCount))
                                 sparse_map[key] = observation
 
                             previous = key
@@ -568,7 +568,7 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                         if key in sparse_map:
                             observation = sparse_map[key]
                             observation.observationCount = observation.observationCount + 1
-                            observation.occupancyConfidence = float(observation.occupancyCount / observation.observationCount)
+                            observation.occupancyConfidence = float(float(observation.occupancyCount) / float(observation.observationCount))
                             sparse_map[key] = observation
     
                         else:
@@ -628,7 +628,7 @@ def main(top_view, other_views, file_name):
     # PAREMETER TUNING 
     GRID_SIZE = 1000 # there are GRID_SIZE^3 cells in the cube / number of smalls cubes in one edge
     PADDING_RATE = 1.2 # how much more space are we going to consider other than (min - max)
-    THRESHOLD  = 0.5
+    THRESHOLD  = 0.8
     MIN_OBSERVATION = 3
 
     sparse_map = {}
@@ -663,9 +663,6 @@ def main(top_view, other_views, file_name):
         g_mu = int(bgr_array[1])
         r_mu = int(bgr_array[2])
         
-        if sparse_map[key].observationCount > 1:
-            print "======== observation count is NOT ZERO!!  COUNT : " + str(sparse_map[key].observationCount)
-            
         if sparse_map[key].occupancyConfidence >= THRESHOLD:
             data.append({'x': position['x']*cube_info["cell_width"] , 'y': position['y']*cube_info["cell_width"] , 'z': position['z']*cube_info["cell_width"] , 
                 'score': sparse_map[key].occupancyConfidence , 'r' : r_mu, 'g': g_mu, 'b': b_mu})
