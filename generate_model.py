@@ -98,7 +98,7 @@ def readBinaryFromYaml(yamlList):
 
 #hit_points = []
 #old_planes = []
-#new_planes = []
+planes = []
 
 doubleunpacker = struct.Struct('d')
 uintunpacker = struct.Struct('I')
@@ -373,6 +373,8 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
     cell_length = observed_map.cell_width
     ray_direction = get_ray_direction(slug_info)
 
+    print ray_direction
+
     print " ====== starting ray casting ========"
 
     for x in range((-1 * col / 2), (col / 2)):
@@ -387,12 +389,9 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
             #old_ray_origin = get_old_ray_origin(slug_info, x, y, cell_length)
             ray_origin = get_ray_origin(slug_info, x, y, cell_length)
             
-            #if x % 14 == 0 and y % 14 == 0:
-            #    data = { 'x' : ray_origin['x'] , 'y' : ray_origin['y'] , 'z' : ray_origin['z'], 'plane' : True}
-            #    new_planes.append(data)
-
-            #    new_data = {"x" : old_ray_origin['x'], 'y' : old_ray_origin['y'], 'z' : old_ray_origin['z']}
-            #    old_planes.append(new_data)
+            if x % 14 == 0 and y % 14 == 0:
+                data = { 'x' : ray_origin['x'] , 'y' : ray_origin['y'] , 'z' : ray_origin['z'], 'plane' : True}
+                planes.append(data)
 
             #print "z : :" + str(z_mu) + " insied the loop !"
             if z_mu > 0:  
@@ -453,8 +452,8 @@ def quaternion_to_rotation_matrix(qw, qx, qy, qz):
     m[2][0] = 2*qx*qz - 2*qw*qy
     m[2][1] = 2*qy*qz + 2*qw*qx
     m[2][2] = 1- 2*qx*qx - 2*qy*qy
-    #return np.linalg.inv(m)
-    return m
+    return np.linalg.inv(m)
+    #return m
 
 def convertYCrCB_BGR(y,cr,cb):
     data = []
@@ -533,9 +532,9 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                         if key == previous:
                             observation = sparse_map[key]
                             observation.occupancyCount = observation.occupancyCount + 1
-                            observation.r = (observation.r * observation.observationCount + r) / (observation.observationCount + 1)
-                            observation.g = (observation.g * observation.observationCount + g) / (observation.observationCount + 1)
-                            observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
+                            observation.r = float(observation.r * observation.observationCount + r) / float(observation.observationCount + 1)
+                            observation.g = float(observation.g * observation.observationCount + g) / float(observation.observationCount + 1)
+                            observation.b = float(observation.b * observation.observationCount + b) / float(observation.observationCount + 1)
                             observation.occupancyConfidence = float(float(observation.occupancyCount)/float(observation.observationCount))
                             sparse_map[key] = observation
 
@@ -543,9 +542,9 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                         else:
                             if key in sparse_map:
                                 observation = sparse_map[key]
-                                observation.r = (observation.r * observation.observationCount + r) / (observation.observationCount + 1)
-                                observation.g = (observation.g * observation.observationCount + g) / (observation.observationCount + 1)
-                                observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
+                                observation.r = float(observation.r * observation.observationCount + r) / float(observation.observationCount + 1)
+                                observation.g = float(observation.g * observation.observationCount + g) / float(observation.observationCount + 1)
+                                observation.b = float(observation.b * observation.observationCount + b) / float(observation.observationCount + 1)
                                 observation.observationCount = observation.observationCount + 1
                                 observation.occupancyCount = observation.occupancyCount + 1
                                 observation.occupancyConfidence = float(float(observation.occupancyCount) / float(observation.observationCount))
@@ -553,9 +552,9 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
  
                             else:
                                 observation = Observation()
-                                observation.r = (observation.r * observation.observationCount + r) / (observation.observationCount + 1)
-                                observation.g = (observation.g * observation.observationCount + g) / (observation.observationCount + 1)
-                                observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
+                                observation.r = float(observation.r * observation.observationCount + r) / float(observation.observationCount + 1)
+                                observation.g = float(observation.g * observation.observationCount + g) / float(observation.observationCount + 1)
+                                observation.b = float(observation.b * observation.observationCount + b) / float(observation.observationCount + 1)
                                 observation.observationCount = 1
                                 observation.occupancyCount = 1
                                 observation.occupancyConfidence = float(float(observation.occupancyCount) / float(observation.observationCount))
@@ -628,7 +627,7 @@ def main(top_view, other_views, file_name):
     # PAREMETER TUNING 
     GRID_SIZE = 1000 # there are GRID_SIZE^3 cells in the cube / number of smalls cubes in one edge
     PADDING_RATE = 1.2 # how much more space are we going to consider other than (min - max)
-    THRESHOLD  = 0.8
+    THRESHOLD  = 0.5
     MIN_OBSERVATION = 3
 
     sparse_map = {}
@@ -684,6 +683,7 @@ def main(top_view, other_views, file_name):
     print " ================== ABOUT TO WRTIE TO FILE =============="
     print "length of final sparse map  : " + str(len(sparse_map))
     print "length of data written to json after threshold  : " + str(len(data))
+    #final_data  = data + planes
     json.dump(data, out_file, indent=4) 
     
     # Close the file
