@@ -8,6 +8,9 @@ import numpy as np
 import math
 from scipy.ndimage.filters import gaussian_filter
 
+# maxlength doesn't look like it's doing anything
+
+
 class Observation:
     observationCount = 0
     occupancyCount = 0
@@ -326,7 +329,7 @@ def get_old_ray_origin(slug_info, x, y, cell_length):
 
 
 def get_ray_origin(slug_info, x, y, cell_length):
-    z_max = 0.388
+    z_max = 0.46596
     default_pos = slug_info['position']
 
     rotation_matrix = quaternion_to_rotation_matrix(slug_info['position']['qw'],
@@ -335,7 +338,6 @@ def get_ray_origin(slug_info, x, y, cell_length):
                                                     slug_info['position']['qz'])
 
     #rotation matrix  has property  inverse = transpose
-    z_max = 0.388
     vector = np.array([x*cell_length, y*cell_length, z_max])
     current_vector = np.dot(rotation_matrix, vector)
     
@@ -382,7 +384,14 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
             r = float(cell.red.mu)
             g = float(cell.green.mu)
             b = float(cell.blue.mu)
-            z_mu = float(observed_map.cells[index].z.mu)
+            # if g != 0.0 and r == 0.0 and b == 0.0:
+            #     print "***********************************************"
+            #     print cell.red.mu
+            #     print cell.green.mu
+            #     print cell.blue.mu
+
+            # the max for giraffe top down is 0.46596
+            z_mu = float(cell.z.mu)
 
             #old_ray_origin = get_old_ray_origin(slug_info, x, y, cell_length)
             ray_origin = get_ray_origin(slug_info, x, y, cell_length)
@@ -453,21 +462,31 @@ def quaternion_to_rotation_matrix(qw, qx, qy, qz):
     m[2][0] = 2*qx*qz - 2*qw*qy
     m[2][1] = 2*qy*qz + 2*qw*qx
     m[2][2] = 1- 2*qx*qx - 2*qy*qy
-    #return np.linalg.inv(m)
-    return m
+    return np.linalg.inv(m)
+    #return m
 
 def convertYCrCB_BGR(y,cr,cb):
     data = []
-    delta = 0.5
-    r = min(1, max(0, y + 1.403*(cr - delta)))
-    g = min(1, max(0, y - 0.714*(cr - delta) - 0.344*(cb - delta)))
-    b = min(1, max(0, y + 1.733*(cb - delta)))
-    r *= 255.0
-    g *= 255.0
-    b *= 255.0
-    data.append(b)
-    data.append(g)
+    delta = 128.0
+
+    r = y + 1.402 * (cr - delta)
+    g = y - 0.34414 * (cb - delta) - 0.71414 * (cr - delta) 
+    b = y + 1.772 * (cb - delta)
+    if r < 0:
+        r = 0
+    elif r > 255:
+        r = 255
+    if g < 0:
+        g = 0
+    elif g > 255:
+        g = 255
+    if b < 0:
+        b = 0
+    elif b > 255:
+        b = 255
     data.append(r)
+    data.append(g)
+    data.append(b)
     return data
 
 # TODO : CODY SHOULD IMPLEMENT THIS FUNCTION
@@ -533,9 +552,9 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                         if key == previous:
                             observation = sparse_map[key]
                             observation.occupancyCount = observation.occupancyCount + 1
-                            observation.r = (observation.r * observation.observationCount + r) / (observation.observationCount + 1)
-                            observation.g = (observation.g * observation.observationCount + g) / (observation.observationCount + 1)
-                            observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
+                            observation.r = (observation.r * observation.observationCount + r) / float(observation.observationCount + 1)
+                            observation.g = (observation.g * observation.observationCount + g) / float(observation.observationCount + 1)
+                            observation.b = (observation.b * observation.observationCount + b) / float(observation.observationCount + 1)
                             observation.occupancyConfidence = float(float(observation.occupancyCount)/float(observation.observationCount))
                             sparse_map[key] = observation
 
@@ -543,9 +562,9 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                         else:
                             if key in sparse_map:
                                 observation = sparse_map[key]
-                                observation.r = (observation.r * observation.observationCount + r) / (observation.observationCount + 1)
-                                observation.g = (observation.g * observation.observationCount + g) / (observation.observationCount + 1)
-                                observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
+                                observation.r = (observation.r * observation.observationCount + r) / float(observation.observationCount + 1)
+                                observation.g = (observation.g * observation.observationCount + g) / float(observation.observationCount + 1)
+                                observation.b = (observation.b * observation.observationCount + b) / float(observation.observationCount + 1)
                                 observation.observationCount = observation.observationCount + 1
                                 observation.occupancyCount = observation.occupancyCount + 1
                                 observation.occupancyConfidence = float(float(observation.occupancyCount) / float(observation.observationCount))
@@ -553,9 +572,9 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
  
                             else:
                                 observation = Observation()
-                                observation.r = (observation.r * observation.observationCount + r) / (observation.observationCount + 1)
-                                observation.g = (observation.g * observation.observationCount + g) / (observation.observationCount + 1)
-                                observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
+                                observation.r = (observation.r * observation.observationCount + r) / float(observation.observationCount + 1)
+                                observation.g = (observation.g * observation.observationCount + g) / float(observation.observationCount + 1)
+                                observation.b = (observation.b * observation.observationCount + b) / float(observation.observationCount + 1)
                                 observation.observationCount = 1
                                 observation.occupancyCount = 1
                                 observation.occupancyConfidence = float(float(observation.occupancyCount) / float(observation.observationCount))
@@ -614,7 +633,7 @@ def set_cube_dimension(top_down_view_info, padding, grid_size):
     #                'y_origin': top_down_view_info['position']['y'] + top_down_view_info['y_min'], 
     #                'z_origin': top_down_view_info['position']['z'] + top_down_view_info['z_min'] }
 
-    cube_info = {'size' : cube_size, 'cube_origin' : cube_origin, 'grid_size' : grid_size, 'cell_width' : float(cube_size/grid_size)}
+    cube_info = {'size' : cube_size, 'cube_origin' : cube_origin, 'grid_size' : grid_size, 'cell_width' : cube_size/float(grid_size)}
     return cube_info
 
 
@@ -652,24 +671,45 @@ def main(top_view, other_views, file_name):
     # 3. WRITE SPARSE MAP INTO JSON FILE
     data = []
     n_count = 0
+    scoreMap = {}
     print " ======  writing to file ======"
     for key in sparse_map:
         position = decode_key(key)
-        y = float(sparse_map[key].b)/255.0
-        cr = float(sparse_map[key].g)/255.0
-        cb = float(sparse_map[key].r)/255.0
+        y = float(sparse_map[key].b)
+        cr = float(sparse_map[key].g)
+        cb = float(sparse_map[key].r)
         bgr_array = convertYCrCB_BGR(y, cr, cb)
-        b_mu = int(bgr_array[0])
-        g_mu = int(bgr_array[1])
-        r_mu = int(bgr_array[2])
+        r_mu = float(bgr_array[0])
+        g_mu = float(bgr_array[1])
+        b_mu = float(bgr_array[2])
         
-        if sparse_map[key].occupancyConfidence >= THRESHOLD:
+        score = sparse_map[key].occupancyConfidence
+
+        if score in scoreMap:
+            scoreMap[score] = scoreMap[score] + 1
+        else:
+            scoreMap[score] = 1
+
+        if score >= THRESHOLD:
             data.append({'x': position['x']*cube_info["cell_width"] , 'y': position['y']*cube_info["cell_width"] , 'z': position['z']*cube_info["cell_width"] , 
-                'score': sparse_map[key].occupancyConfidence , 'r' : r_mu, 'g': g_mu, 'b': b_mu})
+                'score': score , 'r' : r_mu, 'g': g_mu, 'b': b_mu})
         else:
             n_count = n_count + 1
 
     print " noise count is : " + str(n_count) + " among total of : " + str(len(sparse_map))
+
+# for i in range(0, 1000):
+#     #as axis scale increases, the drawn axes get smaller
+#     axis_scale = 100
+#     value = i / float(axis_scale)
+#     #x axis is red
+#     data.append({'x': value, 'y': 0, 'z': 0, 'score': 1, 'r' : 255, 'g': 0, 'b': 0})
+#     #y axis is green 
+#     data.append({'x': 0, 'y': value, 'z': 0, 'score': 1, 'r' : 0, 'g': 255, 'b': 0})
+#     #z axis is blue
+#     data.append({'x': 0, 'y': 0, 'z': value, 'score': 1, 'r' : 0, 'g': 0, 'b': 255})
+
+#     print scoreMap
 
     out_file = open(file_name, "w")
 
