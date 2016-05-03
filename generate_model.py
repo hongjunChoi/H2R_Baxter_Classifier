@@ -88,17 +88,11 @@ class GaussianMap:
         self.cells = cells
         
 
-
-
 def readBinaryFromYaml(yamlList):
     data = "".join(yamlList)
     decoded = b64decode(data)
     decompressed = zlib.decompress(decoded)
     return decompressed
-
-#hit_points = []
-#old_planes = []
-planes = []
 
 doubleunpacker = struct.Struct('d')
 uintunpacker = struct.Struct('I')
@@ -156,30 +150,14 @@ def get_slug_info(filename, max_length):
     f = open(filename) 
     lines = []
     f.readline() 
-
-    pose_info = ""
-    while True:
-        c = f.read(1)
-        pose_info = pose_info + c
-        if c == "}":
-            break   
-
-    background_pose = pose_info.split('{')[1].split('}')[0]
-    background_pose = background_pose.split(",")
-    
-    for i in range(len(background_pose)):
-        background_pose[i] = background_pose[i].strip()
-
-
-    start_line = pose_info.split("background_pose")[0].split("\n")
-    for line in start_line:
-        lines.append(line)
-
+    background_pose  = None
     for line in f:
         if "background_pose" in line:
+            background_pose = line.split('{')[1].split('}')[0]
+            background_pose = background_pose.replace(".", "")
+            background_pose = background_pose.split(",")
             continue
         lines.append(line)
-
 
     data = "\n".join(lines)
     ymlobject = yaml.load(data)
@@ -203,52 +181,33 @@ def get_slug_info(filename, max_length):
     z_avg = 0
     count = 0
 
-    info['position'] = { 'x' : float(background_pose[0].split(':')[1]), 'y' : float(background_pose[1].split(':')[1]), 
-                        'z': float(background_pose[2].split(':')[1]), 'qw' : float(background_pose[3].split(':')[1]), 
-                        'qx': float(background_pose[4].split(':')[1]), 'qy':  float(background_pose[5].split(':')[1]), 
-                        'qz':  float(background_pose[6].split(':')[1])}
 
-    for x in range((-1 * col / 2), (col / 2)):
-        for y in range((-1 * row / 2), (row / 2)):
-            index = (x + (col / 2)) + col * (y + (row / 2));
+    for x in range(0, col):
+        for y in range(0, row):
+            index = x + col * y;
             cell = observed_map.cells[index]
             z_mu = float(observed_map.cells[index].z.mu)
-
+            
             if z_mu > 0 and z_mu < max_length:
-                #ray info
-                ray_origin = get_ray_origin(info, x, y, cell_width)
-                ray_direction = get_ray_direction(info)
-                ray_x = ray_origin['x']
-                ray_y = ray_origin['y']
-                ray_z = ray_origin['z']
-                direction_x = ray_direction['x']
-                direction_y = ray_direction['y']
-                direction_z = ray_direction['z']
-                
-                final_x = ray_x + direction_x * z_mu
-                final_y = ray_y + direction_y * z_mu
-                final_z = ray_z + direction_z * z_mu
-
-                x_avg = x_avg + final_x
-                y_avg = y_avg + final_y
-                z_avg = z_avg + final_z
+                x_len = x*(cell_width) 
+                y_len = y*(cell_width)
+                x_avg = x_avg + x_len
+                y_avg = y_avg + y_len
+                z_avg = z_avg + z_mu
                 count = count + 1
 
-                if final_x > x_max:
-                    x_max = final_x
-                if final_x < x_min:
-                    x_min = final_x
-
-                if final_y > y_max:
-                    y_max = final_y
-                if final_y < y_min:
-                    y_min = final_y
-                
-                if final_z < z_min:
-                    z_min = final_z
-                if final_z > z_max:
-                    z_max = final_z
-
+                if x_len > x_max:
+                    x_max = x_len
+                if y_len > y_max:
+                    y_max = y_len
+                if y_len < y_min:
+                    y_min = y_len
+                if x_len < x_min:
+                    x_min = x_len
+                if z_mu < z_min:
+                    z_min = z_mu
+                if z_mu > z_max:
+                    z_max = z_mu
 
     info['cell_len'] = cell_width
     info['rows'] = row
@@ -259,38 +218,14 @@ def get_slug_info(filename, max_length):
     info['y_min'] = round(y_min, 3)
     info['z_max'] = round(z_max, 3)
     info['z_min'] = round(z_min, 3)
-    info['x_avg'] = round(float(x_avg/count), 3)
-    info['y_avg'] = round(float(y_avg/count), 3)
-    info['z_avg'] = round(float(z_avg/count), 3)
+    info['x_avg'] = round(x_avg/count)
+    info['y_avg'] = round(y_avg/count)
+    info['z_avg'] = round(z_avg/count)
     
-
-    return info
-
-def get_view_info(filename):
-    info = {}
-    f = open(filename) 
-    lines = []
-    f.readline() 
-
-    pose_info = ""
-    while True:
-        c = f.read(1)
-        pose_info = pose_info + c
-        if c == "}":
-            break   
-
-    background_pose = pose_info.split('{')[1].split('}')[0]
-    background_pose = background_pose.split(",")
-    
-    for i in range(len(background_pose)):
-        background_pose[i] = background_pose[i].strip()
-
-    
-    info['position'] = { 'x' :  float(background_pose[0].split(':')[1]), 'y' : float(background_pose[1].split(':')[1]), 
-                        'z': float(background_pose[2].split(':')[1]), 'qw' : float(background_pose[3].split(':')[1]), 
-                        'qx': float(background_pose[4].split(':')[1]), 'qy': float(background_pose[5].split(':')[1]), 
+    info['position'] = { 'x' : float(background_pose[0].split(':')[1]), 'y' : float(background_pose[1].split(':')[1]), 
+                        'z': float(background_pose[2].split(':')[1]), 'qw' :float(background_pose[3].split(':')[1]), 
+                        'qx': float(background_pose[4].split(':')[1]), 'qy':float(background_pose[5].split(':')[1]), 
                         'qz': float(background_pose[6].split(':')[1])}
-
 
     return info
 
@@ -298,30 +233,6 @@ def get_view_info(filename):
 
 def get_info_from_top_view(file_name):
     return get_slug_info(file_name, float('inf'))
-
-
-
-def get_old_ray_origin(slug_info, x, y, cell_length):
-        
-    default_pos = slug_info['position']
-
-    rotation_matrix = quaternion_to_rotation_matrix(slug_info['position']['qw'],
-                                                    slug_info['position']['qx'], 
-                                                    slug_info['position']['qy'], 
-                                                    slug_info['position']['qz'])
-
-    #rotation matrix  has property  inverse = transpose
-    vector = np.array([x*cell_length, y*cell_length, 0])
-    current_vector = np.dot(rotation_matrix, vector)
-    
-
-    x = round(float(current_vector[0] + default_pos['x']), 3)
-    y = round(float(current_vector[1] + default_pos['y']), 3)
-    z = round(float(current_vector[2] + default_pos['z']), 3)
-
-    return {'x' : x, 'y':  y  , 'z' : z}
-
-
 
 
 
@@ -344,6 +255,24 @@ def get_ray_origin(slug_info, x, y, cell_length):
     y = round(float(current_vector[1] + default_pos['y']), 3)
     z = round(float(current_vector[2] + default_pos['z']), 3)
     return {'x' : x, 'y':  y  , 'z' : z}
+
+#def get_ray_origin(slug_info, x, y, cell_length):
+#    #origin + cell_length* x * cos(angle)
+#    default_pos = slug_info['position']
+#    rotation_matrix = quaternion_to_rotation_matrix(slug_info['position']['qw'],
+#                                                    slug_info['position']['qx'], 
+#                                                    slug_info['position']['qy'], 
+#                                                    slug_info['position']['qz'])
+
+#    #rotation matrix  has property  inverse = transpose
+#    cell_width = slug_info["cell_len"]
+#    vector = np.array([x*cell_width, y*cell_width, 0])
+#    current_vector = np.dot(rotation_matrix, vector)
+
+#    x = round(float(current_vector[0] + default_pos['x']), 3)
+#    y = round(float(current_vector[1] + default_pos['y']), 3)
+#    z = round(float(current_vector[2] + default_pos['z']), 3)
+#    return {'x' : x, 'y':  y  , 'z' : z}
 
 
 #Given a yml file, read all the data, put the confidence score in the sparse map and return the updated sparse map
@@ -369,44 +298,36 @@ def read_from_yml(file_name, sparse_map, slug_info, cube_info):
 
     row = observed_map.height
     col = observed_map.width
-
     cell_length = observed_map.cell_width
-    ray_direction = get_ray_direction(slug_info)
-
-    print ray_direction
 
     print " ====== starting ray casting ========"
 
-    for x in range((-1 * col / 2), (col / 2)):
-        for y in range((-1 * row / 2), (row / 2)):
-            index = (x + (col / 2)) + col * (y + (row / 2));
+    for x in range(0, col):
+        for y in range(0, row):
+            index = x + col * y;
             cell = observed_map.cells[index]
             r = float(cell.red.mu)
             g = float(cell.green.mu)
             b = float(cell.blue.mu)
             z_mu = float(observed_map.cells[index].z.mu)
-
-            #old_ray_origin = get_old_ray_origin(slug_info, x, y, cell_length)
-            ray_origin = get_ray_origin(slug_info, x, y, cell_length)
             
-            if x % 14 == 0 and y % 14 == 0:
-                data = { 'x' : ray_origin['x'] , 'y' : ray_origin['y'] , 'z' : ray_origin['z'], 'plane' : True}
-                planes.append(data)
-
-            #print "z : :" + str(z_mu) + " insied the loop !"
-            if z_mu > 0:  
+            if z_mu > 0:
+                ray_origin = get_ray_origin(slug_info, x, y, cell_length)
+                ray_direction = get_ray_direction(slug_info)
                 sparse_map = ray_cast(sparse_map, ray_origin, ray_direction, z_mu, cube_info, r, g, b)
 
-
     print "===== end of ray casting ========= "
-    print "length of sparse map is " + str(len(sparse_map))
 
     return sparse_map
 
+# returns a directional unit vector hashtable of {x , y, z}
+def q_to_euler(qw, qx, qy, qz):
+    rotation_matrix = quaternion_to_rotation_matrix(qw, qx, qy, qz)
+    direction_vector = np.dot(rotation_matrix, np.array([0, 0, 1]))
+    direction_vector = direction_vector/np.sum(direction_vector)
 
-# Multiply 2 quaternions, r and q, together
-# INPUT - r : {qx, qy, qz, qw}, q: {qx, qy, qz, qw}
-# OUTPUT - {qx, qy, qz, qw}
+    return {'x': direction_vector[0], 'y': direction_vector[1],'z': direction_vector[2]}
+
 def multiply_quaternion(r, q):
     t0 = r['qw']*q['qw'] - r['qx']*q['qx'] - r['qy']*q['qy'] - r['qz']*q['qz']
     t1 = r['qw']*q['qx'] + r['qx']*q['qw'] - r['qy']*q['qz'] + r['qz']*q['qy']
@@ -427,6 +348,15 @@ def get_ray_direction(slug_info):
 
     return {'x': direction_vector[0], 'y': direction_vector[1],'z': direction_vector[2]}
 
+
+#def get_ray_direction(slug_info):
+#    quaternion = slug_info['position']
+#    qw = quaternion['qw']
+#    qx = quaternion['qx']
+#    qy = quaternion['qy']
+#    qz = quaternion['qz']
+#    direction = q_to_euler(qw, qx, qy, qz)
+#    return direction
 
 
 def encode_key(x, y, z):
@@ -453,7 +383,6 @@ def quaternion_to_rotation_matrix(qw, qx, qy, qz):
     m[2][1] = 2*qy*qz + 2*qw*qx
     m[2][2] = 1- 2*qx*qx - 2*qy*qy
     return np.linalg.inv(m)
-    #return m
 
 def convertYCrCB_BGR(y,cr,cb):
     data = []
@@ -497,16 +426,9 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
     grid_size = cube_info['grid_size']
     cell_width = cube_info['cell_width']
 
-    delta_z = 0.001
-    cumulative_z = 0.001
+    delta_z = 0.01
+    cumulative_z = 0.01
     previous = ""
-    
-    #final_x = ray_x + direction_x * z_len 
-    #final_y = ray_y + direction_y * z_len
-    #final_z = ray_z + direction_z * z_len 
-
-    #data = {'x' : final_x, 'y' : final_y, 'z' : final_z }
-    #hit_points.append(data)
 
     while cumulative_z <= z_len:
         
@@ -525,41 +447,38 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                     key_y = math.floor(y / cell_width)
                     key_z = math.floor(z / cell_width)
                     key = encode_key(key_x, key_y, key_z)
-                    
+
                     # add an occupied observation to this cell's observation object
                     if cumulative_z == z_len:
                         # in this case, there should already be something in sparse_map, so a null pointer shouldn't be thrown
                         if key == previous:
                             observation = sparse_map[key]
                             observation.occupancyCount = observation.occupancyCount + 1
-                            observation.r = float(observation.r * observation.observationCount + r) / float(observation.observationCount + 1)
-                            observation.g = float(observation.g * observation.observationCount + g) / float(observation.observationCount + 1)
-                            observation.b = float(observation.b * observation.observationCount + b) / float(observation.observationCount + 1)
-                            observation.occupancyConfidence = float(float(observation.occupancyCount)/float(observation.observationCount))
+                            observation.r = (observation.r * observation.observationCount + r) / (observation.observationCount + 1)
+                            observation.g = (observation.g * observation.observationCount + g) / (observation.observationCount + 1)
+                            observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
+                            observation.occupancyConfidence = float(observation.occupancyCount) / float(observation.observationCount)
                             sparse_map[key] = observation
-
                         # in this case, we need to check whether or not there's an observation object in sparse_map already
                         else:
                             if key in sparse_map:
                                 observation = sparse_map[key]
-                                observation.r = float(observation.r * observation.observationCount + r) / float(observation.observationCount + 1)
-                                observation.g = float(observation.g * observation.observationCount + g) / float(observation.observationCount + 1)
-                                observation.b = float(observation.b * observation.observationCount + b) / float(observation.observationCount + 1)
+                                observation.r = (observation.r * observation.observationCount + r) / (observation.observationCount + 1)
+                                observation.g = (observation.g * observation.observationCount + g) / (observation.observationCount + 1)
+                                observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
                                 observation.observationCount = observation.observationCount + 1
                                 observation.occupancyCount = observation.occupancyCount + 1
-                                observation.occupancyConfidence = float(float(observation.occupancyCount) / float(observation.observationCount))
+                                observation.occupancyConfidence = float(observation.occupancyCount) / float(observation.observationCount)
                                 sparse_map[key] = observation
- 
                             else:
                                 observation = Observation()
-                                observation.r = float(observation.r * observation.observationCount + r) / float(observation.observationCount + 1)
-                                observation.g = float(observation.g * observation.observationCount + g) / float(observation.observationCount + 1)
-                                observation.b = float(observation.b * observation.observationCount + b) / float(observation.observationCount + 1)
+                                observation.r = (observation.r * observation.observationCount + r) / (observation.observationCount + 1)
+                                observation.g = (observation.g * observation.observationCount + g) / (observation.observationCount + 1)
+                                observation.b = (observation.b * observation.observationCount + b) / (observation.observationCount + 1)
                                 observation.observationCount = 1
                                 observation.occupancyCount = 1
-                                observation.occupancyConfidence = float(float(observation.occupancyCount) / float(observation.observationCount))
+                                observation.occupancyConfidence = float(observation.occupancyCount) / float(observation.observationCount)
                                 sparse_map[key] = observation
-
                             previous = key
 
                     # add an unoccupied observation to this cell's observation object
@@ -567,12 +486,10 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
                         if key in sparse_map:
                             observation = sparse_map[key]
                             observation.observationCount = observation.observationCount + 1
-                            observation.occupancyConfidence = float(float(observation.occupancyCount) / float(observation.observationCount))
+                            observation.occupancyConfidence = float(observation.occupancyCount) / float(observation.observationCount)
                             sparse_map[key] = observation
-    
                         else:
                             observation = Observation()
-                            observation.occupancyConfidence = 0
                             observation.observationCount = 1
                             sparse_map[key] = observation
                         previous = key
@@ -627,9 +544,14 @@ def main(top_view, other_views, file_name):
     # PAREMETER TUNING 
     GRID_SIZE = 1000 # there are GRID_SIZE^3 cells in the cube / number of smalls cubes in one edge
     PADDING_RATE = 1.2 # how much more space are we going to consider other than (min - max)
-    THRESHOLD  = 0.5
-    MIN_OBSERVATION = 3
+    THRESHOLD  = 0.8
 
+    # 0. CREATE CUBE DIMENSION AND SPARSE MAP 
+    # setting spase map and size of the cube from the top down view 
+    # from the top down view, obtain the dimensions of the cube
+    # for now, I set (0, 0, 0) location of the cube as 0.8 * (min x, min y, min z) 
+    # also the length (size) of the cube is set to be 1.5 * max(x_max - x_min, y_max - y_min, z_max - z_min)
+    # TODO: CODY needs to change this as necessary
     sparse_map = {}
     top_down_view_info = get_info_from_top_view(top_view)
 
@@ -641,16 +563,16 @@ def main(top_view, other_views, file_name):
     sparse_map = read_from_yml(top_view, sparse_map, top_down_view_info, cube_info)
 
 
+
     # 2. RAY CAST FROM OTHER VIEWS 
+    
     for other_view in other_views:
-        view_info = get_view_info(other_view)
-        print " other view info : " + str(view_info) + "\n\n"
+        view_info = get_slug_info(other_view, cube_size)
         sparse_map = read_from_yml(other_view, sparse_map, view_info, cube_info)
 
 
     # 3. WRITE SPARSE MAP INTO JSON FILE
     data = []
-    n_count = 0
     print " ======  writing to file ======"
     for key in sparse_map:
         position = decode_key(key)
@@ -662,30 +584,18 @@ def main(top_view, other_views, file_name):
         g_mu = int(bgr_array[1])
         r_mu = int(bgr_array[2])
         
+        
+
         if sparse_map[key].occupancyConfidence >= THRESHOLD:
             data.append({'x': position['x']*cube_info["cell_width"] , 'y': position['y']*cube_info["cell_width"] , 'z': position['z']*cube_info["cell_width"] , 
                 'score': sparse_map[key].occupancyConfidence , 'r' : r_mu, 'g': g_mu, 'b': b_mu})
-        else:
-            n_count = n_count + 1
-
-    print " noise count is : " + str(n_count) + " among total of : " + str(len(sparse_map))
 
     out_file = open(file_name, "w")
 
     # Save the dictionary into this file
     # (the 'indent=4' is optional, but makes it more readable)
+    json.dump(data, out_file, indent=4)                                    
 
-    #final_data = {"data" : data , "info" : top_down_view_info}
-    #json.dump(final_data, out_file, indent=4)                                    
-
-    #temp = new_planes + old_planes
-
-    print " ================== ABOUT TO WRTIE TO FILE =============="
-    print "length of final sparse map  : " + str(len(sparse_map))
-    print "length of data written to json after threshold  : " + str(len(data))
-    #final_data  = data + planes
-    json.dump(data, out_file, indent=4) 
-    
     # Close the file
     out_file.close()
 
