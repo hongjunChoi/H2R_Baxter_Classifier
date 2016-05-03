@@ -517,8 +517,8 @@ def ray_cast(sparse_map, origin, direction, z_len, cube_info, r, g, b):
     grid_size = cube_info['grid_size']
     cell_width = cube_info['cell_width']
 
-    delta_z = 0.001
-    cumulative_z = 0.001
+    delta_z = 0.01
+    cumulative_z = 0.01
     previous = ""
     
     #final_x = ray_x + direction_x * z_len 
