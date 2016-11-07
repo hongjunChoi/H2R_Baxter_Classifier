@@ -1,1 +1,15 @@
 *.json
+*.yml
+*.ray
+*.png
+*.jpg
+*.jpeg
+*.weights
+data/*
+results/*
+src/tensorbox/data/*
+src/tensorbox/output/*
+src/darknet/data/*
+src/darknet/results/*
+
+
