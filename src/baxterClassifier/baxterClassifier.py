@@ -1,420 +1,344 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import gzip
-import os
-import re
-import sys
-import tarfile
-
-from six.moves import urllib
+import numpy as np
 import tensorflow as tf
+import cv2
+import time
+import sys
 
 
-FLAGS = tf.app.flags.FLAGS
+class BaxterClassifier:
+    fromfile = None
+    tofile_img = 'test/output.jpg'
+    tofile_txt = 'test/output.txt'
+    imshow = True
+    filewrite_img = False
+    filewrite_txt = False
+    disp_console = True
+    weights_file = 'weights/YOLO_small.ckpt'
+    alpha = 0.1
+    threshold = 0.2
+    iou_threshold = 0.5
+    num_box = 2
+    w_img = 640
+    h_img = 480
 
-# Basic model parameters.
-tf.app.flags.DEFINE_integer('batch_size', 128,
-                            """Number of images to process in a batch.""")
-tf.app.flags.DEFINE_string('data_dir', '/tmp/cifar10_data',
-                           """Path to the CIFAR-10 data directory.""")
-tf.app.flags.DEFINE_boolean('use_fp16', False,
-                            """Train the model using fp16.""")
+    def __init__(self, argvs=[]):
+        self.dropout_rate = 0.5
+        self.grid_size = 7
+        self.num_labels = 2
+        self.learning_rate = 1e-4
+        self.argv_parser(argvs)
 
-# Global constants describing the data set.
-# TODO: change this
-IMAGE_SIZE = cifar10_input.IMAGE_SIZE
-NUM_CLASSES = cifar10_input.NUM_CLASSES
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN
-NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
+        # self.build_networks()
+        # if self.fromfile is not None:
+        #     self.detect_from_file(self.fromfile)
 
+    def argv_parser(self, argvs):
+        for i in range(1, len(argvs), 2):
+            if argvs[i] == '-fromfile':
+                self.fromfile = argvs[i + 1]
+            if argvs[i] == '-tofile_img':
+                self.tofile_img = argvs[i + 1]
+                self.filewrite_img = True
+            if argvs[i] == '-tofile_txt':
+                self.tofile_txt = argvs[i + 1]
+                self.filewrite_txt = True
+            if argvs[i] == '-imshow':
+                if argvs[i + 1] == '1':
+                    self.imshow = True
+                else:
+                    self.imshow = False
+            if argvs[i] == '-disp_console':
+                if argvs[i + 1] == '1':
+                    self.disp_console = True
+                else:
+                    self.disp_console = False
 
-# Constants describing the training process.
-MOVING_AVERAGE_DECAY = 0.9999     # The decay to use for the moving average.
-NUM_EPOCHS_PER_DECAY = 350.0      # Epochs after which learning rate decays.
-LEARNING_RATE_DECAY_FACTOR = 0.1  # Learning rate decay factor.
-INITIAL_LEARNING_RATE = 0.1       # Initial learning rate.
+    def build_pretrain_network(self):
+        self.x = tf.placeholder('float32', [None, 448, 448, 3])
+        self.conv_1 = self.conv_layer(1, self.x, 64, 7, 2)
+        self.pool_2 = self.pooling_layer(2, self.conv_1, 2, 2)
+        self.conv_3 = self.conv_layer(3, self.pool_2, 192, 3, 1)
+        self.pool_4 = self.pooling_layer(4, self.conv_3, 2, 2)
+        self.conv_5 = self.conv_layer(5, self.pool_4, 128, 1, 1)
+        self.conv_6 = self.conv_layer(6, self.conv_5, 256, 3, 1)
+        self.conv_7 = self.conv_layer(7, self.conv_6, 256, 1, 1)
+        self.conv_8 = self.conv_layer(8, self.conv_7, 512, 3, 1)
+        self.pool_9 = self.pooling_layer(9, self.conv_8, 2, 2)
+        self.conv_10 = self.conv_layer(10, self.pool_9, 256, 1, 1)
+        self.conv_11 = self.conv_layer(11, self.conv_10, 512, 3, 1)
+        self.conv_12 = self.conv_layer(12, self.conv_11, 256, 1, 1)
+        self.conv_13 = self.conv_layer(13, self.conv_12, 512, 3, 1)
+        self.conv_14 = self.conv_layer(14, self.conv_13, 256, 1, 1)
+        self.conv_15 = self.conv_layer(15, self.conv_14, 512, 3, 1)
+        self.conv_16 = self.conv_layer(16, self.conv_15, 256, 1, 1)
+        self.conv_17 = self.conv_layer(17, self.conv_16, 512, 3, 1)
+        self.conv_18 = self.conv_layer(18, self.conv_17, 512, 1, 1)
+        self.conv_19 = self.conv_layer(19, self.conv_18, 1024, 3, 1)
+        self.pool_20 = self.pooling_layer(20, self.conv_19, 2, 2)
+        self.conv_21 = self.conv_layer(21, self.pool_20, 512, 1, 1)
+        self.conv_22 = self.conv_layer(22, self.conv_21, 1024, 3, 1)
+        self.conv_23 = self.conv_layer(23, self.conv_22, 512, 1, 1)
+        self.conv_24 = self.conv_layer(24, self.conv_23, 1024, 3, 1)
 
-# If a model is trained with multiple GPUs, prefix all Op names with tower_name
-# to differentiate the operations. Note that this prefix is removed from the
-# names of the summaries when visualizing a model.
-TOWER_NAME = 'tower'
+        hidden_dim = 512
+        self.fc_25 = self.fc_layer(
+            25, self.conv_24, hidden_dim, flat=True, linear=False)
+        self.softmax_26 = self.softmax_layer(
+            26, self.fc_25, hidden_dim, self.num_labels)
 
+        return self.softmax_26
 
-# Return input image and labels for training
-def getInputData():
-    return
+    def build_networks(self):
+        if self.disp_console:
+            print "Building YOLO_small graph..."
+        self.x = tf.placeholder('float32', [None, 448, 448, 3])
+        self.conv_1 = self.conv_layer(1, self.x, 64, 7, 2)
+        self.pool_2 = self.pooling_layer(2, self.conv_1, 2, 2)
+        self.conv_3 = self.conv_layer(3, self.pool_2, 192, 3, 1)
+        self.pool_4 = self.pooling_layer(4, self.conv_3, 2, 2)
+        self.conv_5 = self.conv_layer(5, self.pool_4, 128, 1, 1)
+        self.conv_6 = self.conv_layer(6, self.conv_5, 256, 3, 1)
+        self.conv_7 = self.conv_layer(7, self.conv_6, 256, 1, 1)
+        self.conv_8 = self.conv_layer(8, self.conv_7, 512, 3, 1)
+        self.pool_9 = self.pooling_layer(9, self.conv_8, 2, 2)
+        self.conv_10 = self.conv_layer(10, self.pool_9, 256, 1, 1)
+        self.conv_11 = self.conv_layer(11, self.conv_10, 512, 3, 1)
+        self.conv_12 = self.conv_layer(12, self.conv_11, 256, 1, 1)
+        self.conv_13 = self.conv_layer(13, self.conv_12, 512, 3, 1)
+        self.conv_14 = self.conv_layer(14, self.conv_13, 256, 1, 1)
+        self.conv_15 = self.conv_layer(15, self.conv_14, 512, 3, 1)
+        self.conv_16 = self.conv_layer(16, self.conv_15, 256, 1, 1)
+        self.conv_17 = self.conv_layer(17, self.conv_16, 512, 3, 1)
+        self.conv_18 = self.conv_layer(18, self.conv_17, 512, 1, 1)
+        self.conv_19 = self.conv_layer(19, self.conv_18, 1024, 3, 1)
+        self.pool_20 = self.pooling_layer(20, self.conv_19, 2, 2)
+        self.conv_21 = self.conv_layer(21, self.pool_20, 512, 1, 1)
+        self.conv_22 = self.conv_layer(22, self.conv_21, 1024, 3, 1)
+        self.conv_23 = self.conv_layer(23, self.conv_22, 512, 1, 1)
+        self.conv_24 = self.conv_layer(24, self.conv_23, 1024, 3, 1)
 
+        # Added detection network from below
+        self.conv_25 = self.conv_layer(25, self.conv_24, 1024, 3, 1)
+        self.conv_26 = self.conv_layer(26, self.conv_25, 1024, 3, 2)
+        self.conv_27 = self.conv_layer(27, self.conv_26, 1024, 3, 1)
+        self.conv_28 = self.conv_layer(28, self.conv_27, 1024, 3, 1)
 
-def distorted_inputs():
-    """Construct distorted input for CIFAR training using the Reader ops.
-    Returns:
-      images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
-      labels: Labels. 1D tensor of [batch_size] size.
-    Raises:
-      ValueError: If no data_dir
-    """
-    if not FLAGS.data_dir:
-        raise ValueError('Please supply a data_dir')
-    data_dir = os.path.join(FLAGS.data_dir, 'cifar-10-batches-bin')
-    images, labels = cifar10_input.distorted_inputs(data_dir=data_dir,
-                                                    batch_size=FLAGS.batch_size)
-    if FLAGS.use_fp16:
-        images = tf.cast(images, tf.float16)
-        labels = tf.cast(labels, tf.float16)
-    return images, labels
+        self.fc_29 = self.fc_layer(
+            29, self.conv_28, 512, flat=True, linear=False)
+        self.fc_30 = self.fc_layer(
+            30, self.fc_29, 4096, flat=False, linear=False)
 
+        # skip dropout_31
+        # 7 * 7 * 30
+        self.fc_32 = self.fc_layer(
+            32, self.fc_30, 1470, flat=False, linear=True)
 
-def inputs(eval_data):
-    """
-    Args:
-      eval_data: bool, indicating if one should use the train or eval data set.
-    Returns:
-      images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
-      labels: Labels. 1D tensor of [batch_size] size.
-    Raises:
-      ValueError: If no data_dir
-    """
-    if not FLAGS.data_dir:
-        raise ValueError('Please supply a data_dir')
-    data_dir = os.path.join(FLAGS.data_dir, 'cifar-10-batches-bin')
-    images, labels = cifar10_input.inputs(eval_data=eval_data,
-                                          data_dir=data_dir,
-                                          batch_size=FLAGS.batch_size)
-    if FLAGS.use_fp16:
-        images = tf.cast(images, tf.float16)
-        labels = tf.cast(labels, tf.float16)
-    return images, labels
+        self.sess = tf.Session()
+        self.sess.run(tf.initialize_all_variables())
+        self.saver = tf.train.Saver()
+        self.saver.restore(self.sess, self.weights_file)
 
+    def conv_layer(self, idx, inputs, filters, size, stride):
+        channels = inputs.get_shape()[3]
+        weight = tf.Variable(tf.truncated_normal(
+            [size, size, int(channels), filters], stddev=0.1))
+        biases = tf.Variable(tf.constant(0.1, shape=[filters]))
 
-def _variable_on_cpu(name, shape, initializer):
-    """Helper to create a Variable stored on CPU memory.
-    Args:
-      name: name of the variable
-      shape: list of ints
-      initializer: initializer for Variable
-    Returns:
-      Variable Tensor
-    """
-    with tf.device('/cpu:0'):
-        dtype = tf.float16 if FLAGS.use_fp16 else tf.float32
-        var = tf.get_variable(
-            name, shape, initializer=initializer, dtype=dtype)
-    return var
+        pad_size = size // 2
+        pad_mat = np.array([[0, 0], [pad_size, pad_size],
+                            [pad_size, pad_size], [0, 0]])
+        inputs_pad = tf.pad(inputs, pad_mat)
 
+        conv = tf.nn.conv2d(inputs_pad, weight, strides=[
+                            1, stride, stride, 1], padding='VALID', name=str(idx) + '_conv')
+        conv_biased = tf.add(conv, biases, name=str(idx) + '_conv_biased')
+        if self.disp_console:
+            print '    Layer  %d : Type = Conv, Size = %d * %d, Stride = %d, Filters = %d, Input channels = %d' % (idx, size, size, stride, filters, int(channels))
+        return tf.maximum(self.alpha * conv_biased, conv_biased, name=str(idx) + '_leaky_relu')
 
-def _variable_with_weight_decay(name, shape, stddev, wd):
-    """Helper to create an initialized Variable with weight decay.
-    Note that the Variable is initialized with a truncated normal distribution.
-    A weight decay is added only if one is specified.
-    Args:
-      name: name of the variable
-      shape: list of ints
-      stddev: standard deviation of a truncated Gaussian
-      wd: add L2Loss weight decay multiplied by this float. If None, weight
-          decay is not added for this Variable.
-    Returns:
-      Variable Tensor
-    """
-    dtype = tf.float16 if FLAGS.use_fp16 else tf.float32
-    var = _variable_on_cpu(
-        name,
-        shape,
-        tf.truncated_normal_initializer(stddev=stddev, dtype=dtype))
-    if wd is not None:
-        weight_decay = tf.mul(tf.nn.l2_loss(var), wd, name='weight_loss')
-        tf.add_to_collection('losses', weight_decay)
-    return var
+    def pooling_layer(self, idx, inputs, size, stride):
+        return tf.nn.max_pool(inputs, ksize=[1, size, size, 1], strides=[1, stride, stride, 1], padding='SAME', name=str(idx) + '_pool')
 
+    def dropout_layer(self, idx, inputs, dropout_rate):
+        return tf.nn.dropout(inputs, dropout_rate)
 
-def inference(images):
-    """Build the YOLO model.
-    Args:
-      images: Images returned from distorted_inputs() or inputs().
-    Returns:
-      Logits to be calculated for loss function 
-    """
+    def fc_layer(self, idx, inputs, hiddens, flat=False, linear=False):
+        input_shape = inputs.get_shape().as_list()
+        if flat:
+            dim = input_shape[1] * input_shape[2] * input_shape[3]
+            inputs_transposed = tf.transpose(inputs, (0, 3, 1, 2))
+            inputs_processed = tf.reshape(inputs_transposed, [-1, dim])
+        else:
+            dim = input_shape[1]
+            inputs_processed = inputs
+        weight = tf.Variable(tf.truncated_normal([dim, hiddens], stddev=0.1))
+        biases = tf.Variable(tf.constant(0.1, shape=[hiddens]))
 
-    # conv1
-    with tf.variable_scope('conv1') as scope:
-        kernel = _variable_with_weight_decay('cv1Weights',
-                                             shape=[3, 3, 3, 16],
-                                             stddev=5e-2,
-                                             wd=0.0)
+        if linear:
+            return tf.add(tf.matmul(inputs_processed, weight), biases, name=str(idx) + '_fc')
 
-        conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu('biases', [16], tf.constant_initializer(0.0))
-        bias = tf.nn.bias_add(conv, biases)
-        conv1 = tf.nn.relu(bias, name=scope.name)
+        ip = tf.add(tf.matmul(inputs_processed, weight), biases)
+        return tf.maximum(self.alpha * ip, ip, name=str(idx) + '_fc')
 
-    # pool1
-    pool1 = tf.nn.max_pool(conv1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
-                           padding='SAME', name='pool1')
+    def softmax_layer(self, idx, inputs, hidden, num_labels):
+        weights = tf.Variable(tf.truncated_normal(
+            [hidden, num_labels], stddev=1 / hidden))
+        biases = tf.Variable(tf.constant(0.1, shape=[num_labels]))
 
-    # conv2
-    with tf.variable_scope('conv2') as scope:
-        kernel = _variable_with_weight_decay('cv2Weights',
-                                             shape=[3, 3,  int(
-                                                 pool1.get_shape()[3]), 32],
-                                             stddev=5e-2,
-                                             wd=0.0)
-
-        conv = tf.nn.conv2d(pool1, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu('biases', [32], tf.constant_initializer(0.1))
-        bias = tf.nn.bias_add(conv, biases)
-        conv2 = tf.nn.relu(bias, name=scope.name)
-
-    # pool2
-    pool2 = tf.nn.max_pool(conv2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
-                           padding='SAME', name='pool2')
-
-    # conv3
-    with tf.variable_scope('conv3') as scope:
-        kernel = _variable_with_weight_decay('cv3Weights',
-                                             shape=[3, 3,  int(
-                                                 pool2.get_shape()[3]), 64],
-                                             stddev=5e-2,
-                                             wd=0.0)
-
-        conv = tf.nn.conv2d(pool2, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.1))
-        bias = tf.nn.bias_add(conv, biases)
-        conv3 = tf.nn.relu(bias, name=scope.name)
-
-    # pool3
-    pool3 = tf.nn.max_pool(conv3, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
-                           padding='SAME', name='pool3')
-
-    # conv4
-    with tf.variable_scope('conv4') as scope:
-        kernel = _variable_with_weight_decay('cv4Weights',
-                                             shape=[3, 3,  int(
-                                                 pool3.get_shape()[3]), 128],
-                                             stddev=5e-2,
-                                             wd=0.0)
-
-        conv = tf.nn.conv2d(pool3, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu(
-            'biases', [128], tf.constant_initializer(0.1))
-        bias = tf.nn.bias_add(conv, biases)
-        conv4 = tf.nn.relu(bias, name=scope.name)
-
-    # pool4
-    pool4 = tf.nn.max_pool(conv4, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
-                           padding='SAME', name='pool4')
-
-    # conv5
-    with tf.variable_scope('conv5') as scope:
-        kernel = _variable_with_weight_decay('cv5Weights',
-                                             shape=[3, 3,  int(
-                                                 pool4.get_shape()[3]), 256],
-                                             stddev=5e-2,
-                                             wd=0.0)
-
-        conv = tf.nn.conv2d(pool3, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu(
-            'biases', [256], tf.constant_initializer(0.1))
-        bias = tf.nn.bias_add(conv, biases)
-        conv5 = tf.nn.relu(bias, name=scope.name)
-
-    # pool5
-    pool5 = tf.nn.max_pool(conv5, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
-                           padding='SAME', name='pool5')
-
-    # conv6
-    with tf.variable_scope('conv6') as scope:
-        kernel = _variable_with_weight_decay('cv6Weights',
-                                             shape=[3, 3,  int(
-                                                 pool4.get_shape()[3]), 256],
-                                             stddev=5e-2,
-                                             wd=0.0)
-
-        conv = tf.nn.conv2d(pool5, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu(
-            'biases', [256], tf.constant_initializer(0.1))
-        bias = tf.nn.bias_add(conv, biases)
-        conv6 = tf.nn.relu(bias, name=scope.name)
-
-    # pool6
-    pool6 = tf.nn.max_pool(conv6, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
-                           padding='SAME', name='pool6')
-
-    # conv7
-    with tf.variable_scope('conv7') as scope:
-        kernel = _variable_with_weight_decay('cv7Weights',
-                                             shape=[3, 3,  int(
-                                                 pool6.get_shape()[3]), 1024],
-                                             stddev=5e-2,
-                                             wd=0.0)
-
-        conv = tf.nn.conv2d(pool6, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu(
-            'biases', [256], tf.constant_initializer(0.1))
-        bias = tf.nn.bias_add(conv, biases)
-        conv7 = tf.nn.relu(bias, name=scope.name)
-
-    # conv8
-    with tf.variable_scope('conv8') as scope:
-        kernel = _variable_with_weight_decay('cv8Weights',
-                                             shape=[3, 3,  int(
-                                                 conv7.get_shape()[3]), 1024],
-                                             stddev=5e-2,
-                                             wd=0.0)
-
-        conv = tf.nn.conv2d(pool5, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu(
-            'biases', [256], tf.constant_initializer(0.1))
-        bias = tf.nn.bias_add(conv, biases)
-        conv8 = tf.nn.relu(bias, name=scope.name)
-
-    # conv9
-    with tf.variable_scope('conv9') as scope:
-        kernel = _variable_with_weight_decay('cv9Weights',
-                                             shape=[3, 3,  int(
-                                                 conv8.get_shape()[3]), 1024],
-                                             stddev=5e-2,
-                                             wd=0.0)
-
-        conv = tf.nn.conv2d(conv8, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu(
-            'biases', [256], tf.constant_initializer(0.1))
-        bias = tf.nn.bias_add(conv, biases)
-        conv9 = tf.nn.relu(bias, name=scope.name)
-
-    # local1 (Fully connected layer)
-    with tf.variable_scope('local1') as scope:
-        # Move everything into depth so we can perform a single matrix
-        # multiply.
-        reshape = tf.reshape(pool2, [FLAGS.batch_size, -1])
-        dim = reshape.get_shape()[1].value
-        weights = _variable_with_weight_decay('weights', shape=[dim, 384],
-                                              stddev=0.04, wd=0.004)
-        biases = _variable_on_cpu(
-            'biases', [384], tf.constant_initializer(0.1))
-        local3 = tf.nn.relu(tf.matmul(reshape, weights) +
-                            biases, name=scope.name)
-
-    # local2 (Fully connected layer)
-    with tf.variable_scope('local2') as scope:
-        weights = _variable_with_weight_decay('weights', shape=[384, 192],
-                                              stddev=0.04, wd=0.004)
-        biases = _variable_on_cpu(
-            'biases', [192], tf.constant_initializer(0.1))
-        local4 = tf.nn.relu(tf.matmul(local3, weights) +
-                            biases, name=scope.name)
-
-    # local3 (Fully connected layer)
-    with tf.variable_scope('local3') as scope:
-        weights = _variable_with_weight_decay('weights', shape=[384, 192],
-                                              stddev=0.04, wd=0.004)
-        biases = _variable_on_cpu(
-            'biases', [192], tf.constant_initializer(0.1))
-        local4 = tf.nn.relu(tf.matmul(local3, weights) +
-                            biases, name=scope.name)
-
-    # softmax, i.e. softmax(WX + b)
-    with tf.variable_scope('softmax_linear') as scope:
-        weights = _variable_with_weight_decay('weights', [192, NUM_CLASSES],
-                                              stddev=1 / 192.0, wd=0.0)
-        biases = _variable_on_cpu('biases', [NUM_CLASSES],
-                                  tf.constant_initializer(0.0))
         softmax_linear = tf.add(
-            tf.matmul(local4, weights), biases, name=scope.name)
+            tf.matmul(inputs, weights), biases)
+        return softmax_linear
 
-    return softmax_linear
+    def loss(self, logits, trueLabel):
+        return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, trueLabel))
+
+    def trainOp(self, loss_val):
+        return tf.train.AdamOptimizer(self.learning_rate).minimize(loss_val)
+
+    def detect_from_cvmat(self, img):
+        s = time.time()
+        self.h_img, self.w_img, _ = img.shape
+        img_resized = cv2.resize(img, (448, 448))
+        img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+        img_resized_np = np.asarray(img_RGB)
+        inputs = np.zeros((1, 448, 448, 3), dtype='float32')
+        inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
+        in_dict = {self.x: inputs}
+        net_output = self.sess.run(self.fc_32, feed_dict=in_dict)
+        self.result = self.interpret_output(net_output[0])
+        self.show_results(img, self.result)
+        strtime = str(time.time() - s)
+
+    def detect_from_file(self, filename):
+        img = cv2.imread(filename)
+        self.detect_from_cvmat(img)
+
+    def interpret_output(self, output):
+        probs = np.zeros((7, 7, 2, 20))
+        class_probs = np.reshape(output[0:980], (7, 7, 20))
+        scales = np.reshape(output[980:1078], (7, 7, 2))
+        boxes = np.reshape(output[1078:], (7, 7, 2, 4))
+        offset = np.transpose(np.reshape(
+            np.array([np.arange(7)] * 14), (2, 7, 7)), (1, 2, 0))
+
+        boxes[:, :, :, 0] += offset
+        boxes[:, :, :, 1] += np.transpose(offset, (1, 0, 2))
+        boxes[:, :, :, 0:2] = boxes[:, :, :, 0:2] / 7.0
+        boxes[:, :, :, 2] = np.multiply(boxes[:, :, :, 2], boxes[:, :, :, 2])
+        boxes[:, :, :, 3] = np.multiply(boxes[:, :, :, 3], boxes[:, :, :, 3])
+
+        boxes[:, :, :, 0] *= self.w_img
+        boxes[:, :, :, 1] *= self.h_img
+        boxes[:, :, :, 2] *= self.w_img
+        boxes[:, :, :, 3] *= self.h_img
+
+        for i in range(2):
+            for j in range(20):
+                probs[:, :, i, j] = np.multiply(
+                    class_probs[:, :, j], scales[:, :, i])
+
+        filter_mat_probs = np.array(probs >= self.threshold, dtype='bool')
+        filter_mat_boxes = np.nonzero(filter_mat_probs)
+        boxes_filtered = boxes[filter_mat_boxes[0],
+                               filter_mat_boxes[1], filter_mat_boxes[2]]
+        probs_filtered = probs[filter_mat_probs]
+        classes_num_filtered = np.argmax(filter_mat_probs, axis=3)[filter_mat_boxes[
+            0], filter_mat_boxes[1], filter_mat_boxes[2]]
+
+        argsort = np.array(np.argsort(probs_filtered))[::-1]
+        boxes_filtered = boxes_filtered[argsort]
+        probs_filtered = probs_filtered[argsort]
+        classes_num_filtered = classes_num_filtered[argsort]
+
+        for i in range(len(boxes_filtered)):
+            if probs_filtered[i] == 0:
+                continue
+            for j in range(i + 1, len(boxes_filtered)):
+                if self.iou(boxes_filtered[i], boxes_filtered[j]) > self.iou_threshold:
+                    probs_filtered[j] = 0.0
+
+        filter_iou = np.array(probs_filtered > 0.0, dtype='bool')
+        boxes_filtered = boxes_filtered[filter_iou]
+        probs_filtered = probs_filtered[filter_iou]
+        classes_num_filtered = classes_num_filtered[filter_iou]
+
+        result = []
+        for i in range(len(boxes_filtered)):
+            result.append([self.classes[classes_num_filtered[i]], boxes_filtered[i][0], boxes_filtered[
+                          i][1], boxes_filtered[i][2], boxes_filtered[i][3], probs_filtered[i]])
+
+        return result
+
+    def show_results(self, img, results):
+        img_cp = img.copy()
+        if self.filewrite_txt:
+            ftxt = open(self.tofile_txt, 'w')
+        for i in range(len(results)):
+            x = int(results[i][1])
+            y = int(results[i][2])
+            w = int(results[i][3]) // 2
+            h = int(results[i][4]) // 2
+
+            if self.filewrite_img or self.imshow:
+                cv2.rectangle(img_cp, (x - w, y - h),
+                              (x + w, y + h), (0, 255, 0), 2)
+                cv2.rectangle(img_cp, (x - w, y - h - 20),
+                              (x + w, y - h), (125, 125, 125), -1)
+                cv2.putText(img_cp, results[i][0] + ' : %.2f' % results[i][
+                            5], (x - w + 5, y - h - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+
+            if self.filewrite_txt:
+                ftxt.write(results[i][0] + ',' + str(x) + ',' + str(y) + ',' +
+                           str(w) + ',' + str(h) + ',' + str(results[i][5]) + '\n')
+
+        if self.filewrite_img:
+            cv2.imwrite(self.tofile_img, img_cp)
+
+        if self.imshow:
+            cv2.imshow('YOLO_small detection', img_cp)
+            cv2.waitKey(1)
+
+        if self.filewrite_txt:
+            ftxt.close()
+
+    def iou(self, box1, box2):
+        tb = min(box1[0] + 0.5 * box1[2], box2[0] + 0.5 * box2[2]) - \
+            max(box1[0] - 0.5 * box1[2], box2[0] - 0.5 * box2[2])
+        lr = min(box1[1] + 0.5 * box1[3], box2[1] + 0.5 * box2[3]) - \
+            max(box1[1] - 0.5 * box1[3], box2[1] - 0.5 * box2[3])
+        if tb < 0 or lr < 0:
+            intersection = 0
+        else:
+            intersection = tb * lr
+        return intersection / (box1[2] * box1[3] + box2[2] * box2[3] - intersection)
 
 
-def loss(logits, labels):
-    """Add L2Loss to all the trainable variables.
-    Add summary for "Loss" and "Loss/avg".
-    Args:
-      logits: Logits from inference().
-      labels: Labels from distorted_inputs or inputs(). 1-D tensor
-              of shape [batch_size]
-    Returns:
-      Loss tensor of type float.
-    """
-    # Calculate the average cross entropy loss across the batch.
-    labels = tf.cast(labels, tf.int64)
-    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
-        logits, labels, name='cross_entropy_per_example')
-    cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
-    tf.add_to_collection('losses', cross_entropy_mean)
+def main(argvs):
 
-    # The total loss is defined as the cross entropy loss plus all of the weight
-    # decay terms (L2 loss).
-    return tf.add_n(tf.get_collection('losses'), name='total_loss')
+    # Read in data, write gzip files to "data/" directory
+    mnist_data = input_data.read_data_sets("data/", one_hot=True)
+    img_size, num_class, batch_size = 28, 10, 50
 
+    # Start Tensorflow Session
+    with tf.Session() as sess:
+        baxterClassifier = BaxterClassifier(argvs)
+        cv2.waitKey(1000)
 
-def train(total_loss, global_step):
-    """Train CIFAR-10 model.
-    Create an optimizer and apply to all trainable variables. Add moving
-    average for all trainable variables.
-    Args:
-      total_loss: Total loss from loss().
-      global_step: Integer Variable counting the number of training steps
-        processed.
-    Returns:
-      train_op: op for training.
-    """
-    # Variables that affect learning rate.
-    num_batches_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size
-    decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
+        sess.run(tf.initialize_all_variables())
 
-    # Decay the learning rate exponentially based on the number of steps.
-    lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
-                                    global_step,
-                                    decay_steps,
-                                    LEARNING_RATE_DECAY_FACTOR,
-                                    staircase=True)
-    tf.scalar_summary('learning_rate', lr)
+        # Start Training Loop
+        for i in range(100):
+            batch = mnist_data.train.next_batch(batch_size)
+            if i % 100 == 0:
+                train_accuracy = mnist_cnn.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
+                                                                    baxterClassifier.y: batch[1],
+                                                                    baxterClassifier.keep_prob: 1.0})
+                print "Step %d, Training Accuracy %g" % (i, train_accuracy)
 
-    # Generate moving averages of all losses and associated summaries.
-    loss_averages_op = _add_loss_summaries(total_loss)
-
-    # Compute gradients.
-    with tf.control_dependencies([loss_averages_op]):
-        opt = tf.train.GradientDescentOptimizer(lr)
-        grads = opt.compute_gradients(total_loss)
-
-    # Apply gradients.
-    apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
-
-    # Add histograms for trainable variables.
-    for var in tf.trainable_variables():
-        tf.histogram_summary(var.op.name, var)
-
-    # Add histograms for gradients.
-    for grad, var in grads:
-        if grad is not None:
-            tf.histogram_summary(var.op.name + '/gradients', grad)
-
-    # Track the moving averages of all trainable variables.
-    variable_averages = tf.train.ExponentialMovingAverage(
-        MOVING_AVERAGE_DECAY, global_step)
-    variables_averages_op = variable_averages.apply(tf.trainable_variables())
-
-    with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
-        train_op = tf.no_op(name='train')
-
-    return train_op
+            baxterClassifier.train_op.run(feed_dict={baxterClassifier.x: batch[0],
+                                                     baxterClassifier.y: batch[1],
+                                                     baxterClassifier.keep_prob: 0.5})
 
 
-def maybe_download_and_extract():
-    """Download and extract the tarball from Alex's website."""
-    dest_directory = FLAGS.data_dir
-    if not os.path.exists(dest_directory):
-        os.makedirs(dest_directory)
-    filename = DATA_URL.split('/')[-1]
-    filepath = os.path.join(dest_directory, filename)
-    if not os.path.exists(filepath):
-        def _progress(count, block_size, total_size):
-            sys.stdout.write('\r>> Downloading %s %.1f%%' % (filename,
-                                                             float(count * block_size) / float(total_size) * 100.0))
-            sys.stdout.flush()
-        filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
-        print()
-        statinfo = os.stat(filepath)
-        print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')
-        tarfile.open(filepath, 'r:gz').extractall(dest_directory)
+if __name__ == '__main__':
+    main(sys.argv)
