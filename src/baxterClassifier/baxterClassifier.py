@@ -53,9 +53,9 @@ class BaxterClassifier:
                 else:
                     self.disp_console = False
 
-    def build_pretrain_network(self):
-        self.x = tf.placeholder('float32', [None, 448, 448, 3])
-        self.conv_1 = self.conv_layer(1, self.x, 64, 7, 2)
+    def build_pretrain_network(self, images):
+
+        self.conv_1 = self.conv_layer(1, images, 64, 7, 2)
         self.pool_2 = self.pooling_layer(2, self.conv_1, 2, 2)
         self.conv_3 = self.conv_layer(3, self.pool_2, 192, 3, 1)
         self.pool_4 = self.pooling_layer(4, self.conv_3, 2, 2)
@@ -89,8 +89,6 @@ class BaxterClassifier:
         return self.softmax_26
 
     def build_networks(self):
-        if self.disp_console:
-            print "Building YOLO_small graph..."
         self.x = tf.placeholder('float32', [None, 448, 448, 3])
         self.conv_1 = self.conv_layer(1, self.x, 64, 7, 2)
         self.pool_2 = self.pooling_layer(2, self.conv_1, 2, 2)
@@ -152,8 +150,6 @@ class BaxterClassifier:
         conv = tf.nn.conv2d(inputs_pad, weight, strides=[
                             1, stride, stride, 1], padding='VALID', name=str(idx) + '_conv')
         conv_biased = tf.add(conv, biases, name=str(idx) + '_conv_biased')
-        if self.disp_console:
-            print '    Layer  %d : Type = Conv, Size = %d * %d, Stride = %d, Filters = %d, Input channels = %d' % (idx, size, size, stride, filters, int(channels))
         return tf.maximum(self.alpha * conv_biased, conv_biased, name=str(idx) + '_leaky_relu')
 
     def pooling_layer(self, idx, inputs, size, stride):
@@ -218,6 +214,7 @@ class BaxterClassifier:
         class_probs = np.reshape(output[0:980], (7, 7, 20))
         scales = np.reshape(output[980:1078], (7, 7, 2))
         boxes = np.reshape(output[1078:], (7, 7, 2, 4))
+
         offset = np.transpose(np.reshape(
             np.array([np.arange(7)] * 14), (2, 7, 7)), (1, 2, 0))
 
@@ -329,6 +326,7 @@ def main(argvs):
         # Start Training Loop
         for i in range(100):
             batch = mnist_data.train.next_batch(batch_size)
+
             if i % 100 == 0:
                 train_accuracy = mnist_cnn.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
                                                                     baxterClassifier.y: batch[1],
