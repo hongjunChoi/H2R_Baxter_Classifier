@@ -7,50 +7,67 @@ from PIL import Image
 import os
 import random
 import tensorflow as tf
+from tensorflow.python.framework import ops
+from tensorflow.python.framework import dtypes
 
-IMAGE_SIZE = 128
+IMAGE_SIZE = 28
 CHANNELS = 3
 IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE * CHANNELS
 NUM_CLASSES = 2
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 100
-NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = 100
+BATCH_SIZE = 5
+
+dataset_path = "/path/to/your/dataset/mnist/"
+train_labels_file = "train-labels.csv"
 
 
-class ImagenetData(Dataset):
-    """ImageNet data set."""
+def encode_label(label):
+    return int(label)
 
-    def __init__(self, subset):
-        super(ImagenetData, self).__init__('ImageNet', subset)
 
-    def num_classes(self):
-        """Returns the number of classes in the data set."""
-        return 1000
+def read_label_file(file):
+    f = open(file, "r")
+    filepaths = []
+    labels = []
+    for line in f:
+        filepath, label = line.split(",")
+        filepaths.append(filepath)
+        labels.append(encode_label(label))
+    return filepaths, labels
 
-    def num_examples_per_epoch(self):
-        """Returns the number of examples in the data set."""
-        # Bounding box data consists of 615299 bounding boxes for 544546
-        # images.
-        if self.subset == 'train':
-            return 1281167
-        if self.subset == 'validation':
-            return 50000
 
-    def download_message(self):
-        """Instruction to download and extract the tarball from Flowers website."""
+def getTrainingInput():
+    # reading labels and file path
+    train_filepaths, train_labels = read_label_file(
+        dataset_path + train_labels_file)
 
-        print('Failed to find any ImageNet %s files' % self.subset)
-        print('')
-        print('If you have already downloaded and processed the data, then make '
-              'sure to set --data_dir to point to the directory containing the '
-              'location of the sharded TFRecords.\n')
-        print('If you have not downloaded and prepared the ImageNet data in the '
-              'TFRecord format, you will need to do this at least once. This '
-              'process could take several hours depending on the speed of your '
-              'computer and network connection\n')
-        print('Please see README.md for instructions on how to build '
-              'the ImageNet dataset using download_and_preprocess_imagenet.\n')
-        print('Note that the raw data size is 300 GB and the processed data size '
-              'is 150 GB. Please ensure you have at least 500GB disk space.')
+    # transform relative path into full path
+    train_filepaths = [dataset_path + fp for fp in train_filepaths]
+
+    # for this example we will create or own test partition
+    all_filepaths = train_filepaths
+    all_labels = train_labels
+
+    # convert string into tensors
+    train_images = ops.convert_to_tensor(all_filepaths, dtype=dtypes.string)
+    train_labels = ops.convert_to_tensor(all_labels, dtype=dtypes.int32)
+
+    # create input queues
+    train_input_queue = tf.train.slice_input_producer(
+        [train_images, train_labels])
+
+    # process path and string tensor into an image and a label
+    file_content = tf.read_file(train_input_queue[0])
+    train_image = tf.image.decode_jpeg(file_content, channels=NUM_CHANNELS)
+    train_label = train_input_queue[1]
+
+    # define tensor shape
+    train_image.set_shape([IMAGE_SIZE, IMAGE_SIZE, CHANNELS])
+
+    # collect batches of images before processing
+    train_image_batch, train_label_batch = tf.train.batch(
+        [train_image, train_label], batch_size=BATCH_SIZE)
+
+    return train_image_batch, train_label_batch
 
 
 def read_my_file_format(filename_queue):
@@ -77,75 +94,6 @@ def input_pipeline(filenames, batch_size, num_epochs=None):
         [example, label], batch_size=batch_size, capacity=capacity,
         min_after_dequeue=min_after_dequeue)
     return example_batch, label_batch
-
-
-def read_data(filename_queue):
-
-    class ImageDataSet(object):
-        pass
-
-    result = ImageDataSet()
-
-    label_bytes = 1
-    result.height = 32
-    result.width = 32
-    result.depth = 3
-    image_bytes = result.height * result.width * result.depth
-    # Every record consists of a label followed by the image, with a
-    # fixed number of bytes for each.
-    record_bytes = label_bytes + image_bytes
-
-    # Read a record, getting filenames from the filename_queue.  No
-    # header or footer in the CIFAR-10 format, so we leave header_bytes
-    # and footer_bytes at their default of 0.
-    reader = tf.FixedLengthRecordReader(record_bytes=record_bytes)
-    result.key, value = reader.read(filename_queue)
-
-    # Convert from a string to a vector of uint8 that is record_bytes long.
-    record_bytes = tf.decode_raw(value, tf.uint8)
-
-    # The first bytes represent the label, which we convert from uint8->int32.
-    result.label = tf.cast(
-        tf.slice(record_bytes, [0], [label_bytes]), tf.int32)
-
-    # The remaining bytes after the label represent the image, which we reshape
-    # from [depth * height * width] to [depth, height, width].
-    depth_major = tf.reshape(tf.slice(record_bytes, [label_bytes], [image_bytes]),
-                             [result.depth, result.height, result.width])
-    # Convert from [depth, height, width] to [height, width, depth].
-    result.uint8image = tf.transpose(depth_major, [1, 2, 0])
-
-    return result
-
-
-def _generate_image_and_label_batch(image, label, min_queue_examples,
-                                    batch_size, shuffle):
-    """Construct a queued batch of images and labels.
-    Args:
-      image: 3-D Tensor of [height, width, 3] of type.float32.
-      label: 1-D Tensor of type.int32
-      min_queue_examples: int32, minimum number of samples to retain
-        in the queue that provides of batches of examples.
-      batch_size: Number of images per batch.
-      shuffle: boolean indicating whether to use a shuffling queue.
-    Returns:
-      images: Images. 4D tensor of [batch_size, height, width, 3] size.
-      labels: Labels. 1D tensor of [batch_size] size.
-    """
-    # Create a queue that shuffles the examples, and then
-    # read 'batch_size' images + labels from the example queue.
-    num_preprocess_threads = 16
-
-    images, label_batch = tf.train.batch(
-        [image, label],
-        batch_size=batch_size,
-        num_threads=num_preprocess_threads,
-        capacity=min_queue_examples + 3 * batch_size)
-
-    # Display the training images in the visualizer.
-    tf.image_summary('images', images)
-
-    return images, tf.reshape(label_batch, [batch_size])
 
 
 def inputs(eval_data, data_dir, batch_size):
@@ -216,7 +164,7 @@ def getCustomInputs():
     return train_images, train_labels
 
 
-def getImageBatch():
+def getBatchInput():
 
     # Make a queue of file names including all the JPEG images files in the relative
     # image directory.
