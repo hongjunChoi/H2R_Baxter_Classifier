@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from inception.dataset import Dataset
+# from inception.dataset import Dataset
 from six.moves import xrange  # pylint: disable=redefined-builtin
 from PIL import Image
 import os
