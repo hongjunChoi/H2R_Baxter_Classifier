@@ -11,5 +11,6 @@ src/tensorbox/data/*
 src/tensorbox/output/*
 src/darknet/data/*
 src/darknet/results/*
-
-
+src/baxterClassifier/cv.py
+src/baxterClassifier/cv2.so
+*.ckpt*
