@@ -12,4 +12,4 @@ src/tensorbox/output/*
 src/darknet/data/*
 src/darknet/results/*
 
-*.ckpt
+*.ckpt*
