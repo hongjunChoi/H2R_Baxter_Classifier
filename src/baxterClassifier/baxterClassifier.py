@@ -40,6 +40,8 @@ class BaxterClassifier:
 
         self.logits = self.build_pretrain_network()
         self.loss_val = self.loss()
+        self.detection_loss_val = self.detection_loss()
+
         self.train_op = self.trainOp()
 
         # Creat operations for computing the accuracy
@@ -66,12 +68,6 @@ class BaxterClassifier:
                     self.imshow = True
                 else:
                     self.imshow = False
-
-    def loss(self):
-        return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y))
-
-    def trainOp(self):
-        return tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_val)
 
     def build_pretrain_network(self):
 
@@ -205,9 +201,6 @@ class BaxterClassifier:
             tf.matmul(inputs, weights), biases)
         return softmax_linear
 
-    def loss(self, logits, trueLabel):
-        return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, trueLabel))
-
     def detection_loss(self, output, trueLabel):
 
         probs = np.zeros((7, 7, 2, 20))
@@ -305,8 +298,18 @@ class BaxterClassifier:
 
         return xval + wval + cval + noobjc + probc
 
-    def trainOp(self, loss_val):
-        return tf.train.AdamOptimizer(self.learning_rate).minimize(loss_val)
+    # def loss(self, logits, trueLabel):
+    # return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits,
+    # trueLabel))
+
+    def loss(self):
+        return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y))
+
+    def trainOp(self):
+        return tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_val)
+
+    def detectionTrainOp(self):
+        return tf.train.AdamOptimizer(self.learning_rate).minimize(self.detection_loss)
 
     def detect_from_cvmat(self, img):
         s = time.time()
