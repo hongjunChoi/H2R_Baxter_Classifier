@@ -38,8 +38,8 @@ class BaxterClassifier:
             self.x, [-1, self.img_size, self.img_size, 1])
 
         self.logits = self.build_pretrain_network()
-        self.loss_val = self.loss()
-        self.train_op = self.trainOp()
+        self.loss_val = self.lossVal()
+        self.train_op = self.trainOps()
 
         # Creat operations for computing the accuracy
         correct_prediction = tf.equal(
@@ -66,10 +66,10 @@ class BaxterClassifier:
                 else:
                     self.imshow = False
 
-    def loss(self):
+    def lossVal(self):
         return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y))
 
-    def trainOp(self):
+    def trainOps(self):
         return tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_val)
 
     def build_pretrain_network(self):
@@ -158,8 +158,8 @@ class BaxterClassifier:
     def conv_layer(self, idx, inputs, filters, size, stride):
         channels = inputs.get_shape()[3]
         weight = tf.Variable(tf.truncated_normal(
-            [size, size, int(channels), filters], stddev=0.1))
-        biases = tf.Variable(tf.constant(0.1, shape=[filters]))
+            [size, size, int(channels), filters], stddev=0.1), name="weight" + str(idx))
+        biases = tf.Variable(tf.constant(0.1, shape=[filters]), name="bias" + str(idx))
 
         pad_size = size // 2
         pad_mat = np.array([[0, 0], [pad_size, pad_size],
@@ -186,8 +186,8 @@ class BaxterClassifier:
         else:
             dim = input_shape[1]
             inputs_processed = inputs
-        weight = tf.Variable(tf.truncated_normal([dim, hiddens], stddev=0.1))
-        biases = tf.Variable(tf.constant(0.1, shape=[hiddens]))
+        weight = tf.Variable(tf.truncated_normal([dim, hiddens], stddev=0.1), name='fc_weight' + str(idx))
+        biases = tf.Variable(tf.constant(0.1, shape=[hiddens]), name='fc_bias' + str(idx))
 
         if linear:
             return tf.add(tf.matmul(inputs_processed, weight), biases, name=str(idx) + '_fc')
@@ -434,12 +434,18 @@ def main(argvs):
     # Start Tensorflow Session
     with tf.Session() as sess:
         baxterClassifier = BaxterClassifier(argvs)
+        baxterClassifier.saver = tf.train.Saver()    
+
         cv2.waitKey(1000)
-
+        print("starting session... ")
         sess.run(tf.initialize_all_variables())
-
+        # baxterClassifier.saver.restore(sess, "tmp/model3.ckpt")
+        var = [v for v in tf.trainable_variables()]
+        for i in range(len(var)):
+            print(var[i].name)
+            print(var[i].value)
         # Start Training Loop
-        for i in range(500):
+        for i in range(300):
             print("starting  " + str(i) + "th  training iteration..")
 
             batch = mnist_data.train.next_batch(batch_size)
@@ -452,6 +458,8 @@ def main(argvs):
             baxterClassifier.train_op.run(feed_dict={baxterClassifier.x: batch[0],
                                                      baxterClassifier.y: batch[1],
                                                      baxterClassifier.dropout_rate: 0.5})
+        save_path = baxterClassifier.saver.save(sess, "tmp/modelfull.ckpt")
+        print("saving model to ", save_path)
 
 
 if __name__ == '__main__':
