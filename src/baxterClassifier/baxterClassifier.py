@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from tensorflow.examples.tutorials.mnist import input_data
 import cv2
 import time
 import sys
@@ -9,11 +10,11 @@ class BaxterClassifier:
     fromfile = None
     tofile_img = 'test/output.jpg'
     tofile_txt = 'test/output.txt'
+    weights_file = 'weights/YOLO_small.ckpt'
     imshow = True
     filewrite_img = False
     filewrite_txt = False
     disp_console = True
-    weights_file = 'weights/YOLO_small.ckpt'
     alpha = 0.1
     threshold = 0.2
     iou_threshold = 0.5
@@ -22,11 +23,28 @@ class BaxterClassifier:
     h_img = 480
 
     def __init__(self, argvs=[]):
-        self.dropout_rate = 0.5
         self.grid_size = 7
-        self.num_labels = 2
+        self.num_labels = 10
+        self.img_size = 28
         self.learning_rate = 1e-4
-        self.argv_parser(argvs)
+
+        self.x = tf.placeholder(
+            tf.float32, shape=[None, self.img_size * self.img_size])
+        self.y = tf.placeholder(tf.float32, shape=[None, self.num_labels])
+        self.dropout_rate = tf.placeholder(tf.float32)
+
+        # Reshape Image to be of shape [batch, width, height, channel]
+        self.x_image = tf.reshape(
+            self.x, [-1, self.img_size, self.img_size, 1])
+
+        self.logits = self.build_pretrain_network()
+        self.loss_val = self.loss()
+        self.train_op = self.trainOp()
+
+        # Creat operations for computing the accuracy
+        correct_prediction = tf.equal(
+            tf.argmax(self.logits, 1), tf.argmax(self.y, 1))
+        self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
         # self.build_networks()
         # if self.fromfile is not None:
@@ -47,15 +65,16 @@ class BaxterClassifier:
                     self.imshow = True
                 else:
                     self.imshow = False
-            if argvs[i] == '-disp_console':
-                if argvs[i + 1] == '1':
-                    self.disp_console = True
-                else:
-                    self.disp_console = False
 
-    def build_pretrain_network(self, images):
+    def loss(self):
+        return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y))
 
-        self.conv_1 = self.conv_layer(1, images, 64, 7, 2)
+    def trainOp(self):
+        return tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_val)
+
+    def build_pretrain_network(self):
+
+        self.conv_1 = self.conv_layer(1, self.x_image, 64, 7, 2)
         self.pool_2 = self.pooling_layer(2, self.conv_1, 2, 2)
         self.conv_3 = self.conv_layer(3, self.pool_2, 192, 3, 1)
         self.pool_4 = self.pooling_layer(4, self.conv_3, 2, 2)
@@ -89,7 +108,7 @@ class BaxterClassifier:
         return self.softmax_26
 
     def build_networks(self):
-        self.x = tf.placeholder('float32', [None, 448, 448, 3])
+
         self.conv_1 = self.conv_layer(1, self.x, 64, 7, 2)
         self.pool_2 = self.pooling_layer(2, self.conv_1, 2, 2)
         self.conv_3 = self.conv_layer(3, self.pool_2, 192, 3, 1)
@@ -184,12 +203,6 @@ class BaxterClassifier:
         softmax_linear = tf.add(
             tf.matmul(inputs, weights), biases)
         return softmax_linear
-
-    def loss(self, logits, trueLabel):
-        return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, trueLabel))
-
-    def trainOp(self, loss_val):
-        return tf.train.AdamOptimizer(self.learning_rate).minimize(loss_val)
 
     def detect_from_cvmat(self, img):
         s = time.time()
@@ -311,10 +324,9 @@ class BaxterClassifier:
 
 
 def main(argvs):
-
+    batch_size = 50
     # Read in data, write gzip files to "data/" directory
     mnist_data = input_data.read_data_sets("data/", one_hot=True)
-    img_size, num_class, batch_size = 28, 10, 50
 
     # Start Tensorflow Session
     with tf.Session() as sess:
@@ -324,18 +336,19 @@ def main(argvs):
         sess.run(tf.initialize_all_variables())
 
         # Start Training Loop
-        for i in range(100):
-            batch = mnist_data.train.next_batch(batch_size)
+        for i in range(500):
+            print("starting  " + str(i) + "th  training iteration..")
 
-            if i % 100 == 0:
-                train_accuracy = mnist_cnn.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
-                                                                    baxterClassifier.y: batch[1],
-                                                                    baxterClassifier.keep_prob: 1.0})
+            batch = mnist_data.train.next_batch(batch_size)
+            if i % 25 == 0:
+                train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
+                                                                           baxterClassifier.y: batch[1],
+                                                                           baxterClassifier.dropout_rate: 1.0})
                 print "Step %d, Training Accuracy %g" % (i, train_accuracy)
 
             baxterClassifier.train_op.run(feed_dict={baxterClassifier.x: batch[0],
                                                      baxterClassifier.y: batch[1],
-                                                     baxterClassifier.keep_prob: 0.5})
+                                                     baxterClassifier.dropout_rate: 0.5})
 
 
 if __name__ == '__main__':
