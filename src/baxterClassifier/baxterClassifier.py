@@ -10,7 +10,7 @@ class BaxterClassifier:
     fromfile = None
     tofile_img = 'test/output.jpg'
     tofile_txt = 'test/output.txt'
-    weights_file = 'weights/YOLO_small.ckpt'
+    weights_file = 'tmp/model30.ckpt'
     imshow = True
     filewrite_img = False
     filewrite_txt = False
@@ -37,16 +37,16 @@ class BaxterClassifier:
         self.x_image = tf.reshape(
             self.x, [-1, self.img_size, self.img_size, 1])
 
-        self.logits = self.build_pretrain_network()
-        self.loss_val = self.lossVal()
-        self.train_op = self.trainOps()
+        # self.logits = self.build_pretrain_network()
+        # self.loss_val = self.lossVal()
+        # self.train_op = self.trainOps()
 
         # Creat operations for computing the accuracy
         correct_prediction = tf.equal(
             tf.argmax(self.logits, 1), tf.argmax(self.y, 1))
         self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-        # self.build_networks()
+        self.build_networks()
         # if self.fromfile is not None:
         #     self.detect_from_file(self.fromfile)
 
