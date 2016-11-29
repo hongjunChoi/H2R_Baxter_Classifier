@@ -11,7 +11,7 @@ class BaxterClassifier:
     fromfile = None
     tofile_img = 'test/output.jpg'
     tofile_txt = 'test/output.txt'
-    weights_file = 'tmp/model30.ckpt'
+    weights_file = 'tmp/modelfull.ckpt'
     imshow = True
     filewrite_img = False
     filewrite_txt = False
@@ -41,20 +41,20 @@ class BaxterClassifier:
 
         self.dropout_rate = tf.placeholder(tf.float32)
 
-        self.logits = self.build_pretrain_network()
-        self.detection_logit = self.build_networks()
+        # self.logits = self.build_pretrain_network()
+        self.detection_logits = self.build_networks()
 
-        self.loss_val = self.lossVal()
+        # self.loss_val = self.lossVal()
         self.detection_loss_val = self.detection_loss()
 
-        self.train_op = self.trainOps()
+        # self.train_op = self.trainOps()
         self.detection_train_op = self.detectionTrainOp()
 
         # Creat operations for computing the accuracy
-        self.correct_prediction = tf.equal(
-            tf.argmax(self.logits, 1), tf.argmax(self.y, 1))
-        self.accuracy = tf.reduce_mean(
-            tf.cast(self.correct_prediction, tf.float32))
+        # self.correct_prediction = tf.equal(
+        #     tf.argmax(self.logits, 1), tf.argmax(self.y, 1))
+        # self.accuracy = tf.reduce_mean(
+        #     tf.cast(self.correct_prediction, tf.float32))
 
     def argv_parser(self, argvs):
         for i in range(1, len(argvs), 2):
@@ -134,6 +134,10 @@ class BaxterClassifier:
         self.conv_23 = self.conv_layer(23, self.conv_22, 512, 1, 1)
         self.conv_24 = self.conv_layer(24, self.conv_23, 1024, 3, 1)
 
+        self.sess = tf.Session()
+        # self.sess.run(tf.initialize_all_variables())
+        self.saver = tf.train.Saver()
+        self.saver.restore(self.sess, self.weights_file)
         # Added detection network from below
         self.conv_25 = self.conv_layer(25, self.conv_24, 1024, 3, 1)
         self.conv_26 = self.conv_layer(26, self.conv_25, 1024, 3, 2)
@@ -150,10 +154,8 @@ class BaxterClassifier:
         self.fc_32 = self.fc_layer(
             32, self.fc_30, 1470, flat=False, linear=True)
 
-        self.sess = tf.Session()
-        self.sess.run(tf.initialize_all_variables())
-        self.saver = tf.train.Saver()
-        self.saver.restore(self.sess, self.weights_file)
+        return self.fc_32
+
 
     def conv_layer(self, idx, inputs, filters, size, stride):
         channels = inputs.get_shape()[3]
@@ -209,103 +211,105 @@ class BaxterClassifier:
 
     def detection_loss(self):
 
-        output = self.detection_logits
-        trueLabel = self.detection_y
+        # output = self.detection_logits
+        # trueLabel = self.detection_y
 
-        probs = np.zeros((7, 7, 2, 20))
-        # class probabilities
-        class_probs = np.reshape(output[0:980], (7, 7, 2))
-        # C value is scales
-        scales = np.reshape(output[980:1078], (7, 7, 2))
-        boxes = np.reshape(output[1078:], (7, 7, 2, 4))
-        offset = np.transpose(np.reshape(
-            np.array([np.arange(7)] * 14), (2, 7, 7)), (1, 2, 0))
+        # probs = np.zeros((7, 7, 2, 20))
+        # # class probabilities
+        # class_probs = np.reshape(output[0:980], (7, 7, 2))
+        # # C value is scales
+        # scales = np.reshape(output[980:1078], (7, 7, 2))
+        # boxes = np.reshape(output[1078:], (7, 7, 2, 4))
+        # offset = np.transpose(np.reshape(
+        #     np.array([np.arange(7)] * 14), (2, 7, 7)), (1, 2, 0))
 
-        # coord value
-        yCoord = 5
-        # noobj value
-        yNoobj = .5
-        #self.y[x,y,w,h, C]
-        # find bounding box with higher IOU s
-        # need to do this still
-        box = 1
+        # # coord value
+        # yCoord = 5
+        # # noobj value
+        # yNoobj = .5
+        # #self.y[x,y,w,h, C]
+        # # find bounding box with higher IOU s
+        # # need to do this still
+        # box = 1
 
-        xval = 0
-        wval = 0
-        cval = 0
-        noobjc = 0
-        probc = 0
-        # jun check the synthax on the equations/how i'm getting values
-        # math should work but synthax isn't exact I don't think
-        # I also need help determing how I know if there is an object in
-        # the bounding box, right now I have a placeholder boolean value
+        # xval = 0
+        # wval = 0
+        # cval = 0
+        # noobjc = 0
+        # probc = 0
+        # # jun check the synthax on the equations/how i'm getting values
+        # # math should work but synthax isn't exact I don't think
+        # # I also need help determing how I know if there is an object in
+        # # the bounding box, right now I have a placeholder boolean value
 
-        for i in range(49):
-            for j in range(2):
-                xdiff = 0
-                ydiff = 0
-                # if it is an object
-                if boxes[i][j][0][C] == 1:
-                    xdiff = self.x - boxes[i][j][box][0]
-                    # square the difference
-                    xdiff = xdiff ** 2
-                    ydiff = self.y - boxes[i][j][box][1]
-                    # square the difference
-                    ydiff = ydiff ** 2
-                    xval = xval + xdiff + ydiff
-                break
-        xval = xval * yCoord
+        # for i in range(49):
+        #     for j in range(2):
+        #         xdiff = 0
+        #         ydiff = 0
+        #         # if it is an object
+        #         if boxes[i][j][0][C] == 1:
+        #             xdiff = self.x - boxes[i][j][box][0]
+        #             # square the difference
+        #             xdiff = xdiff ** 2
+        #             ydiff = self.y - boxes[i][j][box][1]
+        #             # square the difference
+        #             ydiff = ydiff ** 2
+        #             xval = xval + xdiff + ydiff
+        #         break
+        # xval = xval * yCoord
 
-        for i in range(49):
-            for j in range(2):
-                wdiff = 0
-                hdiff = 0
-                # if it is an object
-                if boxes[i][j][box][C] == 1:
-                    wdiff = math.sqrt(self.w) - math.sqrt(boxes[i][j][box][2])
-                    # square the difference
-                    wdiff = wdiff ** 2
-                    hdiff = math.sqrt(self.h) - math.sqrt(boxes[i][j][box][3])
-                    # square the difference
-                    hdiff = hdiff ** 2
-                    wval = wval + wdiff + hdiff
-                break
-        wval = wval * yCoord
+        # for i in range(49):
+        #     for j in range(2):
+        #         wdiff = 0
+        #         hdiff = 0
+        #         # if it is an object
+        #         if boxes[i][j][box][C] == 1:
+        #             wdiff = math.sqrt(self.w) - math.sqrt(boxes[i][j][box][2])
+        #             # square the difference
+        #             wdiff = wdiff ** 2
+        #             hdiff = math.sqrt(self.h) - math.sqrt(boxes[i][j][box][3])
+        #             # square the difference
+        #             hdiff = hdiff ** 2
+        #             wval = wval + wdiff + hdiff
+        #         break
+        # wval = wval * yCoord
 
-        for i in range(49):
-            for j in range(2):
-                # if it is an object
-                cdiff = 0
-                if boxes[i][j][box][C] == 1:
-                    cdiff = self.C - scales[i][j][box]
-                    # square the difference
-                    cdiff = cdiff ** 2
-                    cval += cdiff
-                break
+        # for i in range(49):
+        #     for j in range(2):
+        #         # if it is an object
+        #         cdiff = 0
+        #         if boxes[i][j][box][C] == 1:
+        #             cdiff = self.C - scales[i][j][box]
+        #             # square the difference
+        #             cdiff = cdiff ** 2
+        #             cval += cdiff
+        #         break
 
-        for i in range(49):
-            for j in range(2):
-                # if it is not an object
-                cdiff = 0
-                if boxes[i][j][box][C] == 0:
-                    cdiff = self.C - scales[i][j][box]
-                    # square the difference
-                    cdiff = cdiff ** 2
-                    noobjc += cdiff
-                break
-        noobjc = noobjc * yNoobj
+        # for i in range(49):
+        #     for j in range(2):
+        #         # if it is not an object
+        #         cdiff = 0
+        #         if boxes[i][j][box][C] == 0:
+        #             cdiff = self.C - scales[i][j][box]
+        #             # square the difference
+        #             cdiff = cdiff ** 2
+        #             noobjc += cdiff
+        #         break
+        # noobjc = noobjc * yNoobj
 
-        for i in range(49):
-            # if it is an object
-            if boxes[i][j][box][C] == 1:
-                for j in range(2):
-                    cdiff = self.C - scales[i][j][box]
-                    # square the difference
-                    cdiff = cdiff ** 2
-                    noobjc += cdiff
-                break
+        # for i in range(49):
+        #     # if it is an object
+        #     if boxes[i][j][box][C] == 1:
+        #         for j in range(2):
+        #             cdiff = self.C - scales[i][j][box]
+        #             # square the difference
+        #             cdiff = cdiff ** 2
+        #             noobjc += cdiff
+        #         break
 
-        return xval + wval + cval + noobjc + probc
+        # return xval + wval + cval + noobjc + probc
+        return tf.reduce_mean(self.detection_logits)
+        # return 2.0
 
     def lossVal(self):
         return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y))
@@ -461,14 +465,14 @@ def main(argvs):
             print("starting  " + str(i) + "th  training iteration..")
 
             batch = mnist_data.train.next_batch(batch_size)
-            if i % 25 == 0:
-                train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
-                                                                           baxterClassifier.y: batch[1],
-                                                                           baxterClassifier.dropout_rate: 1.0})
+            # if i % 25 == 0:
+            #     train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
+            #                                                                baxterClassifier.y: batch[1],
+            #                                                                baxterClassifier.dropout_rate: 1.0})
                 # print "Step %d, Training Accuracy %g" % (i,
                 # self.train_accuracy)
 
-            baxterClassifier.train_op.run(feed_dict={baxterClassifier.x: batch[0],
+            baxterClassifier.detection_train_op.run(feed_dict={baxterClassifier.x: batch[0],
                                                      baxterClassifier.y: batch[1],
                                                      baxterClassifier.dropout_rate: 0.5})
         save_path = baxterClassifier.saver.save(sess, "tmp/modelfull.ckpt")
