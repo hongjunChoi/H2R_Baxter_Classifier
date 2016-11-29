@@ -15,8 +15,6 @@ class BaxterClassifier:
     imshow = True
     filewrite_img = False
     filewrite_txt = False
-    disp_console = True
-    alpha = 0.1
     threshold = 0.2
     iou_threshold = 0.5
     num_box = 2
@@ -24,19 +22,22 @@ class BaxterClassifier:
     h_img = 480
 
     def __init__(self, argvs=[]):
+        self.alpha = 0.1
         self.grid_size = 7
         self.num_labels = 10
         self.img_size = 28
         self.learning_rate = 1e-4
 
-        self.x = tf.placeholder(
-            tf.float32, shape=[None, self.img_size * self.img_size])
-        self.y = tf.placeholder(tf.float32, shape=[None, self.num_labels])
-        self.dropout_rate = tf.placeholder(tf.float32)
-
         # Reshape Image to be of shape [batch, width, height, channel]
         self.x_image = tf.reshape(
             self.x, [-1, self.img_size, self.img_size, 1])
+
+        self.y = tf.placeholder(tf.float32, shape=[None, self.num_labels])
+
+        self.detection_y = tf.placeholder(
+            tf.float32, shape=[None, self.img_size * self.img_size])
+
+        self.dropout_rate = tf.placeholder(tf.float32)
 
         self.logits = self.build_pretrain_network()
         self.loss_val = self.loss()
@@ -106,7 +107,7 @@ class BaxterClassifier:
 
     def build_networks(self):
 
-        self.conv_1 = self.conv_layer(1, self.x, 64, 7, 2)
+        self.conv_1 = self.conv_layer(1, self.x_image, 64, 7, 2)
         self.pool_2 = self.pooling_layer(2, self.conv_1, 2, 2)
         self.conv_3 = self.conv_layer(3, self.pool_2, 192, 3, 1)
         self.pool_4 = self.pooling_layer(4, self.conv_3, 2, 2)
@@ -201,7 +202,10 @@ class BaxterClassifier:
             tf.matmul(inputs, weights), biases)
         return softmax_linear
 
-    def detection_loss(self, output, trueLabel):
+    def detection_loss(self):
+
+        output = self.detection_logits
+        trueLabel = self.detection_y
 
         probs = np.zeros((7, 7, 2, 20))
         # class probabilities
