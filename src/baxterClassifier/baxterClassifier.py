@@ -4,6 +4,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 import cv2
 import time
 import sys
+import inputProcessor
 
 
 class BaxterClassifier:
@@ -428,6 +429,9 @@ class BaxterClassifier:
 
 def main(argvs):
     batch_size = 50
+
+    # TODO: get image batches and label batches
+
     # Read in data, write gzip files to "data/" directory
     mnist_data = input_data.read_data_sets("data/", one_hot=True)
 
