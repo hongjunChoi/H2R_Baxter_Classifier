@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 from datetime import datetime
 from six.moves import xrange  # pylint: disable=redefined-builtin
-
+from tensorflow.examples.tutorials.mnist import input_data
 import os.path
 import time
 import inputProcessor
@@ -75,7 +75,25 @@ def train():
 
 
 def main(argv=None):
-    batches = inputProcessor.getImageBatch()
+    # batches = inputProcessor.getImageBatch()
+
+    mnist_data = input_data.read_data_sets('MNIST_data', one_hot=True)
+
+    # Start Tensorflow Session
+    with tf.Session() as sess:
+        baxterCnn = classifier.BaxterClassifier()
+        sess.run(tf.initialize_all_variables())
+
+        # Start Training Loop
+        for i in range(20):
+            batch = mnist_data.train.next_batch(batch_size)
+            baxterCnn.train_op.run(feed_dict={baxterCnn.x: batch[0], baxterCnn.y: batch[1],
+                                              baxterCnn.keep_prob: 0.5})
+
+        # # Evaluate Test Accuracy
+        # print "Test Accuracy %g" % baxterCnn.accuracy.eval(feed_dict={
+        #     baxterCnn.x: mnist_data.test.images, baxterCnn.y: mnist_data.test.labels,
+        #     baxterCnn.keep_prob: 1.0})
 
 
 if __name__ == '__main__':
