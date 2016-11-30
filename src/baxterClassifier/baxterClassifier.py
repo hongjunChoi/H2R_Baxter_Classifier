@@ -40,21 +40,16 @@ class BaxterClassifier:
 
         self.y = tf.placeholder(tf.float32, shape=[None, self.num_labels])
         self.detection_y = tf.placeholder(
-            tf.float32, shape=[self.grid_size, self.grid_size, (self.num_bounding_box * 5 + self.num_labels)])
+            tf.float32, shape=[None, 5])
 
         self.dropout_rate = tf.placeholder(tf.float32)
 
         # self.logits = self.build_pretrain_network()
+        # self.train_op = self.trainOps()
+        # self.loss_val = self.lossVal()
 
         self.detection_logits = self.build_networks()
-
-        # self.loss_val = self.lossVal()
         self.detection_loss_val = self.detection_loss()
-
-        # self.train_op = self.trainOps()
-        # self.loss_val = self.lossVal()
-        # self.train_op = self.trainOps()
-
         self.detection_train_op = self.detectionTrainOp()
 
         # Creat operations for computing the accuracy
