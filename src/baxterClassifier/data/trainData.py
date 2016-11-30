@@ -2,6 +2,9 @@ import glob
 from xml.dom import minidom
 import urllib
 import socket
+import re
+import imghdr
+import os
 
 def main():
     socket.setdefaulttimeout(10)
@@ -38,7 +41,7 @@ def main():
         # OPEN WRTE FOR CSV FILE
         # Open a file
         fo = open("data.csv", "wb")
-
+        count = 0
         for line in ins:
             arr = line.split()
             img_id = arr[0]
@@ -52,19 +55,26 @@ def main():
                 localFileName = "images/" + img_id + ".png"
                 print(url)
                 try:
-                    urllib.urlretrieve(url, localFileName)
-                except Exception as e:
-                    print("invalid url")
+                    a = urllib.urlretrieve(url, localFileName)
+                    # if (a[1]["Content-Type"])
+                    if imghdr.what(localFileName) == None:
+                        os.remove(localFileName)
+                        continue
+                except Exception, e:
+                    print("invalid url", e)
                     continue
 
                 print("...... ")
                 if img_id in spoonSet:
                     print("---spoon")
                     xmldoc = minidom.parse("spoon_annotation/n04284002/" + img_id + ".xml")
+                    classId = "n04284002"
 
                 elif img_id in forkSet:
                     print("---fork")
                     xmldoc = minidom.parse("fork_annotation/n03384167/" + img_id + ".xml")
+                    classId = "n03384167"
+
 
                 # FIND THE ANNOTATION FILE
 
@@ -74,7 +84,7 @@ def main():
                 xmin = xmldoc.getElementsByTagName('xmin')[0].firstChild.nodeValue
                 xmax = xmldoc.getElementsByTagName('xmax')[0].firstChild.nodeValue
 
-                data = "n04284002" + "," + \
+                data = classId + "," + \
                     str(ymin) + " , " + str(ymax) + \
                     "," + str(xmin) + "," + str(xmax) + \
                     "," + str(localFileName)
