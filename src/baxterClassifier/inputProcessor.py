@@ -166,10 +166,10 @@ def encodeImg(filename):
     try:
         print("===========================")
         img = cv2.imread(filename)
-        img_resized = cv2.resize(img, (IMAGE_SIZE, IMAGE_SIZE))
+        img_resized = cv2.resize(img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
 
     except Exception as e:
-        print("=======       NO     =======")
+        print("=======       NO     =======", e)
         return None
 
     img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
@@ -200,7 +200,7 @@ def read_next(csvFileName, batchSize, batchIndex):
         xmin = data[3]
         xmax = data[4]
         img_filename = "data/" + data[5]
-
+        print(img_filename)
         img = encodeImg(img_filename)
 
         if img is None:

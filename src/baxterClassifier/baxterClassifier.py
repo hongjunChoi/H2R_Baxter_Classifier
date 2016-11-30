@@ -36,7 +36,7 @@ class BaxterClassifier:
             tf.float32, shape=[None, self.img_size * self.img_size])
         # Reshape Image to be of shape [batch, width, height, channel]
         self.x_image = tf.reshape(
-            self.x, [-1, self.img_size, self.img_size, 3])
+            self.x, [-1, self.img_size, self.img_size, 1])
 
         self.y = tf.placeholder(tf.float32, shape=[None, self.num_labels])
         self.detection_y = tf.placeholder(
