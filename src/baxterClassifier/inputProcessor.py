@@ -167,13 +167,14 @@ def encodeImg(filename):
         print("===========================")
         img = cv2.imread(filename)
         if img:
-            img_resized = cv2.resize(img, (IMAGE_SIZE, IMAGE_SIZE))
+            img_resized = cv2.resize(
+                img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
         else:
             print("cannot read image ")
             return None
 
     except Exception as e:
-        print("=======       EXCEPTION     =======")
+        print("=======       EXCEPTION     ======= : ", e)
         return None
 
     img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
