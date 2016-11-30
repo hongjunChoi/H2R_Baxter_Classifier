@@ -167,6 +167,7 @@ def encodeImg(filename):
         print("===========================")
         img = cv2.imread(filename.strip())
         print(img)
+
         if img is not None:
             img_resized = cv2.resize(
                 img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
@@ -183,6 +184,44 @@ def encodeImg(filename):
     inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 3), dtype='float32')
     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
     return inputs
+
+
+def pretrain_read_next(csvFileName, batchSize, batchIndex):
+    ins = open(csvFileName)
+    lines = ins.readlines()
+    startIndex = batchIndex * batchSize
+    endIndex = (batchIndex + 1) * batchSize
+    if endIndex >= len(lines):
+        endIndex = len(lines) - 1
+
+    nextLines = lines[startIndex:endIndex]
+
+    images = []
+    annotations = []
+
+    for line in nextLines:
+        data = line.split(",")
+        classLabel = data[0]
+        ymin = data[1]
+        ymax = data[2]
+        xmin = data[3]
+        xmax = data[4]
+        img_filename = ("data/" + data[5]).strip()
+        img = encodeImg(img_filename)
+
+        if img is None:
+            continue
+
+        images.append(img)
+
+        if classLabel == "n03384167":
+            label = [0, 1]
+        else:
+            label = [1, 0]
+
+        annotations.append(np.asarray(label))
+
+    return [np.array(images), np.array(annotations)]
 
 
 def read_next(csvFileName, batchSize, batchIndex):

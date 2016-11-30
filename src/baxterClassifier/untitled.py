@@ -24,12 +24,13 @@ class BaxterClassifier:
     def __init__(self, argvs=[]):
         self.alpha = 0.1
         self.grid_size = 7
-        self.num_labels = 10
+        self.num_labels = 2
         self.num_bounding_box = 2
         self.img_size = 224
         self.batch_size = 50
         self.uninitialized_var = []
         self.learning_rate = 1e-4
+        self.batch_size = 1
 
         self.sess = tf.Session()
 
@@ -37,27 +38,32 @@ class BaxterClassifier:
             tf.float32, shape=[None, self.img_size * self.img_size])
         # Reshape Image to be of shape [batch, width, height, channel]
         self.x_image = tf.reshape(
-            self.x, [-1, self.img_size, self.img_size, 1])
+            self.x, [-1, self.img_size, self.img_size, 3])
 
-        self.y = tf.placeholder(tf.float32, shape=[None, self.batch_size])
+        self.y = tf.placeholder(tf.float32, shape=[None, self.num_labels])
         self.detection_y = tf.placeholder(
             tf.float32, shape=[None, 5])
 
         self.dropout_rate = tf.placeholder(tf.float32)
 
-        # self.logits = self.build_pretrain_network()
-        # self.train_op = self.trainOps()
-        # self.loss_val = self.lossVal()
+        self.logits = self.build_pretrain_network()
+        self.loss_val = self.lossVal()
+        self.train_op = self.trainOps()
 
-        self.detection_logits = self.build_networks()
-        self.detection_loss_val = self.detection_loss()
-        self.detection_train_op = self.detectionTrainOp()
-
-        # Creat operations for computing the accuracy
         self.correct_prediction = tf.equal(
-            tf.argmax(self.detection_logits, 1), tf.argmax(self.y, 1))
+            tf.argmax(self.logits, 1), tf.argmax(self.y, 1))
         self.accuracy = tf.reduce_mean(
             tf.cast(self.correct_prediction, tf.float32))
+
+        # self.detection_logits = self.build_networks()
+        # self.detection_loss_val = self.detection_loss()
+        # self.detection_train_op = self.detectionTrainOp()
+
+        # Creat operations for computing the accuracy
+        # self.correct_prediction = tf.equal(
+        #     tf.argmax(self.detection_logits, 1), tf.argmax(self.y, 1))
+        # self.accuracy = tf.reduce_mean(
+        #     tf.cast(self.correct_prediction, tf.float32))
 
     def argv_parser(self, argvs):
         for i in range(1, len(argvs), 2):
@@ -224,7 +230,7 @@ class BaxterClassifier:
             tf.matmul(inputs, weights), biases)
         return softmax_linear
 
-    def detection_loss(self):
+     def detection_loss(self):
 
         # outputData = self.detection_logits  # 7 * 7 * 12
         # trueLabel = self.detection_y  # batch_size * 5 (class, 4 coordinates
@@ -329,7 +335,7 @@ class BaxterClassifier:
         # noobjc = noobjc * yNoobj
 
         # return xval + wval + cval + noobjc + probc
-        # return tf.reduce_mean(self.detection_logits)
+        return tf.reduce_mean(self.detection_logits)
 
     def lossVal(self):
         return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y))
@@ -495,30 +501,36 @@ def main(argvs):
                 print("initializing " + str(var.name))
                 uninitialized_vars.append(var)
 
-        init_new_vars_op = tf.initialize_variables(uninitialized_vars)
-        sess.run(init_new_vars_op)
+        # init_new_vars_op = tf.initialize_variables(uninitialized_vars)
+        # sess.run(init_new_vars_op)
         # Start Training Loop
-        for i in range(300):
+        for i in range(30):
             print("starting  " + str(i) + "th  training iteration..")
-            # batch = mnist_data.train.next_batch(batch_size)
+            batch2 = mnist_data.train.next_batch(batch_size)
 
-            batch = inputProcessor.read_next(
+            batch = inputProcessor.pretrain_read_next(
                 "data/data.csv", batch_size, batch_index)
 
             batch_index = batch_index + 1
+            
+            print("------ batch ------")
+            print(len(batch))
+            print(len(batch2))
+            print((batch[0][:, 0, :, :, :]).shape)
+            print(batch[0].shape)
+            print(batch2[0].shape)
+            print(batch[1].shape)
+            print(batch2[1].shape)
 
-            print(batch[0])
-            print(batch[1])
-
-            if i % 25 == 0:
-                train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
-                                                                           baxterClassifier.detection_y: batch[1],
+            if i % 5 == 0:
+                train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x_image: batch2[0],
+                                                                           baxterClassifier.y: batch2[1],
                                                                            baxterClassifier.dropout_rate: 1.0})
                 print("Step %d, Training Accuracy %.2f" % (i,
                                                            train_accuracy))
-            baxterClassifier.detection_train_op.run(feed_dict={baxterClassifier.x: batch[0],
-                                                               baxterClassifier.detection_y: batch[1],
-                                                               baxterClassifier.dropout_rate: 0.5})
+            baxterClassifier.train_op.run(feed_dict={baxterClassifier.x_image: batch2[0],
+                                                     baxterClassifier.y: batch2[1],
+                                                     baxterClassifier.dropout_rate: 0.5})
 
         save_path = baxterClassifier.saver.save(sess, "tmp/modelfull.ckpt")
         print("saving model to ", save_path)
