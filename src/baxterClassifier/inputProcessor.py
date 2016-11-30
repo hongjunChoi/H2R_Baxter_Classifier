@@ -177,7 +177,22 @@ def read_next(csvFileName, batchSize, batchIndex):
     lines = ins.readlines()
     nextLines = lines[batchIndex *
                       batchSize: batchIndex * batchSize + batchSize]
+
+    # TODO: CREATE TENSOR
+
     for line in nextLines:
+        print(line)
+        data = line.split(",")
+        classLabel = data[0]
+        ymin = data[1]
+        ymax = data[2]
+        xmin = data[3]
+        xmax = data[4]
+        img_filename = "data/" + data[5]
+        file_contents = tf.read_file(img_filename)
+        img = tf.image.decode_png(file_contents)
+
+        # TODO: ADD TO TENSOR
 
 
 def read_my_file_format(filename_and_label_tensor):

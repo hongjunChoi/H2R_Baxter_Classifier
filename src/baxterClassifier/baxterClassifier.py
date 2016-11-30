@@ -458,6 +458,7 @@ class BaxterClassifier:
 
 def main(argvs):
     batch_size = 50
+    batch_index = 0
 
     # TODO: get image batches and label batches
 
@@ -497,7 +498,12 @@ def main(argvs):
         # Start Training Loop
         for i in range(300):
             print("starting  " + str(i) + "th  training iteration..")
-            batch = mnist_data.train.next_batch(batch_size)
+            # batch = mnist_data.train.next_batch(batch_size)
+            batch = inputProcessor.read_next(
+                "data/data.csv", batch_size, batch_index)
+
+            batch_index = batch_index + 1
+
             if i % 25 == 0:
                 train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
                                                                            baxterClassifier.y: batch[1],
