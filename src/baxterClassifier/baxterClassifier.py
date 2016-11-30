@@ -30,6 +30,7 @@ class BaxterClassifier:
         self.uninitialized_var = []
         self.learning_rate = 1e-4
 
+        self.sess = tf.Session()
         self.x = tf.placeholder(
             tf.float32, shape=[None, self.img_size * self.img_size])
         # Reshape Image to be of shape [batch, width, height, channel]
@@ -50,6 +51,9 @@ class BaxterClassifier:
         self.detection_loss_val = self.detection_loss()
 
         # self.train_op = self.trainOps()
+        # self.loss_val = self.lossVal()
+        # self.train_op = self.trainOps()
+
         self.detection_train_op = self.detectionTrainOp()
 
         # Creat operations for computing the accuracy
@@ -136,7 +140,6 @@ class BaxterClassifier:
         self.conv_23 = self.conv_layer(23, self.conv_22, 512, 1, 1)
         self.conv_24 = self.conv_layer(24, self.conv_23, 1024, 3, 1)
 
-        self.sess = tf.Session()
         self.saver = tf.train.Saver()
         self.saver.restore(self.sess, self.weights_file)
 
@@ -459,10 +462,11 @@ def main(argvs):
 
     # Read in data, write gzip files to "data/" directory
     mnist_data = input_data.read_data_sets("data/", one_hot=True)
+    baxterClassifier = BaxterClassifier(argvs)
 
     # Start Tensorflow Session
-    with tf.Session() as sess:
-        baxterClassifier = BaxterClassifier(argvs)
+    with baxterClassifier.sess as sess:
+
         baxterClassifier.saver = tf.train.Saver()
 
         # init_new_vars_op = tf.initialize_variables(
