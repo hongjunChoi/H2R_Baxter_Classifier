@@ -488,9 +488,7 @@ def main(argvs):
         for var in tf.all_variables():
             try:
                 sess.run(var)
-                # print("already init " + str(var.name))
             except tf.errors.FailedPreconditionError:
-                # print("initializing " + str(var.name))
                 uninitialized_vars.append(var)
 
         init_new_vars_op = tf.initialize_variables(uninitialized_vars)
@@ -518,6 +516,7 @@ def main(argvs):
                                                                            baxterClassifier.dropout_rate: 1.0})
                 print("Step %d, Training Accuracy %.2f" % (i,
                                                            train_accuracy))
+
             baxterClassifier.train_op.run(feed_dict={baxterClassifier.x_image: image_batch,
                                                      baxterClassifier.y: label_batch,
                                                      baxterClassifier.dropout_rate: 0.5})
