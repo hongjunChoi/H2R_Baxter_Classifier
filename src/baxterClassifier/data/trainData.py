@@ -2,6 +2,8 @@ import glob
 from xml.dom import minidom
 import urllib
 import socket
+import Image
+
 
 def main():
     socket.setdefaulttimeout(10)
@@ -53,6 +55,7 @@ def main():
                 print(url)
                 try:
                     urllib.urlretrieve(url, localFileName)
+
                 except Exception as e:
                     print("invalid url")
                     continue
@@ -60,19 +63,24 @@ def main():
                 print("...... ")
                 if img_id in spoonSet:
                     print("---spoon")
-                    xmldoc = minidom.parse("spoon_annotation/n04284002/" + img_id + ".xml")
+                    xmldoc = minidom.parse(
+                        "spoon_annotation/n04284002/" + img_id + ".xml")
 
                 elif img_id in forkSet:
                     print("---fork")
-                    xmldoc = minidom.parse("fork_annotation/n03384167/" + img_id + ".xml")
+                    xmldoc = minidom.parse(
+                        "fork_annotation/n03384167/" + img_id + ".xml")
 
                 # FIND THE ANNOTATION FILE
 
-
-                ymin = xmldoc.getElementsByTagName('ymin')[0].firstChild.nodeValue
-                ymax = xmldoc.getElementsByTagName('ymax')[0].firstChild.nodeValue
-                xmin = xmldoc.getElementsByTagName('xmin')[0].firstChild.nodeValue
-                xmax = xmldoc.getElementsByTagName('xmax')[0].firstChild.nodeValue
+                ymin = xmldoc.getElementsByTagName(
+                    'ymin')[0].firstChild.nodeValue
+                ymax = xmldoc.getElementsByTagName(
+                    'ymax')[0].firstChild.nodeValue
+                xmin = xmldoc.getElementsByTagName(
+                    'xmin')[0].firstChild.nodeValue
+                xmax = xmldoc.getElementsByTagName(
+                    'xmax')[0].firstChild.nodeValue
 
                 data = "n04284002" + "," + \
                     str(ymin) + " , " + str(ymax) + \

@@ -26,7 +26,7 @@ class BaxterClassifier:
         self.grid_size = 7
         self.num_labels = 10
         self.num_bounding_box = 2
-        self.img_size = 28
+        self.img_size = 224
         self.uninitialized_var = []
         self.learning_rate = 1e-4
 
@@ -499,10 +499,14 @@ def main(argvs):
         for i in range(300):
             print("starting  " + str(i) + "th  training iteration..")
             # batch = mnist_data.train.next_batch(batch_size)
+
             batch = inputProcessor.read_next(
                 "data/data.csv", batch_size, batch_index)
 
             batch_index = batch_index + 1
+
+            print(batch[0])
+            print(batch[1])
 
             if i % 25 == 0:
                 train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
