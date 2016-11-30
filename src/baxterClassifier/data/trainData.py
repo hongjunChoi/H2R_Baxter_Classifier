@@ -53,9 +53,13 @@ def main():
                 import urllib
                 urllib.urlretrieve(url, localFileName)
 
+                if img_id in spoonSet:
+                    xmldoc = minidom.parse("spoon_annotation/n04284002/" + img_id + ".xml")
+                else:
+                    xmldoc = minidom.parse("fork_annotation/n03384167/" + img_id + ".xml")
+
                 # FIND THE ANNOTATION FILE
-                xmldoc = minidom.parse(
-                    "spoon_annotation/n04284002/" + img_id + ".xml")
+
 
                 ymin = xmldoc.getElementsByTagName('ymin')[0]
                 ymax = xmldoc.getElementsByTagName('ymax')[0]
@@ -67,6 +71,7 @@ def main():
                     "," + str(xmin) + "," + str(xmax)
 
                 # APPEND TO CSV FILE WITH DOWNLOADED URL & ANNOTATION (WRITE)
+                print(data)
                 fo.write(data + "\n")
 
             else:
