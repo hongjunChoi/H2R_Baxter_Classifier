@@ -164,7 +164,11 @@ class BaxterClassifier:
         self.fc_32 = self.fc_layer(
             32, self.fc_30, 1470, flat=False, linear=True, initialize=True)
 
-        return self.fc_32
+<< << << < HEAD
+    return self.fc_32
+== == == =
+    return self.fc_32
+>>>>>> > 9052763767940375abce11022a1bd9fb966194c4
 
     def conv_layer(self, idx, inputs, filters, size, stride, initialize=False):
         channels = inputs.get_shape()[3]
@@ -463,6 +467,7 @@ def main(argvs):
 
     # Read in data, write gzip files to "data/" directory
     mnist_data = input_data.read_data_sets("data/", one_hot=True)
+
     baxterClassifier = BaxterClassifier(argvs)
 
     # Start Tensorflow Session
@@ -472,7 +477,7 @@ def main(argvs):
 
         # init_new_vars_op = tf.initialize_variables(
         #     baxterClassifier.uninitialized_var)
-        sess.run(init_new_vars_op)
+        # sess.run(init_new_vars_op)
 
         cv2.waitKey(1000)
         print("starting session... ")
@@ -482,10 +487,20 @@ def main(argvs):
         for i in range(len(var)):
             print(var[i].name)
 
+        uninitialized_vars = []
+        for var in tf.all_variables():
+            try:
+                sess.run(var)
+                print("already init " + str(var.name))
+            except tf.errors.FailedPreconditionError:
+                print("initializing " + str(var.name))
+                uninitialized_vars.append(var)
+
+        init_new_vars_op = tf.initialize_variables(uninitialized_vars)
+        sess.run(init_new_vars_op)
         # Start Training Loop
         for i in range(300):
             print("starting  " + str(i) + "th  training iteration..")
-
             batch = mnist_data.train.next_batch(batch_size)
             if i % 25 == 0:
                 train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
