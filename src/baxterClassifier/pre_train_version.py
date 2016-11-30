@@ -1,20 +1,20 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.examples.tutorials.mnist import input_data
 import cv2
 import time
 import sys
-import inputProcessor
 
 
 class BaxterClassifier:
     fromfile = None
     tofile_img = 'test/output.jpg'
     tofile_txt = 'test/output.txt'
-    weights_file = 'tmp/modelfull.ckpt'
     imshow = True
     filewrite_img = False
     filewrite_txt = False
+    disp_console = True
+    weights_file = 'weights/YOLO_small.ckpt'
+    alpha = 0.1
     threshold = 0.2
     iou_threshold = 0.5
     num_box = 2
@@ -22,41 +22,15 @@ class BaxterClassifier:
     h_img = 480
 
     def __init__(self, argvs=[]):
-        self.alpha = 0.1
+        self.dropout_rate = 0.5
         self.grid_size = 7
-        self.num_labels = 10
-        self.num_bounding_box = 2
-        self.img_size = 28
-        self.uninitialized_var = []
+        self.num_labels = 2
         self.learning_rate = 1e-4
+        self.argv_parser(argvs)
 
-        self.x = tf.placeholder(
-            tf.float32, shape=[None, self.img_size * self.img_size])
-        # Reshape Image to be of shape [batch, width, height, channel]
-        self.x_image = tf.reshape(
-            self.x, [-1, self.img_size, self.img_size, 1])
-
-        self.y = tf.placeholder(tf.float32, shape=[None, self.num_labels])
-        self.detection_y = tf.placeholder(
-            tf.float32, shape=[self.grid_size, self.grid_size, (self.num_bounding_box * 5 + self.num_labels)])
-
-        self.dropout_rate = tf.placeholder(tf.float32)
-
-        # self.logits = self.build_pretrain_network()
-
-        self.detection_logits = self.build_networks()
-
-        # self.loss_val = self.lossVal()
-        self.detection_loss_val = self.detection_loss()
-
-        # self.train_op = self.trainOps()
-        self.detection_train_op = self.detectionTrainOp()
-
-        # Creat operations for computing the accuracy
-        self.correct_prediction = tf.equal(
-            tf.argmax(self.detection_logits, 1), tf.argmax(self.y, 1))
-        self.accuracy = tf.reduce_mean(
-            tf.cast(self.correct_prediction, tf.float32))
+        # self.build_networks()
+        # if self.fromfile is not None:
+        #     self.detect_from_file(self.fromfile)
 
     def argv_parser(self, argvs):
         for i in range(1, len(argvs), 2):
@@ -73,10 +47,15 @@ class BaxterClassifier:
                     self.imshow = True
                 else:
                     self.imshow = False
+            if argvs[i] == '-disp_console':
+                if argvs[i + 1] == '1':
+                    self.disp_console = True
+                else:
+                    self.disp_console = False
 
-    def build_pretrain_network(self):
+    def build_pretrain_network(self, images):
 
-        self.conv_1 = self.conv_layer(1, self.x_image, 64, 7, 2)
+        self.conv_1 = self.conv_layer(1, images, 64, 7, 2)
         self.pool_2 = self.pooling_layer(2, self.conv_1, 2, 2)
         self.conv_3 = self.conv_layer(3, self.pool_2, 192, 3, 1)
         self.pool_4 = self.pooling_layer(4, self.conv_3, 2, 2)
@@ -110,8 +89,8 @@ class BaxterClassifier:
         return self.softmax_26
 
     def build_networks(self):
-
-        self.conv_1 = self.conv_layer(1, self.x_image, 64, 7, 2)
+        self.x = tf.placeholder('float32', [None, 448, 448, 3])
+        self.conv_1 = self.conv_layer(1, self.x, 64, 7, 2)
         self.pool_2 = self.pooling_layer(2, self.conv_1, 2, 2)
         self.conv_3 = self.conv_layer(3, self.pool_2, 192, 3, 1)
         self.pool_4 = self.pooling_layer(4, self.conv_3, 2, 2)
@@ -136,38 +115,32 @@ class BaxterClassifier:
         self.conv_23 = self.conv_layer(23, self.conv_22, 512, 1, 1)
         self.conv_24 = self.conv_layer(24, self.conv_23, 1024, 3, 1)
 
-        self.sess = tf.Session()
-        self.saver = tf.train.Saver()
-        self.saver.restore(self.sess, self.weights_file)
-
         # Added detection network from below
-        self.conv_25 = self.conv_layer(
-            25, self.conv_24, 1024, 3, 1, initialize=True)
-        self.conv_26 = self.conv_layer(
-            26, self.conv_25, 1024, 3, 2, initialize=True)
-        self.conv_27 = self.conv_layer(
-            27, self.conv_26, 1024, 3, 1, initialize=True)
-        self.conv_28 = self.conv_layer(
-            28, self.conv_27, 1024, 3, 1, initialize=True)
+        self.conv_25 = self.conv_layer(25, self.conv_24, 1024, 3, 1)
+        self.conv_26 = self.conv_layer(26, self.conv_25, 1024, 3, 2)
+        self.conv_27 = self.conv_layer(27, self.conv_26, 1024, 3, 1)
+        self.conv_28 = self.conv_layer(28, self.conv_27, 1024, 3, 1)
 
         self.fc_29 = self.fc_layer(
-            29, self.conv_28, 512, flat=True, linear=False, initialize=True)
+            29, self.conv_28, 512, flat=True, linear=False)
         self.fc_30 = self.fc_layer(
-            30, self.fc_29, 4096, flat=False, linear=False, initialize=True)
+            30, self.fc_29, 4096, flat=False, linear=False)
 
         # skip dropout_31
         # 7 * 7 * 30
         self.fc_32 = self.fc_layer(
-            32, self.fc_30, 1470, flat=False, linear=True, initialize=True)
+            32, self.fc_30, 1470, flat=False, linear=True)
 
-        return self.fc_32
+        self.sess = tf.Session()
+        self.sess.run(tf.initialize_all_variables())
+        self.saver = tf.train.Saver()
+        self.saver.restore(self.sess, self.weights_file)
 
-    def conv_layer(self, idx, inputs, filters, size, stride, initialize=False):
+    def conv_layer(self, idx, inputs, filters, size, stride):
         channels = inputs.get_shape()[3]
         weight = tf.Variable(tf.truncated_normal(
-            [size, size, int(channels), filters], stddev=0.1), name="weight" + str(idx))
-        biases = tf.Variable(tf.constant(
-            0.1, shape=[filters]), name="bias" + str(idx))
+            [size, size, int(channels), filters], stddev=0.1))
+        biases = tf.Variable(tf.constant(0.1, shape=[filters]))
 
         pad_size = size // 2
         pad_mat = np.array([[0, 0], [pad_size, pad_size],
@@ -177,11 +150,6 @@ class BaxterClassifier:
         conv = tf.nn.conv2d(inputs_pad, weight, strides=[
                             1, stride, stride, 1], padding='VALID', name=str(idx) + '_conv')
         conv_biased = tf.add(conv, biases, name=str(idx) + '_conv_biased')
-
-        if initialize:
-            (self.uninitialized_var).append(weight)
-            (self.uninitialized_var).append(biases)
-
         return tf.maximum(self.alpha * conv_biased, conv_biased, name=str(idx) + '_leaky_relu')
 
     def pooling_layer(self, idx, inputs, size, stride):
@@ -190,7 +158,7 @@ class BaxterClassifier:
     def dropout_layer(self, idx, inputs, dropout_rate):
         return tf.nn.dropout(inputs, dropout_rate)
 
-    def fc_layer(self, idx, inputs, hiddens, flat=False, linear=False, initialize=False):
+    def fc_layer(self, idx, inputs, hiddens, flat=False, linear=False):
         input_shape = inputs.get_shape().as_list()
         if flat:
             dim = input_shape[1] * input_shape[2] * input_shape[3]
@@ -199,14 +167,8 @@ class BaxterClassifier:
         else:
             dim = input_shape[1]
             inputs_processed = inputs
-        weight = tf.Variable(tf.truncated_normal(
-            [dim, hiddens], stddev=0.1), name='fc_weight' + str(idx))
-        biases = tf.Variable(tf.constant(
-            0.1, shape=[hiddens]), name='fc_bias' + str(idx))
-
-        if initialize:
-            (self.uninitialized_var).append(weight)
-            (self.uninitialized_var).append(biases)
+        weight = tf.Variable(tf.truncated_normal([dim, hiddens], stddev=0.1))
+        biases = tf.Variable(tf.constant(0.1, shape=[hiddens]))
 
         if linear:
             return tf.add(tf.matmul(inputs_processed, weight), biases, name=str(idx) + '_fc')
@@ -223,115 +185,11 @@ class BaxterClassifier:
             tf.matmul(inputs, weights), biases)
         return softmax_linear
 
-    def detection_loss(self):
+    def loss(self, logits, trueLabel):
+        return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, trueLabel))
 
-        # output = self.detection_logits
-        # trueLabel = self.detection_y
-
-        # probs = np.zeros((7, 7, 2, 20))
-        # # class probabilities
-        # class_probs = np.reshape(output[0:980], (7, 7, 2))
-        # # C value is scales
-        # scales = np.reshape(output[980:1078], (7, 7, 2))
-        # boxes = np.reshape(output[1078:], (7, 7, 2, 4))
-        # offset = np.transpose(np.reshape(
-        #     np.array([np.arange(7)] * 14), (2, 7, 7)), (1, 2, 0))
-
-        # # coord value
-        # yCoord = 5
-        # # noobj value
-        # yNoobj = .5
-        # #self.y[x,y,w,h, C]
-        # # find bounding box with higher IOU s
-        # # need to do this still
-        # box = 1
-
-        # xval = 0
-        # wval = 0
-        # cval = 0
-        # noobjc = 0
-        # probc = 0
-        # # jun check the synthax on the equations/how i'm getting values
-        # # math should work but synthax isn't exact I don't think
-        # # I also need help determing how I know if there is an object in
-        # # the bounding box, right now I have a placeholder boolean value
-
-        # for i in range(49):
-        #     for j in range(2):
-        #         xdiff = 0
-        #         ydiff = 0
-        #         # if it is an object
-        #         if boxes[i][j][0][C] == 1:
-        #             xdiff = self.x - boxes[i][j][box][0]
-        #             # square the difference
-        #             xdiff = xdiff ** 2
-        #             ydiff = self.y - boxes[i][j][box][1]
-        #             # square the difference
-        #             ydiff = ydiff ** 2
-        #             xval = xval + xdiff + ydiff
-        #         break
-        # xval = xval * yCoord
-
-        # for i in range(49):
-        #     for j in range(2):
-        #         wdiff = 0
-        #         hdiff = 0
-        #         # if it is an object
-        #         if boxes[i][j][box][C] == 1:
-        #             wdiff = math.sqrt(self.w) - math.sqrt(boxes[i][j][box][2])
-        #             # square the difference
-        #             wdiff = wdiff ** 2
-        #             hdiff = math.sqrt(self.h) - math.sqrt(boxes[i][j][box][3])
-        #             # square the difference
-        #             hdiff = hdiff ** 2
-        #             wval = wval + wdiff + hdiff
-        #         break
-        # wval = wval * yCoord
-
-        # for i in range(49):
-        #     for j in range(2):
-        #         # if it is an object
-        #         cdiff = 0
-        #         if boxes[i][j][box][C] == 1:
-        #             cdiff = self.C - scales[i][j][box]
-        #             # square the difference
-        #             cdiff = cdiff ** 2
-        #             cval += cdiff
-        #         break
-
-        # for i in range(49):
-        #     for j in range(2):
-        #         # if it is not an object
-        #         cdiff = 0
-        #         if boxes[i][j][box][C] == 0:
-        #             cdiff = self.C - scales[i][j][box]
-        #             # square the difference
-        #             cdiff = cdiff ** 2
-        #             noobjc += cdiff
-        #         break
-        # noobjc = noobjc * yNoobj
-
-        # for i in range(49):
-        #     # if it is an object
-        #     if boxes[i][j][box][C] == 1:
-        #         for j in range(2):
-        #             cdiff = self.C - scales[i][j][box]
-        #             # square the difference
-        #             cdiff = cdiff ** 2
-        #             noobjc += cdiff
-        #         break
-
-        # return xval + wval + cval + noobjc + probc
-        return tf.reduce_mean(self.detection_logits)
-
-    def lossVal(self):
-        return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y))
-
-    def trainOps(self):
-        return tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_val)
-
-    def detectionTrainOp(self):
-        return tf.train.AdamOptimizer(self.learning_rate).minimize(self.detection_loss_val)
+    def trainOp(self, loss_val):
+        return tf.train.AdamOptimizer(self.learning_rate).minimize(loss_val)
 
     def detect_from_cvmat(self, img):
         s = time.time()
@@ -453,47 +311,31 @@ class BaxterClassifier:
 
 
 def main(argvs):
-    batch_size = 50
-
-    # TODO: get image batches and label batches
 
     # Read in data, write gzip files to "data/" directory
     mnist_data = input_data.read_data_sets("data/", one_hot=True)
+    img_size, num_class, batch_size = 28, 10, 50
 
     # Start Tensorflow Session
     with tf.Session() as sess:
         baxterClassifier = BaxterClassifier(argvs)
-        baxterClassifier.saver = tf.train.Saver()
-
-        # init_new_vars_op = tf.initialize_variables(
-        #     baxterClassifier.uninitialized_var)
-        sess.run(init_new_vars_op)
-
         cv2.waitKey(1000)
-        print("starting session... ")
-        # sess.run(tf.initialize_all_variables())
 
-        var = [v for v in tf.trainable_variables()]
-        for i in range(len(var)):
-            print(var[i].name)
+        sess.run(tf.initialize_all_variables())
 
         # Start Training Loop
-        for i in range(300):
-            print("starting  " + str(i) + "th  training iteration..")
-
+        for i in range(100):
             batch = mnist_data.train.next_batch(batch_size)
-            if i % 25 == 0:
-                train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
-                                                                           baxterClassifier.y: batch[1],
-                                                                           baxterClassifier.dropout_rate: 1.0})
-                print("Step %d, Training Accuracy %.2f" % (i,
-                                                           train_accuracy))
-            baxterClassifier.detection_train_op.run(feed_dict={baxterClassifier.x: batch[0],
-                                                               baxterClassifier.y: batch[1],
-                                                               baxterClassifier.dropout_rate: 0.5})
 
-        save_path = baxterClassifier.saver.save(sess, "tmp/modelfull.ckpt")
-        print("saving model to ", save_path)
+            if i % 100 == 0:
+                train_accuracy = mnist_cnn.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
+                                                                    baxterClassifier.y: batch[1],
+                                                                    baxterClassifier.keep_prob: 1.0})
+                print "Step %d, Training Accuracy %g" % (i, train_accuracy)
+
+            baxterClassifier.train_op.run(feed_dict={baxterClassifier.x: batch[0],
+                                                     baxterClassifier.y: batch[1],
+                                                     baxterClassifier.keep_prob: 0.5})
 
 
 if __name__ == '__main__':
