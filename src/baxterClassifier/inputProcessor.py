@@ -166,11 +166,12 @@ def encodeImg(filename):
     try:
         print("===========================")
         img = cv2.imread(filename)
-        if img:
+        print(img)
+        if img is not None:
             img_resized = cv2.resize(
                 img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
         else:
-            print("cannot read image ")
+            print("cannot read image file : ", filename)
             return None
 
     except Exception as e:
@@ -181,7 +182,7 @@ def encodeImg(filename):
     img_resized_np = np.asarray(img_RGB)
     inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 3), dtype='float32')
     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
-    return img
+    return inputs
 
 
 def read_next(csvFileName, batchSize, batchIndex):
@@ -204,20 +205,16 @@ def read_next(csvFileName, batchSize, batchIndex):
         ymax = data[2]
         xmin = data[3]
         xmax = data[4]
-        img_filename = "data/" + data[5]
-
+        img_filename = ("data/" + data[5]).strip()
         img = encodeImg(img_filename)
 
         if img is None:
-            print("failed!!!!")
             continue
-        else:
-            print("YEAH")
 
         images.append(img)
 
         label = [classLabel, ymin, ymax, xmin, xmax]
-        annotations.append(np.array(label))
+        annotations.append(np.asarray(label))
 
         # file_contents = tf.read_file(img_filename)
         # img = tf.image.decode_png(file_contents)
