@@ -329,7 +329,7 @@ class BaxterClassifier:
         # noobjc = noobjc * yNoobj
 
         # return xval + wval + cval + noobjc + probc
-        return tf.reduce_mean(self.detection_logits)
+        # return tf.reduce_mean(self.detection_logits)
 
     def lossVal(self):
         return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y))
