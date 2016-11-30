@@ -164,11 +164,7 @@ class BaxterClassifier:
         self.fc_32 = self.fc_layer(
             32, self.fc_30, 1470, flat=False, linear=True, initialize=True)
 
-<< << << < HEAD
-    return self.fc_32
-== == == =
-    return self.fc_32
->>>>>> > 9052763767940375abce11022a1bd9fb966194c4
+        return self.fc_32
 
     def conv_layer(self, idx, inputs, filters, size, stride, initialize=False):
         channels = inputs.get_shape()[3]
