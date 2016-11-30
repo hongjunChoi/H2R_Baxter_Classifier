@@ -164,7 +164,11 @@ class BaxterClassifier:
         self.fc_32 = self.fc_layer(
             32, self.fc_30, 1470, flat=False, linear=True, initialize=True)
 
-        return  self.fc_32
+<< << << < HEAD
+    return self.fc_32
+== == == =
+    return self.fc_32
+>>>>>> > 9052763767940375abce11022a1bd9fb966194c4
 
     def conv_layer(self, idx, inputs, filters, size, stride, initialize=False):
         channels = inputs.get_shape()[3]
@@ -463,7 +467,7 @@ def main(argvs):
 
     # Read in data, write gzip files to "data/" directory
     mnist_data = input_data.read_data_sets("data/", one_hot=True)
-    tf.initialize_all_variables()
+
     baxterClassifier = BaxterClassifier(argvs)
 
     # Start Tensorflow Session
@@ -497,7 +501,6 @@ def main(argvs):
         # Start Training Loop
         for i in range(300):
             print("starting  " + str(i) + "th  training iteration..")
-
             batch = mnist_data.train.next_batch(batch_size)
             if i % 25 == 0:
                 train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
