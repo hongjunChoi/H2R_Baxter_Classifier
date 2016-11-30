@@ -26,7 +26,7 @@ class BaxterClassifier:
         self.grid_size = 7
         self.num_labels = 10
         self.num_bounding_box = 2
-        self.img_size = 28
+        self.img_size = 224
         self.uninitialized_var = []
         self.learning_rate = 1e-4
 
@@ -40,21 +40,16 @@ class BaxterClassifier:
 
         self.y = tf.placeholder(tf.float32, shape=[None, self.num_labels])
         self.detection_y = tf.placeholder(
-            tf.float32, shape=[self.grid_size, self.grid_size, (self.num_bounding_box * 5 + self.num_labels)])
+            tf.float32, shape=[None, 5])
 
         self.dropout_rate = tf.placeholder(tf.float32)
 
         # self.logits = self.build_pretrain_network()
+        # self.train_op = self.trainOps()
+        # self.loss_val = self.lossVal()
 
         self.detection_logits = self.build_networks()
-
-        # self.loss_val = self.lossVal()
         self.detection_loss_val = self.detection_loss()
-
-        # self.train_op = self.trainOps()
-        # self.loss_val = self.lossVal()
-        # self.train_op = self.trainOps()
-
         self.detection_train_op = self.detectionTrainOp()
 
         # Creat operations for computing the accuracy
@@ -499,10 +494,14 @@ def main(argvs):
         for i in range(300):
             print("starting  " + str(i) + "th  training iteration..")
             # batch = mnist_data.train.next_batch(batch_size)
+
             batch = inputProcessor.read_next(
                 "data/data.csv", batch_size, batch_index)
 
             batch_index = batch_index + 1
+
+            print(batch[0])
+            print(batch[1])
 
             if i % 25 == 0:
                 train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],

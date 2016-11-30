@@ -10,8 +10,11 @@ import tensorflow as tf
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import dtypes
 import sys
+import cv2
+import numpy as np
 
-IMAGE_SIZE = 28
+
+IMAGE_SIZE = 224
 CHANNELS = 3
 IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE * CHANNELS
 NUM_CLASSES = 2
@@ -123,22 +126,6 @@ def inputs(eval_data, data_dir, batch_size):
                                            shuffle=False)
 
 
-def getCustomInputs():
-    # Get the sets of images and labels for training, validation, and
-    train_images = []
-    for filename in ['01.jpg', '02.jpg', '03.jpg', '04.jpg']:
-        image = Image.open(filename)
-        image = image.resize((IMAGE_SIZE, IMAGE_SIZE))
-        train_images.append(np.array(image))
-
-    train_images = np.array(train_images)
-    train_images = train_images.reshape(4, IMAGE_PIXELS)
-
-    label = [0, 1, 1, 1]
-    train_labels = np.array(label)
-    return train_images, train_labels
-
-
 def getBatchInput():
 
     # Make a queue of file names including all the JPEG images files in the relative
@@ -172,16 +159,40 @@ def getBatchInput():
     return images_batch
 
 
+def encodeImg(filename):
+    # image = Image.open(filename)
+    # image = image.resize((IMAGE_SIZE, IMAGE_SIZE), Image.ANTIALIAS)
+    # img = np.array(image)
+    try:
+        print("===========================")
+        img = cv2.imread(filename)
+        img_resized = cv2.resize(img, (IMAGE_SIZE, IMAGE_SIZE))
+
+    except Exception as e:
+        print("=======       NO     =======")
+        return None
+
+    img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+    img_resized_np = np.asarray(img_RGB)
+    inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 3), dtype='float32')
+    inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
+    return img
+
+
 def read_next(csvFileName, batchSize, batchIndex):
     ins = open(csvFileName)
     lines = ins.readlines()
-    nextLines = lines[batchIndex *
-                      batchSize: batchIndex * batchSize + batchSize]
+    startIndex = batchIndex * batchSize
+    endIndex = (batchIndex + 1) * batchSize
+    if endIndex >= len(lines):
+        endIndex = len(lines) - 1
 
-    # TODO: CREATE TENSOR
+    nextLines = lines[startIndex:endIndex]
+
+    images = []
+    annotations = []
 
     for line in nextLines:
-        print(line)
         data = line.split(",")
         classLabel = data[0]
         ymin = data[1]
@@ -189,10 +200,23 @@ def read_next(csvFileName, batchSize, batchIndex):
         xmin = data[3]
         xmax = data[4]
         img_filename = "data/" + data[5]
-        file_contents = tf.read_file(img_filename)
-        img = tf.image.decode_png(file_contents)
 
-        # TODO: ADD TO TENSOR
+        img = encodeImg(img_filename)
+
+        if img is None:
+            continue
+        else:
+            print("YEAH")
+
+        images.append(img)
+
+        label = [classLabel, ymin, ymax, xmin, xmax]
+        annotations.append(np.array(label))
+
+        # file_contents = tf.read_file(img_filename)
+        # img = tf.image.decode_png(file_contents)
+
+    return [np.array(images), np.array(annotations)]
 
 
 def read_my_file_format(filename_and_label_tensor):
