@@ -14,4 +14,7 @@ src/darknet/results/*
 src/baxterClassifier/cv.py
 src/baxterClassifier/cv2.so
 *.ckpt*
-src/baxterClassifier/data
+*.gz
+*.xml
+*.txt
+*.zip
