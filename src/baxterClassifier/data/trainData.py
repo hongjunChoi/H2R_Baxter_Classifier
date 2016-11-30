@@ -48,7 +48,7 @@ def main():
                 url = arr[1]
 
                 # DOWNLAOD IMAGE
-                localFileName = "images/" + img_id + ".jpg"
+                localFileName = "images/" + img_id + ".png"
 
                 import urllib
                 urllib.urlretrieve(url, localFileName)
@@ -68,7 +68,8 @@ def main():
 
                 data = "n04284002" + "," + \
                     str(ymin) + " , " + str(ymax) + \
-                    "," + str(xmin) + "," + str(xmax)
+                    "," + str(xmin) + "," + str(xmax) + \
+                    "," + str(localFileName)
 
                 # APPEND TO CSV FILE WITH DOWNLOADED URL & ANNOTATION (WRITE)
                 print(data)
