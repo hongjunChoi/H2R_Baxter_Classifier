@@ -51,10 +51,10 @@ class BaxterClassifier:
         self.detection_train_op = self.detectionTrainOp()
 
         # Creat operations for computing the accuracy
-        # self.correct_prediction = tf.equal(
-        #     tf.argmax(self.logits, 1), tf.argmax(self.y, 1))
-        # self.accuracy = tf.reduce_mean(
-        #     tf.cast(self.correct_prediction, tf.float32))
+        self.correct_prediction = tf.equal(
+            tf.argmax(self.detection_logits, 1), tf.argmax(self.y, 1))
+        self.accuracy = tf.reduce_mean(
+            tf.cast(self.correct_prediction, tf.float32))
 
     def argv_parser(self, argvs):
         for i in range(1, len(argvs), 2):
@@ -459,18 +459,17 @@ def main(argvs):
         var = [v for v in tf.trainable_variables()]
         for i in range(len(var)):
             print(var[i].name)
-            print(var[i].value)
         # Start Training Loop
         for i in range(300):
             print("starting  " + str(i) + "th  training iteration..")
 
             batch = mnist_data.train.next_batch(batch_size)
-            # if i % 25 == 0:
-            #     train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
-            #                                                                baxterClassifier.y: batch[1],
-            #                                                                baxterClassifier.dropout_rate: 1.0})
-                # print "Step %d, Training Accuracy %g" % (i,
-                # self.train_accuracy)
+            if i % 25 == 0:
+                train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
+                                                                           baxterClassifier.y: batch[1],
+                                                                           baxterClassifier.dropout_rate: 1.0})
+                print "Step %d, Training Accuracy %.2f" % (i,
+                train_accuracy)
 
             baxterClassifier.detection_train_op.run(feed_dict={baxterClassifier.x: batch[0],
                                                      baxterClassifier.y: batch[1],
