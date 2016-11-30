@@ -41,18 +41,18 @@ class BaxterClassifier:
 
         self.dropout_rate = tf.placeholder(tf.float32)
 
-        # self.logits = self.build_pretrain_network()
-        self.detection_logits = self.build_networks()
+        self.logits = self.build_pretrain_network()
+        # self.detection_logits = self.build_networks()
 
-        # self.loss_val = self.lossVal()
-        self.detection_loss_val = self.detection_loss()
+        self.loss_val = self.lossVal()
+        # self.detection_loss_val = self.detection_loss()
 
-        # self.train_op = self.trainOps()
-        self.detection_train_op = self.detectionTrainOp()
+        self.train_op = self.trainOps()
+        # self.detection_train_op = self.detectionTrainOp()
 
         # Creat operations for computing the accuracy
         self.correct_prediction = tf.equal(
-            tf.argmax(self.detection_logits, 1), tf.argmax(self.y, 1))
+            tf.argmax(self.logits, 1), tf.argmax(self.y, 1))
         self.accuracy = tf.reduce_mean(
             tf.cast(self.correct_prediction, tf.float32))
 
@@ -454,8 +454,8 @@ def main(argvs):
 
         cv2.waitKey(1000)
         print("starting session... ")
-        sess.run(tf.initialize_all_variables())
-        # baxterClassifier.saver.restore(sess, "tmp/model3.ckpt")
+        # sess.run(tf.initialize_all_variables())
+        baxterClassifier.saver.restore(sess, baxterClassifier.weights_file)
         var = [v for v in tf.trainable_variables()]
         for i in range(len(var)):
             print(var[i].name)
@@ -471,7 +471,7 @@ def main(argvs):
                 print "Step %d, Training Accuracy %.2f" % (i,
                 train_accuracy)
 
-            baxterClassifier.detection_train_op.run(feed_dict={baxterClassifier.x: batch[0],
+            baxterClassifier.train_op.run(feed_dict={baxterClassifier.x: batch[0],
                                                      baxterClassifier.y: batch[1],
                                                      baxterClassifier.dropout_rate: 0.5})
         save_path = baxterClassifier.saver.save(sess, "tmp/modelfull.ckpt")
