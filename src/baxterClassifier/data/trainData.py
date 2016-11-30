@@ -2,14 +2,9 @@ import glob
 from xml.dom import minidom
 import urllib
 import socket
-<<<<<<< HEAD
 import re
 import imghdr
 import os
-=======
-import Image
-
->>>>>>> efd06ae94aaab29eb18bd85171bbc0fe56121b3a
 
 def main():
     socket.setdefaulttimeout(10)
@@ -60,7 +55,6 @@ def main():
                 localFileName = "images/" + img_id + ".png"
                 print(url)
                 try:
-<<<<<<< HEAD
                     a = urllib.urlretrieve(url, localFileName)
                     # if (a[1]["Content-Type"])
                     if imghdr.what(localFileName) == None:
@@ -68,18 +62,11 @@ def main():
                         continue
                 except Exception, e:
                     print("invalid url", e)
-=======
-                    urllib.urlretrieve(url, localFileName)
-
-                except Exception as e:
-                    print("invalid url")
->>>>>>> efd06ae94aaab29eb18bd85171bbc0fe56121b3a
                     continue
 
                 print("...... ")
                 if img_id in spoonSet:
                     print("---spoon")
-<<<<<<< HEAD
                     xmldoc = minidom.parse("spoon_annotation/n04284002/" + img_id + ".xml")
                     classId = "n04284002"
 
@@ -88,26 +75,14 @@ def main():
                     xmldoc = minidom.parse("fork_annotation/n03384167/" + img_id + ".xml")
                     classId = "n03384167"
 
-=======
-                    xmldoc = minidom.parse(
-                        "spoon_annotation/n04284002/" + img_id + ".xml")
-
-                elif img_id in forkSet:
-                    print("---fork")
-                    xmldoc = minidom.parse(
-                        "fork_annotation/n03384167/" + img_id + ".xml")
->>>>>>> efd06ae94aaab29eb18bd85171bbc0fe56121b3a
 
                 # FIND THE ANNOTATION FILE
 
-                ymin = xmldoc.getElementsByTagName(
-                    'ymin')[0].firstChild.nodeValue
-                ymax = xmldoc.getElementsByTagName(
-                    'ymax')[0].firstChild.nodeValue
-                xmin = xmldoc.getElementsByTagName(
-                    'xmin')[0].firstChild.nodeValue
-                xmax = xmldoc.getElementsByTagName(
-                    'xmax')[0].firstChild.nodeValue
+
+                ymin = xmldoc.getElementsByTagName('ymin')[0].firstChild.nodeValue
+                ymax = xmldoc.getElementsByTagName('ymax')[0].firstChild.nodeValue
+                xmin = xmldoc.getElementsByTagName('xmin')[0].firstChild.nodeValue
+                xmax = xmldoc.getElementsByTagName('xmax')[0].firstChild.nodeValue
 
                 data = classId + "," + \
                     str(ymin) + " , " + str(ymax) + \
