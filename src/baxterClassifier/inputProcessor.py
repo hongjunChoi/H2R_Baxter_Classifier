@@ -171,11 +171,14 @@ def getBatchInput():
 
     return images_batch
 
+
 def read_next(csvFileName, batchSize, batchIndex):
     ins = open(csvFileName)
     lines = ins.readlines()
-    nextLines = lines[batchIndex*batchSize: batchIndex*batchSize + batchSize]
-    print(nextLines[0])
+    nextLines = lines[batchIndex *
+                      batchSize: batchIndex * batchSize + batchSize]
+    for line in nextLines:
+
 
 def read_my_file_format(filename_and_label_tensor):
     """Consumes a single filename and label as a ' '-delimited string.
@@ -202,10 +205,10 @@ def input_pipeline(filenames, batch_size, num_epochs=None):
         [img, label], batch_size=batch_size)
     return img_batch, label_batch
 
+
 def main(argvs):
     batch_size = 50
     read_next("data/csv", 1, 0)
-    
 
 
 if __name__ == '__main__':
