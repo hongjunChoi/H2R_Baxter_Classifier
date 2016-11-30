@@ -30,7 +30,6 @@ class BaxterClassifier:
         self.batch_size = 50
         self.uninitialized_var = []
         self.learning_rate = 1e-4
-        self.batch_size = 1
 
         self.sess = tf.Session()
 
@@ -330,7 +329,7 @@ class BaxterClassifier:
         # noobjc = noobjc * yNoobj
 
         # return xval + wval + cval + noobjc + probc
-        return tf.reduce_mean(self.detection_logits)
+        # return tf.reduce_mean(self.detection_logits)
 
     def lossVal(self):
         return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y))
@@ -507,7 +506,7 @@ def main(argvs):
                 "data/data.csv", batch_size, batch_index)
 
             batch_index = batch_index + 1
-            print("------ batch ------")
+
             print(batch[0])
             print(batch[1])
 
