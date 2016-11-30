@@ -29,6 +29,7 @@ class BaxterClassifier:
         self.img_size = 224
         self.uninitialized_var = []
         self.learning_rate = 1e-4
+        self.batch_size = 1
 
         self.sess = tf.Session()
 
@@ -38,7 +39,7 @@ class BaxterClassifier:
         self.x_image = tf.reshape(
             self.x, [-1, self.img_size, self.img_size, 1])
 
-        self.y = tf.placeholder(tf.float32, shape=[None, self.num_labels])
+        self.y = tf.placeholder(tf.float32, shape=[None, self.batch_size])
         self.detection_y = tf.placeholder(
             tf.float32, shape=[None, 5])
 
@@ -224,101 +225,101 @@ class BaxterClassifier:
 
     def detection_loss(self):
 
-        # output = self.detection_logits
-        # trueLabel = self.detection_y
+        output = self.detection_logits
+        trueLabel = self.detection_y
 
-        # probs = np.zeros((7, 7, 2, 20))
-        # # class probabilities
-        # class_probs = np.reshape(output[0:980], (7, 7, 2))
-        # # C value is scales
-        # scales = np.reshape(output[980:1078], (7, 7, 2))
-        # boxes = np.reshape(output[1078:], (7, 7, 2, 4))
-        # offset = np.transpose(np.reshape(
-        #     np.array([np.arange(7)] * 14), (2, 7, 7)), (1, 2, 0))
+        probs = np.zeros((7, 7, 2, 20))
+        # class probabilities
+        class_probs = np.reshape(output[0:980], (7, 7, 2))
+        # C value is scales
+        scales = np.reshape(output[980:1078], (7, 7, 2))
+        boxes = np.reshape(output[1078:], (7, 7, 2, 4))
+        offset = np.transpose(np.reshape(
+            np.array([np.arange(7)] * 14), (2, 7, 7)), (1, 2, 0))
 
-        # # coord value
-        # yCoord = 5
-        # # noobj value
-        # yNoobj = .5
-        # #self.y[x,y,w,h, C]
-        # # find bounding box with higher IOU s
-        # # need to do this still
-        # box = 1
+        # coord value
+        yCoord = 5
+        # noobj value
+        yNoobj = .5
+        #self.y[x,y,w,h, C]
+        # find bounding box with higher IOU s
+        # need to do this still
+        box = 1
 
-        # xval = 0
-        # wval = 0
-        # cval = 0
-        # noobjc = 0
-        # probc = 0
-        # # jun check the synthax on the equations/how i'm getting values
-        # # math should work but synthax isn't exact I don't think
-        # # I also need help determing how I know if there is an object in
-        # # the bounding box, right now I have a placeholder boolean value
+        xval = 0
+        wval = 0
+        cval = 0
+        noobjc = 0
+        probc = 0
+        # jun check the synthax on the equations/how i'm getting values
+        # math should work but synthax isn't exact I don't think
+        # I also need help determing how I know if there is an object in
+        # the bounding box, right now I have a placeholder boolean value
 
-        # for i in range(49):
-        #     for j in range(2):
-        #         xdiff = 0
-        #         ydiff = 0
-        #         # if it is an object
-        #         if boxes[i][j][0][C] == 1:
-        #             xdiff = self.x - boxes[i][j][box][0]
-        #             # square the difference
-        #             xdiff = xdiff ** 2
-        #             ydiff = self.y - boxes[i][j][box][1]
-        #             # square the difference
-        #             ydiff = ydiff ** 2
-        #             xval = xval + xdiff + ydiff
-        #         break
-        # xval = xval * yCoord
+        for i in range(49):
+            for j in range(2):
+                xdiff = 0
+                ydiff = 0
+                # if it is an object
+                if boxes[i][j][0][C] == 1:
+                    xdiff = self.x - boxes[i][j][box][0]
+                    # square the difference
+                    xdiff = xdiff ** 2
+                    ydiff = self.y - boxes[i][j][box][1]
+                    # square the difference
+                    ydiff = ydiff ** 2
+                    xval = xval + xdiff + ydiff
+                break
+        xval = xval * yCoord
 
-        # for i in range(49):
-        #     for j in range(2):
-        #         wdiff = 0
-        #         hdiff = 0
-        #         # if it is an object
-        #         if boxes[i][j][box][C] == 1:
-        #             wdiff = math.sqrt(self.w) - math.sqrt(boxes[i][j][box][2])
-        #             # square the difference
-        #             wdiff = wdiff ** 2
-        #             hdiff = math.sqrt(self.h) - math.sqrt(boxes[i][j][box][3])
-        #             # square the difference
-        #             hdiff = hdiff ** 2
-        #             wval = wval + wdiff + hdiff
-        #         break
-        # wval = wval * yCoord
+        for i in range(49):
+            for j in range(2):
+                wdiff = 0
+                hdiff = 0
+                # if it is an object
+                if boxes[i][j][box][C] == 1:
+                    wdiff = math.sqrt(self.w) - math.sqrt(boxes[i][j][box][2])
+                    # square the difference
+                    wdiff = wdiff ** 2
+                    hdiff = math.sqrt(self.h) - math.sqrt(boxes[i][j][box][3])
+                    # square the difference
+                    hdiff = hdiff ** 2
+                    wval = wval + wdiff + hdiff
+                break
+        wval = wval * yCoord
 
-        # for i in range(49):
-        #     for j in range(2):
-        #         # if it is an object
-        #         cdiff = 0
-        #         if boxes[i][j][box][C] == 1:
-        #             cdiff = self.C - scales[i][j][box]
-        #             # square the difference
-        #             cdiff = cdiff ** 2
-        #             cval += cdiff
-        #         break
+        for i in range(49):
+            for j in range(2):
+                # if it is an object
+                cdiff = 0
+                if boxes[i][j][box][C] == 1:
+                    cdiff = self.C - scales[i][j][box]
+                    # square the difference
+                    cdiff = cdiff ** 2
+                    cval += cdiff
+                break
 
-        # for i in range(49):
-        #     for j in range(2):
-        #         # if it is not an object
-        #         cdiff = 0
-        #         if boxes[i][j][box][C] == 0:
-        #             cdiff = self.C - scales[i][j][box]
-        #             # square the difference
-        #             cdiff = cdiff ** 2
-        #             noobjc += cdiff
-        #         break
-        # noobjc = noobjc * yNoobj
+        for i in range(49):
+            for j in range(2):
+                # if it is not an object
+                cdiff = 0
+                if boxes[i][j][box][C] == 0:
+                    cdiff = self.C - scales[i][j][box]
+                    # square the difference
+                    cdiff = cdiff ** 2
+                    noobjc += cdiff
+                break
+        noobjc = noobjc * yNoobj
 
-        # for i in range(49):
-        #     # if it is an object
-        #     if boxes[i][j][box][C] == 1:
-        #         for j in range(2):
-        #             cdiff = self.C - scales[i][j][box]
-        #             # square the difference
-        #             cdiff = cdiff ** 2
-        #             noobjc += cdiff
-        #         break
+        for i in range(49):
+            # if it is an object
+            if boxes[i][j][box][C] == 1:
+                for j in range(2):
+                    cdiff = self.C - scales[i][j][box]
+                    # square the difference
+                    cdiff = cdiff ** 2
+                    noobjc += cdiff
+                break
 
         # return xval + wval + cval + noobjc + probc
         return tf.reduce_mean(self.detection_logits)

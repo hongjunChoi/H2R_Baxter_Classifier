@@ -169,8 +169,13 @@ def encodeImg(filename):
         img_resized = cv2.resize(img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
 
     except Exception as e:
-        print("=======       NO     =======", e)
-        return None
+        if img:
+            img_resized = cv2.resize(
+                img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+        else:
+            print("cannot read image ")
+            return None
+
 
     img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
     img_resized_np = np.asarray(img_RGB)
@@ -204,6 +209,7 @@ def read_next(csvFileName, batchSize, batchIndex):
         img = encodeImg(img_filename)
 
         if img is None:
+            print("failed!!!!")
             continue
         else:
             print("YEAH")
