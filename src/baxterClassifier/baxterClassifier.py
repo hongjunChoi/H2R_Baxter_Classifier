@@ -36,7 +36,7 @@ class BaxterClassifier:
             tf.float32, shape=[None, self.img_size * self.img_size])
         # Reshape Image to be of shape [batch, width, height, channel]
         self.x_image = tf.reshape(
-            self.x, [-1, self.img_size, self.img_size, 1])
+            self.x, [-1, self.img_size, self.img_size, 3])
 
         self.y = tf.placeholder(tf.float32, shape=[None, self.num_labels])
         self.detection_y = tf.placeholder(
@@ -505,12 +505,12 @@ def main(argvs):
 
             if i % 25 == 0:
                 train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: batch[0],
-                                                                           baxterClassifier.y: batch[1],
+                                                                           baxterClassifier.detection_y: batch[1],
                                                                            baxterClassifier.dropout_rate: 1.0})
                 print("Step %d, Training Accuracy %.2f" % (i,
                                                            train_accuracy))
             baxterClassifier.detection_train_op.run(feed_dict={baxterClassifier.x: batch[0],
-                                                               baxterClassifier.y: batch[1],
+                                                               baxterClassifier.detection_y: batch[1],
                                                                baxterClassifier.dropout_rate: 0.5})
 
         save_path = baxterClassifier.saver.save(sess, "tmp/modelfull.ckpt")
