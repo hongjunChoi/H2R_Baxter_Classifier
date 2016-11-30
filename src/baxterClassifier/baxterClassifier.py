@@ -31,6 +31,7 @@ class BaxterClassifier:
         self.learning_rate = 1e-4
 
         self.sess = tf.Session()
+
         self.x = tf.placeholder(
             tf.float32, shape=[None, self.img_size * self.img_size])
         # Reshape Image to be of shape [batch, width, height, channel]
