@@ -503,6 +503,9 @@ class BaxterClassifier:
         tb_l1 = box1[0] + 0.5 * box1[2]
         tb_l2 = box2[0] + 0.5 * box2[2]
 
+        tb_r1 = box1[0] - 0.5 * box1[2]
+        tb_r2 = box2[0] - 0.5 * box2[2]
+
         tb = min(box1[0] + 0.5 * box1[2], box2[0] + 0.5 * box2[2]) - \
             max(box1[0] - 0.5 * box1[2], box2[0] - 0.5 * box2[2])
         lr = min(box1[1] + 0.5 * box1[3], box2[1] + 0.5 * box2[3]) - \
