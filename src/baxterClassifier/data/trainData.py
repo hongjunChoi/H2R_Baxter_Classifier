@@ -8,8 +8,8 @@ import os
 
 def main():
     socket.setdefaulttimeout(3)
-    spoonList = glob.glob("puppy_annotation/n02123394/*.xml")
-    forkList = glob.glob("laptop_annotation/n03642806/*.xml")
+    spoonList = glob.glob("table/table/*.xml")
+    forkList = glob.glob("bird/bird/*.xml")
     spoonUrl = []
     forkUrl = []
 
@@ -66,13 +66,13 @@ def main():
                 print("...... ")
                 if img_id in spoonSet:
                     print("---puppy")
-                    xmldoc = minidom.parse("puppy_annotation/n02123394/" + img_id + ".xml")
-                    classId = "n02123394"
+                    xmldoc = minidom.parse("table/table/" + img_id + ".xml")
+                    classId = "table"
 
                 elif img_id in forkSet:
                     print("---fork")
-                    xmldoc = minidom.parse("laptop_annotation/n03642806/" + img_id + ".xml")
-                    classId = "n03384167"
+                    xmldoc = minidom.parse("bird/bird/" + img_id + ".xml")
+                    classId = "bird"
 
 
                 # FIND THE ANNOTATION FILE

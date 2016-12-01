@@ -159,7 +159,30 @@ def getBatchInput():
     return images_batch
 
 
-def encodeImg(filename, boundingBox):
+def encodeImg(filename):
+    # image = Image.open(filename)
+    # image = image.resize((IMAGE_SIZE, IMAGE_SIZE), Image.ANTIALIAS)
+    # img = np.array(image)
+    try:
+        img = cv2.imread(filename.strip())
+        if img is not None:
+            img_resized = cv2.resize(
+                img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+        else:
+            # print("cannot read image file : ", filename)
+            return None
+
+    except Exception as e:
+        print("=======       EXCEPTION     ======= : ", filename, e)
+        return None
+
+    img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+    img_resized_np = np.asarray(img_RGB)
+    inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 3), dtype='float32')
+    inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
+    return inputs
+
+def cropEncodeImg(filename, boundingBox):
     # image = Image.open(filename)
     # image = image.resize((IMAGE_SIZE, IMAGE_SIZE), Image.ANTIALIAS)
     # img = np.array(image)
@@ -171,11 +194,11 @@ def encodeImg(filename, boundingBox):
             img_resized = cv2.resize(
                 crop_img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
         else:
-            print("cannot read image file : ", filename)
+            # print("cannot read image file : ", filename)
             return None
 
     except Exception as e:
-        print("=======       EXCEPTION     ======= : ", e)
+        print("=======       EXCEPTION     ======= : ", filename, e)
         return None
 
     img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
@@ -183,7 +206,6 @@ def encodeImg(filename, boundingBox):
     inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 3), dtype='float32')
     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
     return inputs
-
 
 def pretrain_read_next(csvFileName, batchSize, batchIndex):
     ins = open(csvFileName)
@@ -193,7 +215,7 @@ def pretrain_read_next(csvFileName, batchSize, batchIndex):
     if endIndex >= len(lines):
         endIndex = len(lines) - 1
 
-    nextLines = lines[startIndex:endIndex + 10]
+    nextLines = lines[startIndex:endIndex + 50]
 
     images = []
     annotations = []
@@ -210,14 +232,14 @@ def pretrain_read_next(csvFileName, batchSize, batchIndex):
         xmin = data[3]
         xmax = data[4]
         img_filename = ("data/" + data[5]).strip()
-        img = encodeImg(img_filename, data)
+        img = cropEncodeImg(img_filename, data)
         if img is None:
             continue
 
         images.append(img)
-        if classLabel == "n04507155":
+        if classLabel == "bird":
             label = [1, 0]
-        elif classLabel == "n03642806":
+        elif classLabel == "table":
             label = [0, 1]
         else:
             print("----- WRONG ----")
@@ -237,12 +259,16 @@ def read_next(csvFileName, batchSize, batchIndex):
     if endIndex >= len(lines):
         endIndex = len(lines) - 1
 
-    nextLines = lines[startIndex:endIndex]
+    nextLines = lines[startIndex:endIndex + 50]
 
     images = []
     annotations = []
+    count = 0
+    index = 0
 
-    for line in nextLines:
+    while count < batchSize:
+        line = nextLines[index]
+        index += 1
         data = line.split(",")
         classLabel = data[0]
         ymin = data[1]
@@ -256,8 +282,19 @@ def read_next(csvFileName, batchSize, batchIndex):
             continue
 
         images.append(img)
-        label = [classLabel, ymin, ymax, xmin, xmax]
+
+        if classLabel == "bird":
+            label = 0
+        elif classLabel == "table":
+            label = 1
+        else:
+            print("----- WRONG ----")
+            label = 1
+
+        label = [label, int(ymin), int(ymax), int(xmin), int(xmax)]
         annotations.append(np.asarray(label))
+        count += 1
+
 
         # file_contents = tf.read_file(img_filename)
         # img = tf.image.decode_png(file_contents)
