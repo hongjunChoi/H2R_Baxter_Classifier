@@ -166,7 +166,8 @@ def encodeImg(filename, boundingBox):
     try:
         img = cv2.imread(filename.strip())
         if img is not None:
-            crop_img = img[int(boundingBox[1]):int(boundingBox[2]), int(boundingBox[3]):int(boundingBox[4])]
+            crop_img = img[int(boundingBox[1]):int(boundingBox[2]), int(
+                boundingBox[3]):int(boundingBox[4])]
             img_resized = cv2.resize(
                 crop_img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
         else:
@@ -177,13 +178,6 @@ def encodeImg(filename, boundingBox):
         print("=======       EXCEPTION     ======= : ", e)
         return None
 
-    print("------")
-    cv2.startWindowThread()
-    cv2.namedWindow("aaaa")
-    cv2.imshow("aaaa", crop_img)
-    cv2.waitKey(0)
-
-    time.sleep(1000)
     img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
     img_resized_np = np.asarray(img_RGB)
     inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 3), dtype='float32')
@@ -199,11 +193,16 @@ def pretrain_read_next(csvFileName, batchSize, batchIndex):
     if endIndex >= len(lines):
         endIndex = len(lines) - 1
 
-    nextLines = lines[startIndex:endIndex]
+    nextLines = lines[startIndex:endIndex + 10]
 
     images = []
     annotations = []
-    for line in nextLines:
+    count = 0
+    index = 0
+
+    while count < batchSize:
+        line = nextLines[index]
+        index += 1
         data = line.split(",")
         classLabel = data[0]
         ymin = data[1]
@@ -216,15 +215,16 @@ def pretrain_read_next(csvFileName, batchSize, batchIndex):
             continue
 
         images.append(img)
-        if classLabel == "n03384167":
+        if classLabel == "n04507155":
             label = [1, 0]
-        elif classLabel == "n02123394":
+        elif classLabel == "n03642806":
             label = [0, 1]
         else:
             print("----- WRONG ----")
-            label = [0, 0, 1]
+            label = [0, 1]
 
         annotations.append(np.asarray(label))
+        count += 1
 
     return [np.array(images), np.array(annotations)]
 
