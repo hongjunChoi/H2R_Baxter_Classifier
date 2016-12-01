@@ -294,17 +294,21 @@ class BaxterClassifier:
 
             # BOX center / location data
             boxes = tf.reshape(output[196:], (7, 7, 2, 4))
-
+            print(boxes.get_shape())
             xval = 0
             wval = 0
             cval = 0
             noobjc = 0
             probc = 0
-
+            print("------")
             for x in range(7):
                 for y in range(7):
-                    boxIndex = np.argmax(self.iou(boxes[x][y][0], annotationBox), self.iou(
-                        boxes[x][y][1], annotationBox))
+                    print(x, y)
+                    iou1 = self.iou(boxes[x][y][0], annotationBox)
+                    print(",,,")
+                    iou2 = self.iou(boxes[x][y][1], annotationBox)
+                    iouArray = [iou1, iou2]
+                    boxIndex = np.argmax(iouArray)
 
                     xdiff = 0
                     ydiff = 0
@@ -407,10 +411,10 @@ class BaxterClassifier:
         self.detect_from_cvmat(img)
 
     def interpret_output(self, output):
-        probs = np.zeros((7, 7, 2, 20))
-        class_probs = np.reshape(output[0:980], (7, 7, 20))
-        scales = np.reshape(output[980:1078], (7, 7, 2))
-        boxes = np.reshape(output[1078:], (7, 7, 2, 4))
+        probs = np.zeros((7, 7, 2, 2))
+        class_probs = np.reshape(output[0:98], (7, 7, 2))
+        scales = np.reshape(output[98:196], (7, 7, 2))
+        boxes = np.reshape(output[196:], (7, 7, 2, 4))
 
         offset = np.transpose(np.reshape(
             np.array([np.arange(7)] * 14), (2, 7, 7)), (1, 2, 0))
@@ -427,7 +431,7 @@ class BaxterClassifier:
         boxes[:, :, :, 3] *= self.h_img
 
         for i in range(2):
-            for j in range(20):
+            for j in range(2):
                 probs[:, :, i, j] = np.multiply(
                     class_probs[:, :, j], scales[:, :, i])
 
@@ -496,17 +500,20 @@ class BaxterClassifier:
             ftxt.close()
 
     def iou(self, box1, box2):
-        return 0.4
-        # tb = min(box1[0] + 0.5 * box1[2], box2[0] + 0.5 * box2[2]) - \
-        #     max(box1[0] - 0.5 * box1[2], box2[0] - 0.5 * box2[2])
-        # lr = min(box1[1] + 0.5 * box1[3], box2[1] + 0.5 * box2[3]) - \
-        #     max(box1[1] - 0.5 * box1[3], box2[1] - 0.5 * box2[3])
-        # if tb < 0 or lr < 0:
-        #     intersection = 0
-        # else:
-        #     intersection = tb * lr
-        # return intersection / (box1[2] * box1[3] + box2[2] * box2[3] -
-        # intersection)
+        tb_l1 = box1[0] + 0.5 * box1[2]
+        tb_l2 = box2[0] + 0.5 * box2[2]
+
+        tb = min(box1[0] + 0.5 * box1[2], box2[0] + 0.5 * box2[2]) - \
+            max(box1[0] - 0.5 * box1[2], box2[0] - 0.5 * box2[2])
+        lr = min(box1[1] + 0.5 * box1[3], box2[1] + 0.5 * box2[3]) - \
+            max(box1[1] - 0.5 * box1[3], box2[1] - 0.5 * box2[3])
+        if tb < 0 or lr < 0:
+            intersection = 0
+        else:
+            intersection = tb * lr
+
+        union = box1[2] * box1[3] + box2[2] * box2[3] - intersection
+        return intersection / union
 
 
 def main(argvs):
@@ -544,7 +551,7 @@ def main(argvs):
             print("starting  " + str(i) + "th  training iteration..")
 
             batch = inputProcessor.read_next(
-                "data/shuffle.csv", batch_size, batch_index)
+                "data/final_data.csv", batch_size, batch_index)
 
             batch_index = batch_index + 1
 
@@ -569,7 +576,8 @@ def main(argvs):
                 # print(logits)
 
                 # detection_loss_val = baxterClassifier.detection_loss(logits)
-                # trainOp = baxterClassifier.detectionTrainOp(detection_loss_val)
+                # trainOp =
+                # baxterClassifier.detectionTrainOp(detection_loss_val)
 
                 baxterClassifier.detection_y = label_batch
                 lossValue = baxterClassifier.detection_loss_val.eval(feed_dict={baxterClassifier.x_image: image_batch,
