@@ -7,10 +7,9 @@ import imghdr
 import os
 
 def main():
-    socket.setdefaulttimeout(10)
-    spoonList = glob.glob("spoon_annotation/n04284002/*.xml")
-    forkList = glob.glob("fork_annotation/n03384167/*.xml")
-
+    socket.setdefaulttimeout(3)
+    spoonList = glob.glob("puppy_annotation/n02123394/*.xml")
+    forkList = glob.glob("laptop_annotation/n03642806/*.xml")
     spoonUrl = []
     forkUrl = []
 
@@ -66,13 +65,13 @@ def main():
 
                 print("...... ")
                 if img_id in spoonSet:
-                    print("---spoon")
-                    xmldoc = minidom.parse("spoon_annotation/n04284002/" + img_id + ".xml")
-                    classId = "n04284002"
+                    print("---puppy")
+                    xmldoc = minidom.parse("puppy_annotation/n02123394/" + img_id + ".xml")
+                    classId = "n02123394"
 
                 elif img_id in forkSet:
                     print("---fork")
-                    xmldoc = minidom.parse("fork_annotation/n03384167/" + img_id + ".xml")
+                    xmldoc = minidom.parse("laptop_annotation/n03642806/" + img_id + ".xml")
                     classId = "n03384167"
 
 

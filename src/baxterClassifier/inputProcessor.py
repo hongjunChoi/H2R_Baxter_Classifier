@@ -164,9 +164,7 @@ def encodeImg(filename):
     # image = image.resize((IMAGE_SIZE, IMAGE_SIZE), Image.ANTIALIAS)
     # img = np.array(image)
     try:
-        print("===========================")
         img = cv2.imread(filename.strip())
-        print(img)
 
         if img is not None:
             img_resized = cv2.resize(
@@ -215,9 +213,12 @@ def pretrain_read_next(csvFileName, batchSize, batchIndex):
         images.append(img)
 
         if classLabel == "n03384167":
+            label = [1, 0]
+        elif classLabel == "n02123394":
             label = [0, 1]
         else:
-            label = [1, 0]
+            print("----- WRONG ----")
+            label = [0, 0, 1]
 
         annotations.append(np.asarray(label))
 
@@ -251,7 +252,6 @@ def read_next(csvFileName, batchSize, batchIndex):
             continue
 
         images.append(img)
-        print(classLabel)
         label = [classLabel, ymin, ymax, xmin, xmax]
         annotations.append(np.asarray(label))
 

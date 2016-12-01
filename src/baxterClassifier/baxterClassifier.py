@@ -27,10 +27,9 @@ class BaxterClassifier:
         self.num_labels = 2
         self.num_bounding_box = 2
         self.img_size = 224
-        self.batch_size = 50
+        self.batch_size = 32
         self.uninitialized_var = []
         self.learning_rate = 1e-4
-        self.batch_size = 1
 
         self.sess = tf.Session()
 
@@ -497,11 +496,11 @@ def main(argvs):
         sess.run(init_new_vars_op)
 
         # Start Training Loop
-        for i in range(30):
+        for i in range(22):
             print("starting  " + str(i) + "th  training iteration..")
 
             batch = inputProcessor.pretrain_read_next(
-                "data/data.csv", batch_size, batch_index)
+                "data/shuffle.csv", batch_size, batch_index)
 
             batch_index = batch_index + 1
 
@@ -512,10 +511,12 @@ def main(argvs):
             print((image_batch).shape)
             print((label_batch).shape)
 
-            if i % 5 == 0:
+            if i % 1 == 0:
+                # prediction=tf.argmax(baxterClassifier.logits,1)
+                print(sess.run(baxterClassifier.logits, feed_dict={baxterClassifier.x_image: image_batch}))
                 train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x_image: image_batch,
                                                                            baxterClassifier.y: label_batch,
-                                                                           baxterClassifier.dropout_rate: 1.0})
+                                                                           baxterClassifier.dropout_rate: 0.7})
                 print("Step %d, Training Accuracy %.2f" % (i,
                                                            train_accuracy))
             baxterClassifier.train_op.run(feed_dict={baxterClassifier.x_image: image_batch,
