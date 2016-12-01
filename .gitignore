@@ -20,3 +20,4 @@ src/baxterClassifier/cv2.so
 *.zip
 *.png
 *.DS*
+*.csv
