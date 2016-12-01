@@ -12,7 +12,7 @@ from tensorflow.python.framework import dtypes
 import sys
 import cv2
 import numpy as np
-
+import time
 
 IMAGE_SIZE = 224
 CHANNELS = 3
@@ -159,16 +159,16 @@ def getBatchInput():
     return images_batch
 
 
-def encodeImg(filename):
+def encodeImg(filename, boundingBox):
     # image = Image.open(filename)
     # image = image.resize((IMAGE_SIZE, IMAGE_SIZE), Image.ANTIALIAS)
     # img = np.array(image)
     try:
         img = cv2.imread(filename.strip())
-
         if img is not None:
+            crop_img = img[int(boundingBox[1]):int(boundingBox[2]), int(boundingBox[3]):int(boundingBox[4])]
             img_resized = cv2.resize(
-                img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+                crop_img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
         else:
             print("cannot read image file : ", filename)
             return None
@@ -177,6 +177,13 @@ def encodeImg(filename):
         print("=======       EXCEPTION     ======= : ", e)
         return None
 
+    print("------")
+    cv2.startWindowThread()
+    cv2.namedWindow("aaaa")
+    cv2.imshow("aaaa", crop_img)
+    cv2.waitKey(0)
+
+    time.sleep(1000)
     img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
     img_resized_np = np.asarray(img_RGB)
     inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 3), dtype='float32')
@@ -196,7 +203,6 @@ def pretrain_read_next(csvFileName, batchSize, batchIndex):
 
     images = []
     annotations = []
-
     for line in nextLines:
         data = line.split(",")
         classLabel = data[0]
@@ -205,13 +211,11 @@ def pretrain_read_next(csvFileName, batchSize, batchIndex):
         xmin = data[3]
         xmax = data[4]
         img_filename = ("data/" + data[5]).strip()
-        img = encodeImg(img_filename)
-
+        img = encodeImg(img_filename, data)
         if img is None:
             continue
 
         images.append(img)
-
         if classLabel == "n03384167":
             label = [1, 0]
         elif classLabel == "n02123394":
