@@ -182,6 +182,7 @@ def encodeImg(filename):
     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
     return inputs
 
+
 def cropEncodeImg(filename, boundingBox):
     # image = Image.open(filename)
     # image = image.resize((IMAGE_SIZE, IMAGE_SIZE), Image.ANTIALIAS)
@@ -206,6 +207,7 @@ def cropEncodeImg(filename, boundingBox):
     inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 3), dtype='float32')
     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
     return inputs
+
 
 def pretrain_read_next(csvFileName, batchSize, batchIndex):
     ins = open(csvFileName)
@@ -294,7 +296,6 @@ def read_next(csvFileName, batchSize, batchIndex):
         label = [label, int(ymin), int(ymax), int(xmin), int(xmax)]
         annotations.append(np.asarray(label))
         count += 1
-
 
         # file_contents = tf.read_file(img_filename)
         # img = tf.image.decode_png(file_contents)

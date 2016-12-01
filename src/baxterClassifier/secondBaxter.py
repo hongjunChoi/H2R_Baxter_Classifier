@@ -125,7 +125,6 @@ class BaxterClassifier:
         # self.conv_3 = self.conv_layer(3, self.conv_1, 64, 7, 1)
         self.pool_4 = self.pooling_layer(4, self.conv_1, 2, 2)
 
-
         # self.conv_1 = self.conv_layer(1, self.x_image, 64, 7, 2)
         # self.pool_2 = self.pooling_layer(2, self.conv_1, 3, 2)
         # self.conv_3 = self.conv_layer(3, self.pool_2, 64, 3, 1)
@@ -276,28 +275,20 @@ class BaxterClassifier:
                 true_class_probs = np.array([0, 1])
 
             # FIND THE CENTER POINT / WIDTH AND HEIGTH
-            midX = (t[3] + t[4]) / 2
-            midY = (t[1] + t[2]) / 2
+            midX = ((t[3] + t[4]) / 2) / self.img_size
+            midY = ((t[1] + t[2]) / 2) / self.img_size
 
-            width = t[4] - t[3]
-            height = t[2] - t[1]
+            width = (t[4] - t[3]) / self.img_size
+            height = (t[2] - t[1]) / self.img_size
 
             annotationBox = np.asarray([midX, midY, width, height])
 
-            # PREDICTED Confidence score for each bounding box
-            probs = np.zeros((7, 7, 2, 2))
-
             # class probabilities
-            class_probs = np.reshape(output, (7, 7, 2))
+            class_probs = np.reshape(output[0:98], (7, 7, 2))
             scales = np.reshape(output[98:196], (7, 7, 2))
 
             # BOX center / location data
             boxes = np.reshape(output[196:], (7, 7, 2, 4))
-
-            for i in range(2):
-                for j in range(20):
-                    probs[:, :, i, j] = np.multiply(
-                        class_probs[:, :, j], scales[:, :, i])
 
             xval = 0
             wval = 0
@@ -372,6 +363,7 @@ class BaxterClassifier:
                     if iou(annotationBox, np.array(gridCell)) > 0.5:
                         prob_difference_vector = (
                             class_probs[x][y] - true_class_probs)
+
                         probc = probc + \
                             np.sum(prob_difference_vector *
                                    prob_difference_vector)
@@ -380,7 +372,7 @@ class BaxterClassifier:
             wval = wval * yCoord
             noobjc = noobjc * yNoobj
             loss_vector[index] = xval + wval + cval + noobjc + probc
-        return tf.reduce_mean(loss_vector)
+        return tf.reduce_mean(np.array(loss_vector))
 
     def lossVal(self):
         return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y))
@@ -552,8 +544,6 @@ def main(argvs):
             image_batch = (batch[0][:, 0, :, :, :])
             label_batch = batch[1]
 
-
-
             # countA += a
             # countB += b
             # baxterClassifier.batch_size = label_batch.shape[1]
@@ -561,24 +551,24 @@ def main(argvs):
             if i > 0:
                 prediction = tf.argmax(baxterClassifier.detection_logits, 1)
                 res = sess.run(prediction, feed_dict={
-                      baxterClassifier.x_image: image_batch})
-                print (res) 
+                    baxterClassifier.x_image: image_batch})
+                print(res)
                 # train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x_image: image_batch,
                 #                                                            baxterClassifier.detection_y: label_batch,
                 #                                                            baxterClassifier.dropout_rate: 1})
                 # print("Step %d, Training Accuracy %.2f" % (i,
-                                                           # train_accuracy))
+                # train_accuracy))
                 # totalAcc += train_accuracy
 
             baxterClassifier.detection_train_op.run(feed_dict={baxterClassifier.x_image: image_batch,
-                                                     baxterClassifier.detection_y: label_batch,
-                                                     baxterClassifier.dropout_rate: 0.5})
+                                                               baxterClassifier.detection_y: label_batch,
+                                                               baxterClassifier.dropout_rate: 0.5})
 
         # save_path = baxterClassifier.saver.save(sess, "tmp/modelfull.ckpt")
         print("saving model to ", save_path)
 
-        print("total table "+ str(countA))
-        print("total bird "+ str(countB))
-        print("accuracy from 60 itr " + str(totalAcc/27))
+        print("total table " + str(countA))
+        print("total bird " + str(countB))
+        print("accuracy from 60 itr " + str(totalAcc / 27))
 if __name__ == '__main__':
     main(sys.argv)
