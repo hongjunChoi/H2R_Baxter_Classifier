@@ -280,11 +280,11 @@ class BaxterClassifier:
                 true_class_probs = np.array([0, 1])
 
             # FIND THE CENTER POINT / WIDTH AND HEIGTH
-            midX = ((t[3] + t[4]) / 2) / self.img_size
-            midY = ((t[1] + t[2]) / 2) / self.img_size
+            midX = ((t[3] + t[4]) / 2) 
+            midY = ((t[1] + t[2]) / 2) 
 
-            width = (t[4] - t[3]) / self.img_size
-            height = (t[2] - t[1]) / self.img_size
+            width = (t[4] - t[3]) 
+            height = (t[2] - t[1])
 
             annotationBox = np.asarray([midX, midY, width, height])
 
@@ -318,7 +318,7 @@ class BaxterClassifier:
                     print(boxIndex)
 
                     # predicted  box coordinate data of size 4
-                    box = boxes[x][y][boxIndex]
+                    box = boxes[x][y][4]
 
                     print("==== box ======")
                     print(box)
@@ -615,5 +615,33 @@ def main(argvs):
         print("total table " + str(countA))
         print("total bird " + str(countB))
         print("accuracy from 60 itr " + str(totalAcc / 27))
+
+def get_class_members(klass):
+    ret = dir(klass)
+    if hasattr(klass,'__bases__'):
+        for base in klass.__bases__:
+            ret = ret + get_class_members(base)
+    return ret
+
+
+def uniq( seq ): 
+    """ the 'set()' way ( use dict when there's no set ) """
+    return list(set(seq))
+
+
+def get_object_attrs( obj ):
+    # code borrowed from the rlcompleter module ( see the code for Completer::attr_matches() )
+    ret = dir( obj )
+    ## if "__builtins__" in ret:
+    ##    ret.remove("__builtins__")
+
+    if hasattr( obj, '__class__'):
+        ret.append('__class__')
+        ret.extend( get_class_members(obj.__class__) )
+
+        ret = uniq( ret )
+
+    return ret
+
 if __name__ == '__main__':
     main(sys.argv)

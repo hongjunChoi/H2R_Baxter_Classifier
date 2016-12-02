@@ -166,21 +166,22 @@ def encodeImg(filename):
     try:
         img = cv2.imread(filename.strip())
         if img is not None:
+            height, width, channel = img.shape
             img_resized = cv2.resize(
                 img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
         else:
             # print("cannot read image file : ", filename)
-            return None
+            return None, None, None
 
     except Exception as e:
         print("=======       EXCEPTION     ======= : ", filename, e)
-        return None
+        return None, None, None
 
     img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
     img_resized_np = np.asarray(img_RGB)
     inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 3), dtype='float32')
     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
-    return inputs
+    return inputs, height, width
 
 
 def cropEncodeImg(filename, boundingBox):
@@ -234,7 +235,7 @@ def pretrain_read_next(csvFileName, batchSize, batchIndex):
         xmin = data[3]
         xmax = data[4]
         img_filename = ("data/" + data[5]).strip()
-        img = cropEncodeImg(img_filename, data)
+        img= cropEncodeImg(img_filename, data)
         if img is None:
             continue
 
@@ -278,7 +279,7 @@ def read_next(csvFileName, batchSize, batchIndex):
         xmin = data[3]
         xmax = data[4]
         img_filename = ("data/" + data[5]).strip()
-        img = encodeImg(img_filename)
+        img, height, width= encodeImg(img_filename)
 
         if img is None:
             continue
@@ -293,7 +294,7 @@ def read_next(csvFileName, batchSize, batchIndex):
             print("----- WRONG ----")
             label = 1
 
-        label = [label, int(ymin), int(ymax), int(xmin), int(xmax)]
+        label = [label, float(ymin)/height, float(ymax)/height, float(xmin)/width, float(xmax)/width]
         annotations.append(np.asarray(label))
         count += 1
 
