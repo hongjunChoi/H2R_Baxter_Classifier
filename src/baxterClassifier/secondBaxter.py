@@ -300,7 +300,7 @@ class BaxterClassifier:
             wval = 0
             cval = 0
             noobjc = 0
-            probc = 0
+            probc = tf.convert_to_tensor(0, dtype=tf.float32)
 
             for x in range(7):
                 for y in range(7):
@@ -375,15 +375,20 @@ class BaxterClassifier:
 
                     # IF there is an object in x, y
                     gridCell = tf.convert_to_tensor([(1 / 7) * x + 1 / 14, (1 / 7)
-                                                     * y + 1 / 14, 1 / 7, 1 / 7])
+                                                     * y + 1 / 14, 1 / 7, 1 / 7], dtype=tf.float32)
 
-                    if self.iou(gridCell, annotationBox) > 0.5:
-                        prob_difference_vector = (
-                            class_probs[x][y] - true_class_probs)
+                    gridIOU = self.iou(gridCell, annotationBox)
+                    threshold_tensor = tf.convert_to_tensor(
+                        0.5, dtype=tf.float32)
 
-                        probc = probc + \
-                            np.sum(prob_difference_vector *
-                                   prob_difference_vector)
+                    prob_difference_vector = (
+                        class_probs[x][y] - true_class_probs)
+                    dot_product = tf.mul(
+                        prob_difference_vector, prob_difference_vector)
+                    pSum = tf.reduce_sum(dot_product)
+
+                    probc = tf.cond(gridIOU > threshold_tensor,
+                                    lambda: probc + pSum, lambda: probc)
 
             xval = xval * yCoord
             wval = wval * yCoord
@@ -509,17 +514,18 @@ class BaxterClassifier:
 
     def iou(self, tensorBox1, box2):
         zero_tensor = tf.convert_to_tensor(0, dtype=tf.float32)
-        tb_l1 = tensorBox1[0] + 0.5 * tensorBox1[2]
-        tb_l2 = tf.convert_to_tensor(box2[0] + 0.5 * box2[2], dtype=tf.float32)
 
-        tb_r1 = tensorBox1[0] - 0.5 * tensorBox1[2]
-        tb_r2 = tf.convert_to_tensor(box2[0] - 0.5 * box2[2], dtype=tf.float32)
+        tb_l1 = tensorBox1[0] + tensorBox1[2] / 2
+        tb_l2 = tf.convert_to_tensor(box2[0] + box2[2] / 2, dtype=tf.float32)
 
-        lr_l1 = tensorBox1[1] + 0.5 * tensorBox1[3]
-        lr_l2 = tf.convert_to_tensor(box2[1] + 0.5 * box2[3], dtype=tf.float32)
+        tb_r1 = tensorBox1[0] - tensorBox1[2] / 2
+        tb_r2 = tf.convert_to_tensor(box2[0] - box2[2] / 2, dtype=tf.float32)
 
-        lr_r1 = tensorBox1[1] - 0.5 * tensorBox1[3]
-        lr_r2 = tf.convert_to_tensor(box2[1] - 0.5 * box2[3], dtype=tf.float32)
+        lr_l1 = tensorBox1[1] + tensorBox1[3] / 2
+        lr_l2 = tf.convert_to_tensor(box2[1] + box2[3] / 2, dtype=tf.float32)
+
+        lr_r1 = tensorBox1[1] - tensorBox1[3] / 2
+        lr_r2 = tf.convert_to_tensor(box2[1] - box2[3] / 2, dtype=tf.float32)
 
         tb_l = tf.cond(tb_l1 < tb_l2, lambda: tb_l1, lambda: tb_l2)
         tb_r = tf.cond(tb_r1 > tb_r2, lambda: tb_r1, lambda: tb_r2)
