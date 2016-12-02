@@ -27,9 +27,10 @@ class BaxterClassifier:
         self.num_labels = 2
         self.num_bounding_box = 2
         self.img_size = 224
-        self.batch_size = 2
+        self.batch_size = 24
         self.uninitialized_var = []
         self.learning_rate = 1e-4
+        self.classes = [0, 1]
 
         self.sess = tf.Session()
 
@@ -44,41 +45,9 @@ class BaxterClassifier:
 
         self.dropout_rate = tf.placeholder(tf.float32)
 
-        # self.logits = self.build_pretrain_network()
-        # self.loss_val = self.lossVal()
-        # self.train_op = self.trainOps()
-
-        # self.correct_prediction = tf.equal(
-        #     tf.argmax(self.logits, 1), tf.argmax(self.y, 1))
-        # self.accuracy = tf.reduce_mean(
-        #     tf.cast(self.correct_prediction, tf.float32))
-
         self.detection_logits = self.build_networks()
         self.detection_loss_val = self.detection_loss()
         self.detection_train_op = self.detectionTrainOp()
-
-        # Creat operations for computing the accuracy
-
-        self.correct_prediction = tf.equal(
-            tf.argmax(self.detection_logits, 1), tf.argmax(self.y, 1))
-        self.accuracy = tf.reduce_mean(
-            tf.cast(self.correct_prediction, tf.float32))
-
-    def argv_parser(self, argvs):
-        for i in range(1, len(argvs), 2):
-            if argvs[i] == '-fromfile':
-                self.fromfile = argvs[i + 1]
-            if argvs[i] == '-tofile_img':
-                self.tofile_img = argvs[i + 1]
-                self.filewrite_img = True
-            if argvs[i] == '-tofile_txt':
-                self.tofile_txt = argvs[i + 1]
-                self.filewrite_txt = True
-            if argvs[i] == '-imshow':
-                if argvs[i + 1] == '1':
-                    self.imshow = True
-                else:
-                    self.imshow = False
 
     def build_pretrain_network(self):
 
@@ -208,12 +177,7 @@ class BaxterClassifier:
 
         if flat:
             inputs_processed = tf.reshape(inputs, [self.batch_size, -1])
-            # print(inputs_processed.get_shape().as_list())
-            # dim = inputs_processed.get_shape()[1]
-
             dim = input_shape[1] * input_shape[2] * input_shape[3]
-            # inputs_transposed = tf.transpose(inputs, (0, 3, 1, 2))
-            # inputs_processed = tf.reshape(inputs_transposed, [-1, dim])
         else:
             dim = input_shape[1]
             inputs_processed = inputs
@@ -231,8 +195,8 @@ class BaxterClassifier:
         if linear:
             return tf.add(tf.matmul(inputs_processed, weight), biases, name=str(idx) + '_fc')
 
-        ip = tf.add(tf.matmul(inputs_processed, weight), biases)
-        return tf.maximum(self.alpha * ip, ip, name=str(idx) + '_fc')
+        result = tf.add(tf.matmul(inputs_processed, weight), biases)
+        return tf.maximum(self.alpha * result, result, name=str(idx) + '_fc')
 
     def softmax_layer(self, idx, inputs, hidden, num_labels):
         weights = tf.Variable(tf.truncated_normal(
@@ -258,12 +222,6 @@ class BaxterClassifier:
 
             output = tf.gather(outputData, index)
 
-            print("==== LOGITS N LABEL ======")
-            print(outputData.get_shape())
-            print(output.get_shape())
-            print(trueLabel)
-            print("=========")
-
             t = trueLabel[index]
             trueClass = t[0]
             if trueClass == 0:
@@ -280,10 +238,10 @@ class BaxterClassifier:
                 true_class_probs = np.array([0, 1])
 
             # FIND THE CENTER POINT / WIDTH AND HEIGTH
-            midX = ((t[3] + t[4]) / 2) 
-            midY = ((t[1] + t[2]) / 2) 
+            midX = ((t[3] + t[4]) / 2)
+            midY = ((t[1] + t[2]) / 2)
 
-            width = (t[4] - t[3]) 
+            width = (t[4] - t[3])
             height = (t[2] - t[1])
 
             annotationBox = np.asarray([midX, midY, width, height])
@@ -294,7 +252,6 @@ class BaxterClassifier:
 
             # BOX center / location data
             boxes = tf.reshape(output[196:], (7, 7, 2, 4))
-            print(boxes.get_shape())
 
             xval = 0
             wval = 0
@@ -330,12 +287,8 @@ class BaxterClassifier:
                     if predictedClass is trueClassIndex:
                         ###########################
                         ###########################
-                        xdiff = midX - box[0]
-                        # square the difference
-                        xdiff = xdiff ** 2
-                        ydiff = midY - box[1]
-                        # square the difference
-                        ydiff = ydiff ** 2
+                        xdiff = (midX - box[0]) * (midX - box[0])
+                        ydiff = (midY - box[1]) * (midY - box[1])
                         xval = xval + xdiff + ydiff
 
                         ###########################
@@ -344,6 +297,7 @@ class BaxterClassifier:
                             math.sqrt(box[2])
                         # square the difference
                         wdiff = wdiff ** 2
+
                         hdiff = math.sqrt(height) - \
                             math.sqrt(box[3])
                         # square the difference
@@ -377,7 +331,7 @@ class BaxterClassifier:
                         0.5, dtype=tf.float32)
 
                     prob_difference_vector = (
-                        class_probs[x][y] - true_class_probs)
+                        scales[x][y] - true_class_probs)
                     dot_product = tf.mul(
                         prob_difference_vector, prob_difference_vector)
                     pSum = tf.reduce_sum(dot_product)
@@ -389,6 +343,7 @@ class BaxterClassifier:
             wval = wval * yCoord
             noobjc = noobjc * yNoobj
             loss_vector.append(xval + wval + cval + noobjc + probc)
+
         return tf.reduce_mean(loss_vector)
 
     def lossVal(self):
@@ -460,7 +415,7 @@ class BaxterClassifier:
             if probs_filtered[i] == 0:
                 continue
             for j in range(i + 1, len(boxes_filtered)):
-                if self.iou(boxes_filtered[i], boxes_filtered[j]) > self.iou_threshold:
+                if self.interpret_iou(boxes_filtered[i], boxes_filtered[j]) > self.iou_threshold:
                     probs_filtered[j] = 0.0
 
         filter_iou = np.array(probs_filtered > 0.0, dtype='bool')
@@ -540,6 +495,17 @@ class BaxterClassifier:
             box2[2] * box2[3] - intersection
         return intersection / union
 
+    def interpret_iou(self, box1, box2):
+        tb = min(box1[0] + 0.5 * box1[2], box2[0] + 0.5 * box2[2]) - \
+            max(box1[0] - 0.5 * box1[2], box2[0] - 0.5 * box2[2])
+        lr = min(box1[1] + 0.5 * box1[3], box2[1] + 0.5 * box2[3]) - \
+            max(box1[1] - 0.5 * box1[3], box2[1] - 0.5 * box2[3])
+        if tb < 0 or lr < 0:
+            intersection = 0
+        else:
+            intersection = tb * lr
+        return intersection / (box1[2] * box1[3] + box2[2] * box2[3] - intersection)
+
 
 def main(argvs):
 
@@ -584,28 +550,26 @@ def main(argvs):
             label_batch = batch[1]
 
             print("==== LABEL ===")
-            print(label_batch)
-            print("==============")
-
-            # baxterClassifier.batch_size = label_batch.shape[1]
+            print(label_batch[0])
 
             if i > 0:
-                # logits = sess.run(baxterClassifier.detection_logits, feed_dict={
-                #     baxterClassifier.x_image: image_batch,
-                #     baxterClassifier.detection_y: label_batch,
-                #     baxterClassifier.dropout_rate: 0.5})
+                logits = sess.run(baxterClassifier.detection_logits, feed_dict={
+                    baxterClassifier.x_image: image_batch,
+                    baxterClassifier.dropout_rate: 1})
 
-                # print(logits)
-
-                # detection_loss_val = baxterClassifier.detection_loss(logits)
-                # trainOp =
-                # baxterClassifier.detectionTrainOp(detection_loss_val)
+                print("==== resulting logit ======")
+                interpreted_output = baxterClassifier.interpret_output(logits[
+                                                                       0])
+                print(logits.shape)
+                print(interpreted_output[0])
+                print(len(interpreted_output))
 
                 baxterClassifier.detection_y = label_batch
                 lossValue = baxterClassifier.detection_loss_val.eval(feed_dict={baxterClassifier.x_image: image_batch,
                                                                                 baxterClassifier.dropout_rate: 1})
 
-                print(lossValue)
+                print("    LOSS VALUE : " + str(lossValue))
+                print("================\n\n")
 
                 baxterClassifier.detection_train_op.run(feed_dict={baxterClassifier.x_image: image_batch,
                                                                    baxterClassifier.dropout_rate: 0.5})
@@ -616,32 +580,6 @@ def main(argvs):
         print("total bird " + str(countB))
         print("accuracy from 60 itr " + str(totalAcc / 27))
 
-def get_class_members(klass):
-    ret = dir(klass)
-    if hasattr(klass,'__bases__'):
-        for base in klass.__bases__:
-            ret = ret + get_class_members(base)
-    return ret
-
-
-def uniq( seq ): 
-    """ the 'set()' way ( use dict when there's no set ) """
-    return list(set(seq))
-
-
-def get_object_attrs( obj ):
-    # code borrowed from the rlcompleter module ( see the code for Completer::attr_matches() )
-    ret = dir( obj )
-    ## if "__builtins__" in ret:
-    ##    ret.remove("__builtins__")
-
-    if hasattr( obj, '__class__'):
-        ret.append('__class__')
-        ret.extend( get_class_members(obj.__class__) )
-
-        ret = uniq( ret )
-
-    return ret
 
 if __name__ == '__main__':
     main(sys.argv)
