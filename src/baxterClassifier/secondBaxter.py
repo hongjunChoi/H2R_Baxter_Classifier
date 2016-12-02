@@ -295,29 +295,34 @@ class BaxterClassifier:
             # BOX center / location data
             boxes = tf.reshape(output[196:], (7, 7, 2, 4))
             print(boxes.get_shape())
+
             xval = 0
             wval = 0
             cval = 0
             noobjc = 0
             probc = 0
-            print("------")
+
             for x in range(7):
                 for y in range(7):
-                    print(x, y)
+
                     iou1 = self.iou(boxes[x][y][0], annotationBox)
-                    print(",,,")
                     iou2 = self.iou(boxes[x][y][1], annotationBox)
-                    iouArray = [iou1, iou2]
-                    boxIndex = np.argmax(iouArray)
+                    boxIndex = tf.argmax([iou1, iou2], 0)
 
                     xdiff = 0
                     ydiff = 0
                     confidenceDiff = 0
                     reversedConfidencediff = 0
 
+                    print("=== box index ====")
+                    print(boxIndex)
+
                     # predicted  box coordinate data of size 4
                     box = boxes[x][y][boxIndex]
-                    predictedClass = np.argmax(class_probs[x][y])
+
+                    print("==== box ======")
+                    print(box)
+                    predictedClass = tf.argmax(class_probs[x][y], 0)
                     predictedClassConfidence = class_probs[
                         x][y][predictedClass]
 
@@ -351,7 +356,7 @@ class BaxterClassifier:
                         ###########################
                         ###########################
                         confidenceDiff = 0
-                        trueConfidence = self.iou(annotationBox, box)
+                        trueConfidence = self.iou(box, annotationBox)
                         confidenceDiff = trueConfidence - predictedClassConfidence
 
                         # square the difference
@@ -369,7 +374,8 @@ class BaxterClassifier:
                     # IF there is an object in x, y
                     gridCell = [(1 / 7) * x + 1 / 14, (1 / 7)
                                 * y + 1 / 14, 1 / 7, 1 / 7]
-                    if self.iou(annotationBox, np.array(gridCell)) > 0.5:
+
+                    if self.iou(np.array(gridCell), annotationBox) > 0.5:
                         prob_difference_vector = (
                             class_probs[x][y] - true_class_probs)
 
@@ -499,29 +505,36 @@ class BaxterClassifier:
         if self.filewrite_txt:
             ftxt.close()
 
-    def iou(self, box1, box2):
-        tb_l1 = box1[0] + 0.5 * box1[2]
-        tb_l2 = box2[0] + 0.5 * box2[2]
+    def iou(self, tensorBox1, box2):
+        zero_tensor = tf.convert_to_tensor(0, dtype=tf.float32)
+        tb_l1 = tensorBox1[0] + 0.5 * tensorBox1[2]
+        tb_l2 = tf.convert_to_tensor(box2[0] + 0.5 * box2[2], dtype=tf.float32)
 
-        tb_r1 = box1[0] - 0.5 * box1[2]
-        tb_r2 = box2[0] - 0.5 * box2[2]
+        tb_r1 = tensorBox1[0] - 0.5 * tensorBox1[2]
+        tb_r2 = tf.convert_to_tensor(box2[0] - 0.5 * box2[2], dtype=tf.float32)
 
-        lr_l1 = box1[1] + 0.5 * box1[3]
-        lr_l2 = box2[1] + 0.5 * box2[3]
+        lr_l1 = tensorBox1[1] + 0.5 * tensorBox1[3]
+        lr_l2 = tf.convert_to_tensor(box2[1] + 0.5 * box2[3], dtype=tf.float32)
 
-        lr_r1 = box1[1] - 0.5 * box1[3]
-        lr_r2 = box2[1] - 0.5 * box2[3]
+        lr_r1 = tensorBox1[1] - 0.5 * tensorBox1[3]
+        lr_r2 = tf.convert_to_tensor(box2[1] - 0.5 * box2[3], dtype=tf.float32)
 
-        tb = min(box1[0] + 0.5 * box1[2], box2[0] + 0.5 * box2[2]) - \
-            max(box1[0] - 0.5 * box1[2], box2[0] - 0.5 * box2[2])
-        lr = min(box1[1] + 0.5 * box1[3], box2[1] + 0.5 * box2[3]) - \
-            max(box1[1] - 0.5 * box1[3], box2[1] - 0.5 * box2[3])
-        if tb < 0 or lr < 0:
-            intersection = 0
-        else:
-            intersection = tb * lr
+        tb_l = tf.cond(tb_l1 < tb_l2, lambda: tb_l1, lambda: tb_l2)
+        tb_r = tf.cond(tb_r1 > tb_r2, lambda: tb_r1, lambda: tb_r2)
 
-        union = box1[2] * box1[3] + box2[2] * box2[3] - intersection
+        lr_l = tf.cond(lr_l1 < lr_l2, lambda: lr_l1, lambda: lr_l2)
+        lr_r = tf.cond(lr_r1 > lr_r2, lambda: lr_r1, lambda: lr_r2)
+
+        tb = tb_l - tb_r
+        lr = lr_l - lr_r
+
+        predicator = tf.logical_or(
+            tf.less(tb, zero_tensor), tf.less(lr, zero_tensor))
+        intersection = tf.cond(
+            predicator, lambda: zero_tensor, lambda:   tb * lr)
+
+        union = tensorBox1[2] * tensorBox1[3] + \
+            box2[2] * box2[3] - intersection
         return intersection / union
 
 
