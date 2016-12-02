@@ -258,7 +258,7 @@ class BaxterClassifier:
 
             output = tf.gather(outputData, index)
 
-            print("==========")
+            print("==== LOGITS N LABEL ======")
             print(outputData.get_shape())
             print(output.get_shape())
             print(trueLabel)
@@ -318,13 +318,15 @@ class BaxterClassifier:
                     print(boxIndex)
 
                     # predicted  box coordinate data of size 4
-                    box = boxes[x][y][boxIndex]
+                    cellBox = boxes[x][y]
+                    box = tf.gather(cellBox, boxIndex)
 
                     print("==== box ======")
                     print(box)
                     predictedClass = tf.argmax(class_probs[x][y], 0)
-                    predictedClassConfidence = class_probs[
-                        x][y][predictedClass]
+                    confidences = class_probs[x][y]
+                    predictedClassConfidence = tf.gather(
+                        confidences, predictedClass)
 
                     # print("==== SHOWING PREDICTED / ACTUAL CLASS FOR CELL ======")
                     # print(predictedClass)
@@ -372,10 +374,10 @@ class BaxterClassifier:
                         noobjc += reversedConfidencediff
 
                     # IF there is an object in x, y
-                    gridCell = [(1 / 7) * x + 1 / 14, (1 / 7)
-                                * y + 1 / 14, 1 / 7, 1 / 7]
+                    gridCell = tf.convert_to_tensor([(1 / 7) * x + 1 / 14, (1 / 7)
+                                                     * y + 1 / 14, 1 / 7, 1 / 7])
 
-                    if self.iou(np.array(gridCell), annotationBox) > 0.5:
+                    if self.iou(gridCell, annotationBox) > 0.5:
                         prob_difference_vector = (
                             class_probs[x][y] - true_class_probs)
 
