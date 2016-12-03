@@ -508,12 +508,11 @@ def main(argvs):
             # print("starting  " + str(i) + "th  training iteration..")
 
             batch = inputProcessor.pretrain_read_next(
-                "data/final_data1.csv", batch_size, batch_index)
+                "data/final_data.csv", batch_size, batch_index)
 
             batch_index = batch_index + 1
 
-            print(len(batch))
-            image_batch = (batch[0][:, 0, :, :])
+            image_batch = (batch[0][:, 0, :, :, :])
             label_batch = batch[1]
             a = label_batch[:, 0].sum()
             b = len(label_batch[:, 0])-a
@@ -521,7 +520,7 @@ def main(argvs):
             countB += b
             # baxterClassifier.batch_size = label_batch.shape[1]
 
-            if i > 0:
+            if i > 10:
                 # prediction = tf.argmax(baxterClassifier.logits, 1)
                 # print(sess.run(prediction, feed_dict={
                       # baxterClassifier.x_image: image_batch}))
@@ -541,6 +540,6 @@ def main(argvs):
 
         print("total table "+ str(countA))
         print("total bird "+ str(countB))
-        # print("accuracy from 17 itr " + str(totalAcc/17))
+        print("accuracy from 17 itr " + str(totalAcc/17))
 if __name__ == '__main__':
     main(sys.argv)
