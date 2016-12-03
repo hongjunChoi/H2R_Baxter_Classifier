@@ -13,15 +13,12 @@ import sys
 import cv2
 import numpy as np
 import time
+import cPickle
 
-IMAGE_SIZE = 112
-CHANNELS = 1
+IMAGE_SIZE = 32
+CHANNELS = 3
 IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE * CHANNELS
 NUM_CLASSES = 2
-BATCH_SIZE = 5
-
-dataset_path = "/path/to/your/dataset/mnist/"
-train_labels_file = "train-labels.csv"
 
 
 def encode_label(label):
@@ -99,7 +96,60 @@ def cropEncodeImg(filename, boundingBox):
     return inputs
 
 
-def pretrain_read_next(csvFileName, batchSize, batchIndex):
+def get_next_cifar(filename, batch_size, batchIndex):
+
+    fo = open(filename, 'rb')
+    readData = cPickle.load(fo)
+    fo.close()
+
+    images = np.zeros([batch_size, IMAGE_SIZE, IMAGE_SIZE, 3])
+    annotations = np.zeros([batch_size, 2])
+    count = 0
+    index = batchIndex
+    flag = False
+
+    while count < batch_size:
+        img = np.zeros([IMAGE_SIZE, IMAGE_SIZE, 3])
+        imageData = (readData['data'])[index]
+
+        img[:, :, 0] = (imageData[0:1024]).reshape([IMAGE_SIZE, IMAGE_SIZE])
+        img[:, :, 1] = (imageData[1024:2048]).reshape([IMAGE_SIZE, IMAGE_SIZE])
+        img[:, :, 2] = (imageData[2048:3072]).reshape([IMAGE_SIZE, IMAGE_SIZE])
+
+        labelData = (readData['labels'])[index]
+
+        if labelData < 2:
+            label = np.zeros(2)
+            label[labelData] = 1
+
+            # img_resized = cv2.resize(
+            #     img / 255, (128, 128), interpolation=cv2.INTER_AREA)
+            # cv2.imshow("img", img_resized)
+
+            # cv2.waitKey(1)
+            # time.sleep(3)
+            # images[count] = (img_resized / 255.0) * 2.0 - 1.0
+
+            images[count] = img
+            annotations[count] = label
+
+            count += 1
+
+        index += 1
+        if index >= 10000:
+            index = 0
+            flag = True
+
+    skipped = 0
+    if flag:
+        skipped = batch_size
+    else:
+        skipped = index - batchIndex
+
+    return [images, annotations, skipped]
+
+
+def pretrain_read_next(csvFileName, batchSize):
     ins = open(csvFileName)
     lines = ins.readlines()
 
@@ -107,7 +157,7 @@ def pretrain_read_next(csvFileName, batchSize, batchIndex):
         readData = [(random.random(), line) for line in source]
 
     readData.sort()
-    readData = readData[0:batchSize + 100]
+    readData = readData[0:batchSize + 30]
 
     images = np.zeros([batchSize, IMAGE_SIZE, IMAGE_SIZE, 1])
     annotations = np.zeros([batchSize, 2])

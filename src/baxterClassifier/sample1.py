@@ -144,7 +144,7 @@ class MnistCNN():
 if __name__ == "__main__":
     # Read in data, write gzip files to "data/" directory
     mnist_data = input_data.read_data_sets("data/", one_hot=True)
-    img_size, num_class, batch_size = 28, 10, 10
+    img_size, num_class, batch_size = 28, 10, 50
 
     # Start Tensorflow Session
     with tf.Session() as sess:
@@ -154,8 +154,6 @@ if __name__ == "__main__":
         # Start Training Loop
         for i in range(2000):
             batch = mnist_data.train.next_batch(batch_size)
-            print(batch[1])
-
             if i % 100 == 0:
                 train_accuracy = mnist_cnn.accuracy.eval(feed_dict={mnist_cnn.x: batch[0],
                                                                     mnist_cnn.y: batch[1],
