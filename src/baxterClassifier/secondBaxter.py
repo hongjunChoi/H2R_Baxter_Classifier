@@ -27,12 +27,12 @@ class BaxterClassifier:
         self.num_labels = 2
         self.num_bounding_box = 2
         self.img_size = 224
-        self.batch_size = 2
+        self.batch_size = 25
         self.uninitialized_var = []
         self.learning_rate = 1e-4
 
         self.sess = tf.Session()
-
+        self.classes=[0,1]
         self.x = tf.placeholder(
             tf.float32, shape=[None, self.img_size * self.img_size])
         # Reshape Image to be of shape [batch, width, height, channel]
@@ -460,7 +460,7 @@ class BaxterClassifier:
             if probs_filtered[i] == 0:
                 continue
             for j in range(i + 1, len(boxes_filtered)):
-                if self.iou(boxes_filtered[i], boxes_filtered[j]) > self.iou_threshold:
+                if self.iou_interpret(boxes_filtered[i], boxes_filtered[j]) > self.iou_threshold:
                     probs_filtered[j] = 0.0
 
         filter_iou = np.array(probs_filtered > 0.0, dtype='bool')
@@ -540,6 +540,13 @@ class BaxterClassifier:
             box2[2] * box2[3] - intersection
         return intersection / union
 
+    def iou_interpret(self,box1,box2):
+        tb = min(box1[0]+0.5*box1[2],box2[0]+0.5*box2[2])-max(box1[0]-0.5*box1[2],box2[0]-0.5*box2[2])
+        lr = min(box1[1]+0.5*box1[3],box2[1]+0.5*box2[3])-max(box1[1]-0.5*box1[3],box2[1]-0.5*box2[3])
+        if tb < 0 or lr < 0 : intersection = 0
+        else : intersection =  tb*lr
+        return intersection / (box1[2]*box1[3] + box2[2]*box2[3] - intersection)
+
 
 def main(argvs):
 
@@ -556,18 +563,19 @@ def main(argvs):
         cv2.waitKey(1000)
         print("starting session... ")
 
-        var = [v for v in tf.trainable_variables()]
+        # var = [v for v in tf.trainable_variables()]
 
-        uninitialized_vars = []
-        for var in tf.all_variables():
-            try:
-                sess.run(var)
-            except tf.errors.FailedPreconditionError:
-                uninitialized_vars.append(var)
+        # uninitialized_vars = []
+        # for var in tf.all_variables():
+        #     try:
+        #         sess.run(var)
+        #     except tf.errors.FailedPreconditionError:
+        #         uninitialized_vars.append(var)
 
-        init_new_vars_op = tf.initialize_variables(uninitialized_vars)
-        sess.run(init_new_vars_op)
-
+        # init_new_vars_op = tf.initialize_variables(uninitialized_vars)
+        # sess.run(init_new_vars_op)
+        self.saver = tf.train.Saver()
+        self.saver.restore(self.sess, self.weights_file)
         # Start Training Loop
         countA = 0
         countB = 0
@@ -583,19 +591,18 @@ def main(argvs):
             image_batch = (batch[0][:, 0, :, :, :])
             label_batch = batch[1]
 
-            print("==== LABEL ===")
-            print(label_batch)
-            print("==============")
+            # print("==== LABEL ===")
+            # print(label_batch)
+            # print("==============")
 
             # baxterClassifier.batch_size = label_batch.shape[1]
 
             if i > 0:
                 # logits = sess.run(baxterClassifier.detection_logits, feed_dict={
                 #     baxterClassifier.x_image: image_batch,
-                #     baxterClassifier.detection_y: label_batch,
-                #     baxterClassifier.dropout_rate: 0.5})
+                #     baxterClassifier.dropout_rate: 1})
 
-                # print(logits)
+                # print(baxterClassifier.interpret_output(logits[0]))
 
                 # detection_loss_val = baxterClassifier.detection_loss(logits)
                 # trainOp =
@@ -607,8 +614,8 @@ def main(argvs):
 
                 print(lossValue)
 
-                baxterClassifier.detection_train_op.run(feed_dict={baxterClassifier.x_image: image_batch,
-                                                                   baxterClassifier.dropout_rate: 0.5})
+            baxterClassifier.detection_train_op.run(feed_dict={baxterClassifier.x_image: image_batch,
+                                                               baxterClassifier.dropout_rate: 1})
 
         # save_path = baxterClassifier.saver.save(sess, "tmp/modelfull.ckpt")
         print("saving model to ", save_path)

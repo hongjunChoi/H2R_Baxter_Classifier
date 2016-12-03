@@ -7,10 +7,14 @@ import imghdr
 import os
 
 
+
+
 def main():
     socket.setdefaulttimeout(3)
-    spoonList = glob.glob("table/table/*.xml")
-    forkList = glob.glob("bird/bird/*.xml")
+    class1 = "hammer/hammer/"
+    class2 = "scissor/scissor/"
+    spoonList = glob.glob(class1+"*.xml")
+    forkList = glob.glob(class2+"*.xml")
     spoonUrl = []
     forkUrl = []
     spoonSet = set()
@@ -34,7 +38,7 @@ def main():
     with open("object_data_url.txt", "r") as ins:
         # OPEN WRTE FOR CSV FILE
         # Open a file
-        fo = open("data.csv", "wb")
+        fo = open("data1.csv", "wb")
         count = 0
         for line in ins:
             arr = line.split()
@@ -54,15 +58,14 @@ def main():
                         continue
                 except Exception:
                     continue
-                print("...... ")
                 if img_id in spoonSet:
-                    print("---puppy")
-                    xmldoc = minidom.parse("table/table/" + img_id + ".xml")
-                    classId = "table"
+                    print("A")
+                    xmldoc = minidom.parse(class1 + img_id + ".xml")
+                    classId = "a"
                 elif img_id in forkSet:
-                    print("---fork")
-                    xmldoc = minidom.parse("bird/bird/" + img_id + ".xml")
-                    classId = "bird"
+                    print("B")
+                    xmldoc = minidom.parse(class2 + img_id + ".xml")
+                    classId = "b"
                 # FIND THE ANNOTATION FILE
                 ymin = xmldoc.getElementsByTagName(
                     'ymin')[0].firstChild.nodeValue

@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 import time
 
-IMAGE_SIZE = 224
+IMAGE_SIZE = 112
 CHANNELS = 3
 IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE * CHANNELS
 NUM_CLASSES = 2
@@ -178,6 +178,9 @@ def encodeImg(filename):
         return None, None, None
 
     img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+    # GREY SCALE 
+    # img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
+    # print(img_RGB.shape)
     img_resized_np = np.asarray(img_RGB)
     inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 3), dtype='float32')
     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
@@ -195,6 +198,9 @@ def cropEncodeImg(filename, boundingBox):
                 boundingBox[3]):int(boundingBox[4])]
             img_resized = cv2.resize(
                 crop_img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+            # cv2.imshow("cam", img_resized)
+            # cv2.waitKey(1)
+            # time.sleep(3)
         else:
             # print("cannot read image file : ", filename)
             return None
@@ -203,9 +209,14 @@ def cropEncodeImg(filename, boundingBox):
         print("=======       EXCEPTION     ======= : ", filename, e)
         return None
 
-    img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+    # img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+    img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
+    # print(img_RGB.shape)
+    # cv2.imshow("cam", img_RGB)
+    # cv2.waitKey(1)
+    # time.sleep(3)    
     img_resized_np = np.asarray(img_RGB)
-    inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 3), dtype='float32')
+    inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE), dtype='float32')
     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
     return inputs
 
@@ -240,9 +251,9 @@ def pretrain_read_next(csvFileName, batchSize, batchIndex):
             continue
 
         images.append(img)
-        if classLabel == "bird":
+        if classLabel == "a":
             label = [1, 0]
-        elif classLabel == "table":
+        elif classLabel == "b":
             label = [0, 1]
         else:
             print("----- WRONG ----")
@@ -286,9 +297,9 @@ def read_next(csvFileName, batchSize, batchIndex):
 
         images.append(img)
 
-        if classLabel == "bird":
+        if classLabel == "a":
             label = 0
-        elif classLabel == "table":
+        elif classLabel == "b":
             label = 1
         else:
             print("----- WRONG ----")
