@@ -26,8 +26,8 @@ class BaxterClassifier:
         self.grid_size = 7
         self.num_labels = 2
         self.num_bounding_box = 2
-        self.img_size = 224
-        self.batch_size = 25
+        self.img_size = 112
+        self.batch_size = 1
         self.uninitialized_var = []
         self.learning_rate = 1e-4
 
@@ -37,7 +37,7 @@ class BaxterClassifier:
             tf.float32, shape=[None, self.img_size * self.img_size])
         # Reshape Image to be of shape [batch, width, height, channel]
         self.x_image = tf.reshape(
-            self.x, [-1, self.img_size, self.img_size, 3])
+            self.x, [-1, self.img_size, self.img_size, 1])
 
         self.y = tf.placeholder(tf.float32, shape=[None, self.num_labels])
         self.detection_y = tf.placeholder(
@@ -83,15 +83,15 @@ class BaxterClassifier:
     def build_pretrain_network(self):
 
         self.conv_1 = self.conv_layer(1, self.x_image, 64, 7, 1)
-        self.pool_2 = self.pooling_layer(2, self.conv_1, 3, 2)
-        self.conv_3 = self.conv_layer(3, self.pool_2, 64, 3, 1)
-        self.pool_4 = self.pooling_layer(4, self.conv_3, 5, 1)
+        # # self.pool_2 = self.pooling_layer(2, self.conv_1, 3, 1)
+        # self.conv_3 = self.conv_layer(3, self.conv_1, 64, 5, 1)
+        # # self.pool_4 = self.pooling_layer(4, self.conv_3, 5, 1)
 
-        # self.conv_5 = self.conv_layer(5, self.pool_4, 64, 5, 1)
-        # self.conv_6 = self.conv_layer(6, self.conv_5, 64, 3, 1)
-        # self.conv_7 = self.conv_layer(7, self.conv_6, 128, 1, 1)
-        # self.conv_8 = self.conv_layer(8, self.conv_7, 256, 3, 1)
-        # self.pool_9 = self.pooling_layer(9, self.conv_5, 2, 2)
+        # self.conv_5 = self.conv_layer(5, self.conv_3, 32, 7, 1)
+        # self.conv_6 = self.conv_layer(6, self.conv_5, 32, 3, 1)
+        # self.conv_7 = self.conv_layer(7, self.conv_6, 128, 3, 1)
+        # # self.conv_8 = self.conv_layer(8, self.conv_7, 128, 1, 1)
+        # self.pool_9 = self.pooling_layer(9, self.conv_7, 2, 2)
         # self.conv_10 = self.conv_layer(10, self.pool_9, 256, 1, 1)
         # self.conv_11 = self.conv_layer(11, self.conv_10, 512, 3, 1)
         # self.conv_12 = self.conv_layer(12, self.conv_11, 256, 1, 1)
@@ -109,7 +109,7 @@ class BaxterClassifier:
         # self.conv_24 = self.conv_layer(24, self.conv_23, 1024, 3, 1)
 
         self.fc_25 = self.fc_layer(
-            25, self.pool_4, 512, flat=True, linear=False)
+            25, self.conv_1, 512, flat=True, linear=False)
         self.fc_26 = self.fc_layer(
             25, self.fc_25, 256, flat=False, linear=False)
 
@@ -505,37 +505,35 @@ def main(argvs):
         countB = 0
         totalAcc = 0
         for i in range(98):
-            print("starting  " + str(i) + "th  training iteration..")
+            # print("starting  " + str(i) + "th  training iteration..")
 
-            batch = inputProcessor.pretrain_read_next(
-                "data/shuffle.csv", batch_size, batch_index)
+            batch = inputProcessor.read_next_image_versions(
+                "data/final_data1.csv", batch_size, batch_index)
 
             batch_index = batch_index + 1
 
             image_batch = (batch[0][:, 0, :, :, :])
+            print(image_batch)
+            print(len(image_batch))
+            print(image_batch.shape)
+            image_versions = []
+            
+
+            #create array of images 
+
+            #for each image, calculate percentage 
+
             label_batch = batch[1]
             a = label_batch[:, 0].sum()
             b = len(label_batch[:, 0])-a
             countA += a
             countB += b
             # baxterClassifier.batch_size = label_batch.shape[1]
-            ans = []
-            for j in range(len(label_batch)):
-                if (label_batch[j][0]==1):
-                    ans.append(0)
-                else:
-                    ans.append(1)
-
 
             if i > -1:
                 prediction = tf.argmax(baxterClassifier.logits, 1)
-                print(prediction)
-                # diff = 0
-                # for j in range(len(res)):
-                #     diff += abs((res-ans)[j])
-                # print(25 - diff)
-                # print(res[0].shape())
-
+                print(sess.run(prediction, feed_dict={
+                      baxterClassifier.x_image: image_batch}))
                 train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x_image: image_batch,
                                                                            baxterClassifier.y: label_batch,
                                                                            baxterClassifier.dropout_rate: 1})
@@ -543,15 +541,15 @@ def main(argvs):
                                                            train_accuracy))
                 totalAcc += train_accuracy
 
-            baxterClassifier.train_op.run(feed_dict={baxterClassifier.x_image: image_batch,
-                                                     baxterClassifier.y: label_batch,
-                                                     baxterClassifier.dropout_rate: 1})
+            # baxterClassifier.train_op.run(feed_dict={baxterClassifier.x_image: image_batch,
+            #                                          baxterClassifier.y: label_batch,
+            #                                          baxterClassifier.dropout_rate: 1})
 
-        save_path = baxterClassifier.saver.save(sess, "tmp/modelnew.ckpt")
-        print("saving model to ", save_path)
+        # save_path = baxterClassifier.saver.save(sess, "tmp/modelnew.ckpt")
+        # print("saving model to ", save_path)
 
         print("total table "+ str(countA))
         print("total bird "+ str(countB))
-        print("accuracy from 60 itr " + str(totalAcc/27))
+        print("accuracy from 17 itr " + str(totalAcc/17))
 if __name__ == '__main__':
     main(sys.argv)

@@ -186,6 +186,63 @@ def encodeImg(filename):
     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
     return inputs, height, width
 
+def getEncodeImgVersions(filename):
+    try:
+        img = cv2.imread(filename.strip())
+        if img is not None:
+            shape = img.shape
+            height = shape[0]
+            width = shape[1]
+            v1 = img
+
+            v2 = img[0:int(width/2), 0:int(height/2)]
+            v3 = img[int(width/2):width, 0:int(height/2)]
+            v4 = img[0:int(width/2), int(height/2):0]
+            v5 = img[int(width/2):width, 0:int(height/2)]
+            
+            v6 = img[0:int(width/3), 0:int(height/3)]
+            v7 = img[int(width/3):int(width/3*2), 0:int(height/3)]
+            v8 = img[int(width/3*2):int(width), 0:int(height/3)]
+
+            v9 = img[0:int(width/3), int(height/3):int(height/3*2)]
+            v10 = img[int(width/3):int(width/3*2), int(height/3):int(height/3*2)]
+            v11 = img[int(width/3*2):int(width), int(height/3):int(height/3*2)]
+
+            v12 = img[0:int(width/3), int(height/3*2):int(height)]
+            v13 = img[int(width/3):int(width/3*2), int(height/3*2):int(height)]
+            v14 = img[int(width/3*2):int(width), int(height/3*2):int(height)]
+
+            img_resized = cv2.resize(
+                v5, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+            cv2.imshow("cam", v1)
+            cv2.waitKey(1)
+            time.sleep(3)
+            cv2.imshow("cam", v2)
+            cv2.waitKey(1)
+            time.sleep(3)
+            cv2.imshow("cam", v3)
+            cv2.waitKey(1)
+            time.sleep(3)
+        else:
+            # print("cannot read image file : ", filename)
+            return None
+
+    except Exception as e:
+        print("=======       EXCEPTION     ======= : ", filename, e)
+        return None
+
+    # img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+    img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
+    img_RGB = cv2.blur(img_RGB, (3,3))
+
+    # print(img_RGB.shape)
+    # cv2.imshow("cam", img_RGB)
+    # cv2.waitKey(1)
+    # time.sleep(3)    
+    img_resized_np = np.transpose(np.asarray([img_RGB]))
+    inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 1), dtype='float32')
+    inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
+    return inputs    
 
 def cropEncodeImg(filename, boundingBox):
     # image = Image.open(filename)
@@ -211,6 +268,8 @@ def cropEncodeImg(filename, boundingBox):
 
     # img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
     img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
+    img_RGB = cv2.blur(img_RGB, (3,3))
+
     # print(img_RGB.shape)
     # cv2.imshow("cam", img_RGB)
     # cv2.waitKey(1)
@@ -220,6 +279,47 @@ def cropEncodeImg(filename, boundingBox):
     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
     return inputs
 
+def read_next_image_versions(csvFileName, batchSize, batchIndex):
+    ins = open(csvFileName)
+    lines = ins.readlines()
+    startIndex = batchIndex * batchSize
+    endIndex = (batchIndex + 1) * batchSize
+    if endIndex >= len(lines):
+        endIndex = len(lines) - 1
+
+    nextLines = lines[startIndex:endIndex + 50]
+
+    # images = []
+    annotations = []
+    count = 0
+    index = 0
+    while count < batchSize:
+        line = nextLines[index]
+        index += 1
+        data = line.split(",")
+        classLabel = data[0]
+        ymin = data[1]
+        ymax = data[2]
+        xmin = data[3]
+        xmax = data[4]
+        img_filename = ("data/" + data[5]).strip()
+        images= getEncodeImgVersions(img_filename)
+        if images is None:
+            continue
+
+        if classLabel == "a":
+            label = [1, 0]
+        elif classLabel == "b":
+            label = [0, 1]
+        else:
+            print("----- WRONG ----")
+            label = [0, 1]
+
+        # annotations.append(np.asarray(label))
+        count += 1
+        return [np.array(images), np.asarray(label)]        
+
+    return None
 
 def pretrain_read_next(csvFileName, batchSize, batchIndex):
     ins = open(csvFileName)
