@@ -13,7 +13,7 @@ src/darknet/data/*
 src/darknet/results/*
 src/baxterClassifier/cv.py
 src/baxterClassifier/cv2.so
-src/baxterClassifier/tmp/*
+src/baxterClassifier/data/cifar/*
 *.ckpt*
 *.gz
 *.xml
