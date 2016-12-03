@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 import time
 
-IMAGE_SIZE = 112
+IMAGE_SIZE = 32
 CHANNELS = 1
 IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE * CHANNELS
 NUM_CLASSES = 2
@@ -66,63 +66,74 @@ def encodeImg(filename):
     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
     return inputs, height, width
 
-def getEncodeImgVersions(filename):
-    try:
-        img = cv2.imread(filename.strip())
-        if img is not None:
-            shape = img.shape
-            height = shape[0]
-            width = shape[1]
-            v1 = img
 
-            v2 = img[0:int(width/2), 0:int(height/2)]
-            v3 = img[int(width/2):width, 0:int(height/2)]
-            v4 = img[0:int(width/2), int(height/2):0]
-            v5 = img[int(width/2):width, 0:int(height/2)]
+
+
+def sliding_window(image, stepSize, windowSize):
+    # slide a window across the image
+    for y in xrange(0, image.shape[0], stepSize):
+        for x in xrange(0, image.shape[1], stepSize):
+            # yield the current window
+            yield (x, y, image[y:y + windowSize[1], x:x + windowSize[0]])
+
+
+# def getEncodeImgVersions(filename):
+#     try:
+#         img = cv2.imread(filename.strip())
+#         if img is not None:
+#             shape = img.shape
+#             height = shape[0]
+#             width = shape[1]
+#             v1 = img
+
+#             v2 = img[0:int(width/2), 0:int(height/2)]
+#             v3 = img[int(width/2):width, 0:int(height/2)]
+#             v4 = img[0:int(width/2), int(height/2):0]
+#             v5 = img[int(width/2):width, 0:int(height/2)]
             
-            v6 = img[0:int(width/3), 0:int(height/3)]
-            v7 = img[int(width/3):int(width/3*2), 0:int(height/3)]
-            v8 = img[int(width/3*2):int(width), 0:int(height/3)]
+#             v6 = img[0:int(width/3), 0:int(height/3)]
+#             v7 = img[int(width/3):int(width/3*2), 0:int(height/3)]
+#             v8 = img[int(width/3*2):int(width), 0:int(height/3)]
 
-            v9 = img[0:int(width/3), int(height/3):int(height/3*2)]
-            v10 = img[int(width/3):int(width/3*2), int(height/3):int(height/3*2)]
-            v11 = img[int(width/3*2):int(width), int(height/3):int(height/3*2)]
+#             v9 = img[0:int(width/3), int(height/3):int(height/3*2)]
+#             v10 = img[int(width/3):int(width/3*2), int(height/3):int(height/3*2)]
+#             v11 = img[int(width/3*2):int(width), int(height/3):int(height/3*2)]
 
-            v12 = img[0:int(width/3), int(height/3*2):int(height)]
-            v13 = img[int(width/3):int(width/3*2), int(height/3*2):int(height)]
-            v14 = img[int(width/3*2):int(width), int(height/3*2):int(height)]
+#             v12 = img[0:int(width/3), int(height/3*2):int(height)]
+#             v13 = img[int(width/3):int(width/3*2), int(height/3*2):int(height)]
+#             v14 = img[int(width/3*2):int(width), int(height/3*2):int(height)]
 
-            img_resized = cv2.resize(
-                v5, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
-            cv2.imshow("cam", v1)
-            cv2.waitKey(1)
-            time.sleep(3)
-            cv2.imshow("cam", v2)
-            cv2.waitKey(1)
-            time.sleep(3)
-            cv2.imshow("cam", v3)
-            cv2.waitKey(1)
-            time.sleep(3)
-        else:
-            # print("cannot read image file : ", filename)
-            return None
+#             img_resized = cv2.resize(
+#                 v5, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+#             cv2.imshow("cam", v1)
+#             cv2.waitKey(1)
+#             time.sleep(3)
+#             cv2.imshow("cam", v2)
+#             cv2.waitKey(1)
+#             time.sleep(3)
+#             cv2.imshow("cam", v3)
+#             cv2.waitKey(1)
+#             time.sleep(3)
+#         else:
+#             # print("cannot read image file : ", filename)
+#             return None
 
-    except Exception as e:
-        print("=======       EXCEPTION     ======= : ", filename, e)
-        return None
+#     except Exception as e:
+#         print("=======       EXCEPTION     ======= : ", filename, e)
+#         return None
 
-    # img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
-    img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
-    img_RGB = cv2.blur(img_RGB, (3,3))
+#     # img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+#     img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
+#     img_RGB = cv2.blur(img_RGB, (3,3))
 
-    # print(img_RGB.shape)
-    # cv2.imshow("cam", img_RGB)
-    # cv2.waitKey(1)
-    # time.sleep(3)    
-    img_resized_np = np.transpose(np.asarray([img_RGB]))
-    inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 1), dtype='float32')
-    inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
-    return inputs    
+#     # print(img_RGB.shape)
+#     # cv2.imshow("cam", img_RGB)
+#     # cv2.waitKey(1)
+#     # time.sleep(3)    
+#     img_resized_np = np.transpose(np.asarray([img_RGB]))
+#     inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 1), dtype='float32')
+#     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
+#     return inputs    
 
 def cropEncodeImg(filename, boundingBox):
     try:
@@ -159,6 +170,7 @@ def cropEncodeImg(filename, boundingBox):
     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
     return inputs
 
+
 def read_next_image_versions(csvFileName, batchSize, batchIndex):
     ins = open(csvFileName)
     lines = ins.readlines()
@@ -173,6 +185,7 @@ def read_next_image_versions(csvFileName, batchSize, batchIndex):
     annotations = []
     count = 0
     index = 0
+    images = []
     while count < batchSize:
         line = nextLines[index]
         index += 1
@@ -183,21 +196,65 @@ def read_next_image_versions(csvFileName, batchSize, batchIndex):
         xmin = data[3]
         xmax = data[4]
         img_filename = ("data/" + data[5]).strip()
-        images= getEncodeImgVersions(img_filename)
-        if images is None:
+        # images= getEncodeImgVersions(img_filename)
+        # print("------ sliding window start")
+        true_img = cv2.imread(img_filename.strip())
+
+
+        # print ("getting img")
+        if true_img is None:
+            print("---- NONE")
             continue
+        true_height = true_img.shape[0]
+        true_width = true_img.shape[1]
+        
+        sizes = [(1,1), (0.8,0.8), (0.5, 0.5), (0.3, 0.3)]
+        for  size in sizes:
+            windowSize = (int(true_width*size[1]), int(true_height*size[0]))
+            for (x, y, window) in sliding_window(true_img, stepSize=32, windowSize=windowSize):
+                # if the window does not meet our desired window size, ignore it
+                if window.shape[0] != windowSize[1] or window.shape[1] != windowSize[0]:
+                    continue
+
+                # THIS IS WHERE YOU WOULD PROCESS YOUR WINDOW, SUCH AS APPLYING A
+                # MACHINE LEARNING CLASSIFIER TO CLASSIFY THE CONTENTS OF THE
+                # WINDOW
+
+                # since we do not have a classifier, we'll just draw the window
+                # clone = resized.copy()
+                # cv2.rectangle(clone, (x, y), (x + winW, y + winH), (0, 255, 0), 2)
+                # cv2.imshow("Window", window)
+                # cv2.waitKey(1)
+                # time.sleep(4)
+                # SET IMAGE PROPERTIES - GREYSCALE, BLUR 
+                window = cv2.resize(
+                    window, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+                window = cv2.cvtColor(window, cv2.COLOR_BGR2RGB)
+                # window = cv2.blur(window, (3,3))
+
+                # print(img_RGB.shape)
+                # cv2.imshow("cam", img_RGB)
+                # cv2.waitKey(1)
+                # time.sleep(3)    
+                # img_resized_np = np.transpose(np.asarray([window]))
+                # inputs = np.zeros((, IMAGE_SIZE, IMAGE_SIZE,3), dtype='float32')
+                # inputs[0] = (window / 255.0) * 2.0 - 1.0
+                images.append(window)
 
         if classLabel == "a":
-            label = [1, 0]
+            label = 0
         elif classLabel == "b":
-            label = [0, 1]
+            label = 1
         else:
             print("----- WRONG ----")
-            label = [0, 1]
+            label = 2
 
-        # annotations.append(np.asarray(label))
         count += 1
-        return [np.array(images), np.asarray(label)]        
+        # print(len(images))
+        # label = [label, float(ymin) / height, float(ymax) / height, float(xmin) / width, float(xmax) / width]
+        annotations.append(np.asarray(label))
+
+        return [np.array(images), np.asarray(label), data]        
 
     return None
 

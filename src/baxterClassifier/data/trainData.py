@@ -11,8 +11,8 @@ import os
 
 def main():
     socket.setdefaulttimeout(3)
-    class1 = "hammer/hammer/"
-    class2 = "scissor/scissor/"
+    class1 = "airplane/airplane/"
+    class2 = "scissor/scissoraa/"
     spoonList = glob.glob(class1+"*.xml")
     forkList = glob.glob(class2+"*.xml")
     spoonUrl = []
@@ -38,7 +38,7 @@ def main():
     with open("object_data_url.txt", "r") as ins:
         # OPEN WRTE FOR CSV FILE
         # Open a file
-        fo = open("data1.csv", "wb")
+        fo = open("trial.csv", "wb")
         count = 0
         for line in ins:
             arr = line.split()

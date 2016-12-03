@@ -12,19 +12,15 @@ class BaxterClassifier:
     def __init__(self, argvs=[]):
         self.weights_file = 'tmp/modelfull.ckpt'
         self.num_labels = 2
-        self.img_size = 112
-<<<<<<< HEAD
-        self.batch_size = 20
-=======
+        self.img_size = 32
         self.batch_size = 50
->>>>>>> ff71743fe3af8f78e8536c19176bf9855541df2f
         self.uninitialized_var = []
         self.learning_rate = 1e-4
 
         self.sess = tf.Session()
 
         self.x = tf.placeholder(
-            tf.float32, shape=[None, self.img_size, self.img_size, 1])
+            tf.float32, shape=[None, self.img_size, self.img_size, 3])
 
         self.y = tf.placeholder(tf.float32, shape=[None, self.num_labels])
 
@@ -41,98 +37,6 @@ class BaxterClassifier:
 
     def build_pretrain_network(self):
 
-<<<<<<< HEAD
-        self.conv_1 = self.conv_layer(1, self.x_image, 64, 7, 1)
-        # self.pool_2 = self.pooling_layer(2, self.conv_1, 3, 1)
-        self.conv_3 = self.conv_layer(3, self.conv_1, 64, 5, 1)
-        # self.pool_4 = self.pooling_layer(4, self.conv_3, 5, 1)
-
-        self.conv_5 = self.conv_layer(5, self.conv_3, 32, 7, 1)
-        self.conv_6 = self.conv_layer(6, self.conv_5, 32, 3, 1)
-        self.conv_7 = self.conv_layer(7, self.conv_6, 128, 3, 1)
-        # self.conv_8 = self.conv_layer(8, self.conv_7, 128, 1, 1)
-        self.pool_9 = self.pooling_layer(9, self.conv_7, 2, 2)
-        self.conv_10 = self.conv_layer(10, self.pool_9, 256, 1, 1)
-        self.conv_11 = self.conv_layer(11, self.conv_10, 512, 3, 1)
-        # self.conv_12 = self.conv_layer(12, self.conv_11, 256, 1, 1)
-        # self.conv_13 = self.conv_layer(13, self.conv_12, 512, 3, 1)
-        # self.conv_14 = self.conv_layer(14, self.conv_13, 256, 1, 1)
-        # self.conv_15 = self.conv_layer(15, self.conv_14, 512, 3, 1)
-        # self.conv_16 = self.conv_layer(16, self.conv_15, 256, 1, 1)
-        # self.conv_17 = self.conv_layer(17, self.conv_16, 512, 3, 1)
-        # self.conv_18 = self.conv_layer(18, self.conv_17, 512, 1, 1)
-        # self.conv_19 = self.conv_layer(19, self.conv_18, 1024, 3, 1)
-        # self.pool_20 = self.pooling_layer(20, self.conv_19, 2, 2)
-        # self.conv_21 = self.conv_layer(21, self.pool_20, 512, 1, 1)
-        # self.conv_22 = self.conv_layer(22, self.conv_21, 1024, 3, 1)
-        # self.conv_23 = self.conv_layer(23, self.conv_22, 512, 1, 1)
-        # self.conv_24 = self.conv_layer(24, self.conv_23, 1024, 3, 1)
-
-        self.fc_25 = self.fc_layer(
-            25, self.conv_11, 512, flat=True, linear=False)
-        self.fc_26 = self.fc_layer(
-            25, self.fc_25, 256, flat=False, linear=False)
-
-        self.softmax_26 = self.softmax_layer(
-            26, self.fc_26, 256, self.num_labels)
-
-        return self.softmax_26
-
-    def build_networks(self):
-
-        self.conv_1 = self.conv_layer(1, self.x_image, 64, 7, 2)
-        self.pool_2 = self.pooling_layer(2, self.conv_1, 3, 2)
-        self.conv_3 = self.conv_layer(3, self.pool_2, 64, 3, 1)
-        self.pool_4 = self.pooling_layer(4, self.conv_3, 3, 2)
-        self.conv_5 = self.conv_layer(5, self.pool_4, 128, 1, 1)
-        self.conv_6 = self.conv_layer(6, self.conv_5, 256, 3, 1)
-        self.conv_7 = self.conv_layer(7, self.conv_6, 256, 1, 1)
-        self.conv_8 = self.conv_layer(8, self.conv_7, 512, 3, 1)
-        self.pool_9 = self.pooling_layer(9, self.conv_8, 2, 2)
-        self.conv_10 = self.conv_layer(10, self.pool_9, 256, 1, 1)
-        self.conv_11 = self.conv_layer(11, self.conv_10, 512, 3, 1)
-        self.conv_12 = self.conv_layer(12, self.conv_11, 256, 1, 1)
-        self.conv_13 = self.conv_layer(13, self.conv_12, 512, 3, 1)
-        self.conv_14 = self.conv_layer(14, self.conv_13, 256, 1, 1)
-        self.conv_15 = self.conv_layer(15, self.conv_14, 512, 3, 1)
-        self.conv_16 = self.conv_layer(16, self.conv_15, 256, 1, 1)
-        self.conv_17 = self.conv_layer(17, self.conv_16, 512, 3, 1)
-        self.conv_18 = self.conv_layer(18, self.conv_17, 512, 1, 1)
-        self.conv_19 = self.conv_layer(19, self.conv_18, 1024, 3, 1)
-        self.pool_20 = self.pooling_layer(20, self.conv_19, 2, 2)
-        self.conv_21 = self.conv_layer(21, self.pool_20, 512, 1, 1)
-        self.conv_22 = self.conv_layer(22, self.conv_21, 1024, 3, 1)
-        self.conv_23 = self.conv_layer(23, self.conv_22, 512, 1, 1)
-        self.conv_24 = self.conv_layer(24, self.conv_23, 1024, 3, 1)
-
-        self.saver = tf.train.Saver()
-        self.saver.restore(self.sess, self.weights_file)
-
-        # Added detection network from below
-        self.conv_25 = self.conv_layer(
-            25, self.conv_24, 1024, 3, 1, initialize=True)
-        self.conv_26 = self.conv_layer(
-            26, self.conv_25, 1024, 3, 2, initialize=True)
-        self.conv_27 = self.conv_layer(
-            27, self.conv_26, 1024, 3, 1, initialize=True)
-        self.conv_28 = self.conv_layer(
-            28, self.conv_27, 1024, 3, 1, initialize=True)
-
-        self.fc_29 = self.fc_layer(
-            29, self.conv_28, 512, flat=True, linear=False, initialize=True)
-        self.fc_30 = self.fc_layer(
-            30, self.fc_29, 4096, flat=False, linear=False, initialize=True)
-
-        # skip dropout_31
-        # 7 * 7 * (2 * 5 + 20)
-        # 7 * 7 * 12 = 7 * 7 * 588
-        self.fc_32 = self.fc_layer(
-            32, self.fc_30, 588, flat=False, linear=True, initialize=True)
-
-        return self.fc_32
-
-    def conv_layer(self, idx, inputs, filters, size, stride, initialize=False):
-=======
         self.conv_1 = self.conv_layer(1, self.x, 32, 5, 1)
         self.conv_2 = self.conv_layer(3, self.conv_1, 32, 5, 1)
         self.pool_3 = self.pooling_layer(4, self.conv_2, 2, 2)
@@ -151,7 +55,6 @@ class BaxterClassifier:
         return self.softmax_28
 
     def conv_layer(self, varIndex, inputs, filters, size, stride, initialize=False):
->>>>>>> ff71743fe3af8f78e8536c19176bf9855541df2f
         channels = inputs.get_shape()[3]
         weight = tf.Variable(tf.truncated_normal(
             [size, size, int(channels), filters], stddev=0.1), name="weight" + str(varIndex))
@@ -216,9 +119,7 @@ class BaxterClassifier:
 def main(argvs):
 
     baxterClassifier = BaxterClassifier(argvs)
-
     batch_size = baxterClassifier.batch_size
-    batch_index = 0
 
     # Start Tensorflow Session
     with baxterClassifier.sess as sess:
@@ -240,30 +141,53 @@ def main(argvs):
         init_new_vars_op = tf.initialize_variables(uninitialized_vars)
         sess.run(init_new_vars_op)
 
-        for i in range(100):
+        batch_index = 0
+        i = 0
+        while batch_index < 50000:
+            if i < 600:
+                break
+
             print("starting  " + str(i) + "th  training iteration..")
+            print(batch_index)
 
-            batch = inputProcessor.pretrain_read_next(
-                "data/final_data1.csv", batch_size, batch_index)
+            i += 1
 
-            batch_index = batch_index + 1
+            # batch = inputProcessor.pretrain_read_next(
+            #     "data/final_data.csv", batch_size)
+
+            filename = ""
+            if batch_index < 10000:
+                filaname = "data/cifar/data_batch_1"
+            elif batch_index < 20000:
+                filaname = "data/cifar/data_batch_2"
+            elif batch_index < 30000:
+                filaname = "data/cifar/data_batch_3"
+            elif batch_index < 40000:
+                filaname = "data/cifar/data_batch_4"
+            else:
+                filaname = "data/cifar/data_batch_5"
+
+            index = batch_index % 10000
+
+            batch = inputProcessor.get_next_cifar(
+                filaname, batch_size, index)
+
             image_batch = batch[0]
             label_batch = batch[1]
-            a = label_batch[:, 0].sum()
-            b = len(label_batch[:, 0])-a
-            countA += a
-            countB += b
-        
-            if i > 90:
+            batch_index = batch_index + batch[2]
+
+            if i % 50 == 0:
+
                 prediction = tf.argmax(baxterClassifier.logits, 1)
                 result = sess.run(prediction, feed_dict={
                     baxterClassifier.x: image_batch,
                     baxterClassifier.dropout_rate: 1})
 
-                print("=================")
+                print("\n\n\n===== PREDICTION ======")
                 print(result)
+                print("\n\n\n====== TRUE LABEL ======")
                 print(label_batch)
-                print("====================")
+                print("\n\n")
 
                 train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: image_batch,
                                                                            baxterClassifier.y: label_batch,
@@ -273,10 +197,11 @@ def main(argvs):
 
             baxterClassifier.train_op.run(feed_dict={baxterClassifier.x: image_batch,
                                                      baxterClassifier.y: label_batch,
-                                                     baxterClassifier.dropout_rate: 1})
+                                                     baxterClassifier.dropout_rate: 0.5})
 
-        # save_path = baxterClassifier.saver.save(sess, "tmp/modelnew.ckpt")
-        # print("saving model to ", save_path)
+        save_path = baxterClassifier.saver.save(sess, "tmp/modelnew.ckpt")
+        print("saving model to ", save_path)
+
 
 if __name__ == '__main__':
     main(sys.argv)
