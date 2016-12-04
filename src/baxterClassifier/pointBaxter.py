@@ -12,7 +12,7 @@ class BaxterClassifier:
     def __init__(self, argvs=[]):
         self.weights_file = 'tmp/modelnew.ckpt'
         self.num_labels = 2
-        self.img_size = 32
+        self.img_size = 128
         self.batch_size = 1
         self.uninitialized_var = []
         self.learning_rate = 1e-4
@@ -59,9 +59,10 @@ class BaxterClassifier:
 
         self.fc_27 = self.fc_layer(27, self.dropout_26, 4096, flat=False)
         self.dropout_28 = self.dropout_layer(28, self.fc_27, self.dropout_rate)
-        self.fc_29 = self.fc_layer(29, self.dropout_28, 1024, flat=False)
 
+        self.fc_29 = self.fc_layer(29, self.dropout_28, 1024, flat=False)
         self.dropout_30 = self.dropout_layer(30, self.fc_29, self.dropout_rate)
+
         self.softmax_31 = self.softmax_layer(
             31, self.dropout_30, 1024, self.num_labels)
 
@@ -153,98 +154,59 @@ def main(argvs):
         cv2.waitKey(1000)
         print("starting session... ")
 
-        # baxterClassifier.saver.restore(baxterClassifier.sess, baxterClassifier.weights_file)
+        batch = inputProcessor.read_next_image_versions(
+            "data/trial.csv", batch_size, batch_index)
 
-        # init_new_vars_op = tf.initialize_variables(uninitialized_vars)
-        # sess.run(init_new_vars_op)
+        batch_index = batch_index + 1
+        image_batch = batch[0]
+        image_versions = []
 
-        # Start Training Loop
-        countA = 0
-        countB = 0
-        totalAcc = 0
-        for i in range(98):
-            # print("starting  " + str(i) + "th  training iteration..")
+        label_batch = batch[1]
+        versions = len(image_batch)
+        maxClassProb = 0
+        predClass = 0
+        predAreaIndx = 0
 
-            batch = inputProcessor.read_next_image_versions(
-                "data/trial.csv", batch_size, batch_index)
-
-            batch_index = batch_index + 1
-            # print(batch[0].shape)
-            image_batch = batch[0]
-            image_versions = []
-
-            # create array of images
-
-            # for each image, calculate percentage
-
-            label_batch = batch[1]
-            # a = label_batch[:, 0].sum()
-            # b = len(label_batch[:, 0])-a
-            # countA += a
-            # countB += b
-            # baxterClassifier.batch_size = label_batch.shape[1]
-            versions = len(image_batch)
-            maxClassProb = 0
-            predClass = 0
-            predAreaIndx = 0
-
-            for j in range(versions):
-                image_version = image_batch[j]
-                # cv2.imshow('YOLO_small detection'+str(j), image_batch[j])
-                # cv2.waitKey(1)
-                # time.sleep(5)
-                input_image = np.zeros(
-                    [1, baxterClassifier.img_size, baxterClassifier.img_size, 3])
-                input_image[0] = image_version
-                # print(image_version.shape)
-                # print("===== PREDICTION ", j)
-                prediction = sess.run(baxterClassifier.logits, feed_dict={
-                    baxterClassifier.x: input_image,
-                    baxterClassifier.dropout_rate: 1})
-
-                # print(prediction)
-                prob = np.amax(prediction)
-
-                if maxClassProb < prob:
-                    maxClassProb = prob
-                    predClass = np.argmax(prediction)
-                    predAreaIndx = j
-                    # img_resizedx = cv2.resize(image_batch[predAreaIndx], (256, 256), interpolation=cv2.INTER_AREA)
-                    # cv2.imshow('YOLO_small detection'+str(j), img_resizedx)
-                    # cv2.waitKey(1)
-                    # time.sleep(5)
-
-            # print("====== FINAL Prediction =======")
-            # print("CLASS :" + str(predClass),str(predAreaIndx))
-            # print("")
-            print("======== " + str(label_batch == predClass))
-            # print("======== " + str(predAreaIndx))
-            # cropDisplayImage(image_batch[0], batch[2])
-
-            # img_resized = cv2.resize(
-            #     (image_batch[predAreaIndx], (128, 128), interpolation=cv2.INTER_AREA)
-            # cv2.imshow('YOLO_small detection', img_resized)
+        for j in range(versions):
+            image_version = image_batch[j]
+            # cv2.imshow('YOLO_small detection'+str(j), image_batch[j])
             # cv2.waitKey(1)
-            # # cv2.imshow('YOLO_small detection', image_batch[predAreaIndx])
-            # # cv2.waitKey(1)
-            # time.sleep(10)
-            # cv2.close()
-            # train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x_image: image_batch,
-            #                                                            baxterClassifier.y: label_batch,
-            # #                                                            baxterClassifier.dropout_rate: 1})
-            # print("Step %d, Training Accuracy %.2f" % (i,
-            #                                            train_accuracy))
-            # totalAcc += train_accuracy
+            # time.sleep(5)
 
-            # baxterClassifier.train_op.run(feed_dict={baxterClassifier.x_image: image_batch,
-            #                                          baxterClassifier.y: label_batch,
-            # baxterClassifier.dropout_rate: 1})
+            input_image = np.zeros(
+                [1, baxterClassifier.img_size, baxterClassifier.img_size, 3])
+            input_image[0] = image_version
 
-        # save_path = baxterClassifier.saver.save(sess, "tmp/modelnew.ckpt")
-        # print("saving model to ", save_path)
+            prediction = sess.run(baxterClassifier.logits, feed_dict={
+                baxterClassifier.x: input_image,
+                baxterClassifier.dropout_rate: 1})
 
-        print("total table " + str(countA))
-        print("total bird " + str(countB))
-        print("accuracy from 17 itr " + str(totalAcc / 17))
+            prob = np.amax(prediction)
+            predClass = np.argmax(prediction)
+
+            if maxClassProb < prob and predClass == 1:
+                print("===== PREDICTION ", j)
+                print(prediction)
+
+                maxClassProb = prob
+
+                predAreaIndx = j
+
+                img_resizedx = cv2.resize(
+                    image_batch[predAreaIndx], (256, 256), interpolation=cv2.INTER_AREA)
+                cv2.imshow('YOLO_small detection' + str(j), img_resizedx)
+                cv2.waitKey(1)
+                time.sleep(5)
+
+        print("====== FINAL Prediction =======")
+        print("======== " + str(label_batch == predClass))
+
+        # img_resized = cv2.resize(
+        #     image_batch[predAreaIndx], (128, 128), interpolation=cv2.INTER_AREA)
+        # cv2.imshow('YOLO_small detection', img_resized)
+        # cv2.waitKey(1)
+        # time.sleep(10)
+
+
 if __name__ == '__main__':
     main(sys.argv)

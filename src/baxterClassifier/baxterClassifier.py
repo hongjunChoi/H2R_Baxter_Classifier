@@ -12,7 +12,7 @@ class BaxterClassifier:
     def __init__(self, argvs=[]):
         self.weights_file = 'tmp/modelfull.ckpt'
         self.num_labels = 2
-        self.img_size = 32
+        self.img_size = 128
         self.batch_size = 50
         self.uninitialized_var = []
         self.learning_rate = 1e-4
@@ -59,9 +59,10 @@ class BaxterClassifier:
 
         self.fc_27 = self.fc_layer(27, self.dropout_26, 4096, flat=False)
         self.dropout_28 = self.dropout_layer(28, self.fc_27, self.dropout_rate)
-        self.fc_29 = self.fc_layer(29, self.dropout_28, 1024, flat=False)
 
+        self.fc_29 = self.fc_layer(29, self.dropout_28, 1024, flat=False)
         self.dropout_30 = self.dropout_layer(30, self.fc_29, self.dropout_rate)
+
         self.softmax_31 = self.softmax_layer(
             31, self.dropout_30, 1024, self.num_labels)
 
@@ -186,18 +187,19 @@ def main(argvs):
             label_batch = batch[1]
             batch_index = batch_index + batch[2]
 
-            if i % 20 == 0:
+            if i % 10 == 0:
 
                 prediction = tf.argmax(baxterClassifier.logits, 1)
+                trueLabel = np.argmax(label_batch, 1)
+
                 result = sess.run(prediction, feed_dict={
                     baxterClassifier.x: image_batch,
                     baxterClassifier.dropout_rate: 1})
 
-                print("\n\n\n===== PREDICTION ======")
+                print("=============")
                 print(result)
-                print("\n\n\n====== TRUE LABEL ======")
-                print(label_batch)
-                print("\n\n")
+                print(trueLabel)
+                print("=============\n\n")
 
                 train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: image_batch,
                                                                            baxterClassifier.y: label_batch,

@@ -172,7 +172,7 @@ def get_next_cifar(filename, batch_size, batchIndex):
     readData = cPickle.load(fo)
     fo.close()
 
-    images = np.zeros([batch_size, IMAGE_SIZE, IMAGE_SIZE, 3])
+    images = np.zeros([batch_size, 128, 128, 3])
     annotations = np.zeros([batch_size, 2])
     count = 0
     index = batchIndex
@@ -188,19 +188,21 @@ def get_next_cifar(filename, batch_size, batchIndex):
 
         labelData = (readData['labels'])[index]
 
-        if labelData < 2:
+        if labelData == 0 or labelData == 5:
+            if labelData == 5:
+                labelData = 1
+
             label = np.zeros(2)
             label[labelData] = 1
 
-            # img_resized = cv2.resize(
-            #     img / 255, (128, 128), interpolation=cv2.INTER_AREA)
-            # cv2.imshow("img", img_resized)
+            img_resized = cv2.resize(
+                img, (128, 128), interpolation=cv2.INTER_AREA)
 
+            # cv2.imshow("img", img_resized)
             # cv2.waitKey(1)
             # time.sleep(3)
-            # images[count] = (img_resized / 255.0) * 2.0 - 1.0
 
-            images[count] = img
+            images[count] = img_resized
             annotations[count] = label
 
             count += 1
@@ -235,59 +237,43 @@ def read_next_image_versions(csvFileName, batchSize, batchIndex):
     index = 0
     images = []
     while count < batchSize:
+
         line = nextLines[index]
         index += 1
         data = line.split(",")
         classLabel = data[0]
-        ymin = data[1]
-        ymax = data[2]
-        xmin = data[3]
-        xmax = data[4]
         img_filename = ("data/" + data[5]).strip()
-        # images= getEncodeImgVersions(img_filename)
-        # print("------ sliding window start")
+
+        print(img_filename)
+
         true_img = cv2.imread(img_filename.strip())
 
-        # print ("getting img")
         if true_img is None:
-            print("---- NONE")
+            print("---- NO IMG -----")
             continue
+
         true_height = true_img.shape[0]
         true_width = true_img.shape[1]
 
         sizes = [(1, 1), (0.8, 0.8), (0.5, 0.5), (0.3, 0.3)]
+
         for size in sizes:
             windowSize = (
                 int(true_width * size[1]), int(true_height * size[0]))
             for (x, y, window) in sliding_window(true_img, stepSize=32, windowSize=windowSize):
                 # if the window does not meet our desired window size, ignore
-                # it
                 if window.shape[0] != windowSize[1] or window.shape[1] != windowSize[0]:
                     continue
 
-                # THIS IS WHERE YOU WOULD PROCESS YOUR WINDOW, SUCH AS APPLYING A
-                # MACHINE LEARNING CLASSIFIER TO CLASSIFY THE CONTENTS OF THE
-                # WINDOW
-
-                # since we do not have a classifier, we'll just draw the window
-                # clone = resized.copy()
-                # cv2.rectangle(clone, (x, y), (x + winW, y + winH), (0, 255, 0), 2)
                 # cv2.imshow("Window", window)
                 # cv2.waitKey(1)
                 # time.sleep(4)
+
                 # SET IMAGE PROPERTIES - GREYSCALE, BLUR
                 window = cv2.resize(
-                    window, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+                    window, (128, 128), interpolation=cv2.INTER_AREA)
                 window = cv2.cvtColor(window, cv2.COLOR_BGR2RGB)
-                # window = cv2.blur(window, (3,3))
 
-                # print(img_RGB.shape)
-                # cv2.imshow("cam", img_RGB)
-                # cv2.waitKey(1)
-                # time.sleep(3)
-                # img_resized_np = np.transpose(np.asarray([window]))
-                # inputs = np.zeros((, IMAGE_SIZE, IMAGE_SIZE,3), dtype='float32')
-                # inputs[0] = (window / 255.0) * 2.0 - 1.0
                 images.append(window)
 
         if classLabel == "a":
@@ -299,8 +285,6 @@ def read_next_image_versions(csvFileName, batchSize, batchIndex):
             label = 2
 
         count += 1
-        # print(len(images))
-        # label = [label, float(ymin) / height, float(ymax) / height, float(xmin) / width, float(xmax) / width]
         annotations.append(np.asarray(label))
 
         return [np.array(images), np.asarray(label), data]
