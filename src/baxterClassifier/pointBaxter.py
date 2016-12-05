@@ -139,6 +139,7 @@ def cropDisplayImage(img, boundingBox):
 
 
 def main(argvs):
+    # variable = raw_input('input something!: ')
 
     baxterClassifier = BaxterClassifier(argvs)
 
@@ -146,8 +147,8 @@ def main(argvs):
     batch_index = 0
 
     threshold = 15
-    predictingClass = int(argvs[1])
-    img_filename = argvs[2]
+    # predictingClass = int(argvs[1])
+    # img_filename = argvs[2]
     predictions = []
 
     # Start Tensorflow Session
@@ -159,53 +160,60 @@ def main(argvs):
         cv2.waitKey(1000)
         print("starting session... ")
 
-        batch = inputProcessor.read_next_image_versions(img_filename)
+        while True:
+            img_filename = raw_input('image location: ')
+            predictingClass = int(raw_input('class value: '))
 
-        original_img = batch[0]
-        image_batch = batch[1]
-        boundingBoxInfo = batch[2]
+            batch = inputProcessor.read_next_image_versions(img_filename)
 
-        maxClassProb = 0
-        predClass = 0
-        predAreaIndx = 0
+            original_img = batch[0]
+            image_batch = batch[1]
+            boundingBoxInfo = batch[2]
 
-        for j in range(len(image_batch)):
-            image_version = image_batch[j]
+            maxClassProb = 0
+            predClass = 0
+            predAreaIndx = 0
 
-            input_image = np.zeros(
-                [1, baxterClassifier.img_size, baxterClassifier.img_size, 3])
-            input_image[0] = image_version
+            for j in range(len(image_batch)):
+                image_version = image_batch[j]
 
-            prediction = sess.run(baxterClassifier.logits, feed_dict={
-                baxterClassifier.x: input_image,
-                baxterClassifier.dropout_rate: 1})
+                input_image = np.zeros(
+                    [1, baxterClassifier.img_size, baxterClassifier.img_size, 3])
+                input_image[0] = image_version
 
-            prob = np.amax(prediction)
-            predClass = np.argmax(prediction)
+                prediction = sess.run(baxterClassifier.logits, feed_dict={
+                    baxterClassifier.x: input_image,
+                    baxterClassifier.dropout_rate: 1})
 
-            if predClass == predictingClass:
+                prob = np.amax(prediction)
+                predClass = np.argmax(prediction)
 
-                boundingBox = boundingBoxInfo[j]
-                predictions.append([prob, boundingBox])
+                if predClass == predictingClass:
 
-        predictions.sort(reverse=True)
+                    boundingBox = boundingBoxInfo[j]
+                    predictions.append([prob, boundingBox])
 
-        for i in range(2):
-            boundingBoxData = predictions[i]
-            print(boundingBoxData)
 
-            x = boundingBoxData[1][0]
-            y = boundingBoxData[1][1]
-            winW = boundingBoxData[1][2]
-            winH = boundingBoxData[1][3]
+            predictions.sort(reverse=True)
 
-            if boundingBoxData[0] > threshold:
+            for i in range(2):
+                boundingBoxData = predictions[i]
+                print(boundingBoxData)
+
+                x = boundingBoxData[1][0]
+                y = boundingBoxData[1][1]
+                winW = boundingBoxData[1][2]
+                winH = boundingBoxData[1][3]
+
+                # if boundingBoxData[0] > threshold:
                 cv2.rectangle(original_img, (x, y),
                               (x + winW, y + winH), (0, 255, 0), 2)
 
-        cv2.imshow("Window", original_img)
-        cv2.waitKey(1)
-        time.sleep(10)
+            cv2.imshow("Window", original_img)
+            cv2.waitKey(1)
+            time.sleep(10)
+        
+
 
 
 if __name__ == '__main__':
