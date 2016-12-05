@@ -221,75 +221,39 @@ def get_next_cifar(filename, batch_size, batchIndex):
     return [images, annotations, skipped]
 
 
-def read_next_image_versions(csvFileName, batchSize, batchIndex):
-    ins = open(csvFileName)
-    lines = ins.readlines()
-    startIndex = batchIndex * batchSize
-    endIndex = (batchIndex + 1) * batchSize
-    if endIndex >= len(lines):
-        endIndex = len(lines) - 1
+def read_next_image_versions(img_filename):
 
-    nextLines = lines[startIndex:endIndex + 50]
-
-    # images = []
     annotations = []
-    count = 0
-    index = 0
+
     images = []
-    while count < batchSize:
+    boundingBoxInfo = []
+    true_img = cv2.imread(img_filename.strip())
 
-        line = nextLines[index]
-        index += 1
-        data = line.split(",")
-        classLabel = data[0]
-        img_filename = ("data/" + data[5]).strip()
+    if true_img is None:
+        print("---- NO IMG -----")
+        return None
 
-        print(img_filename)
+    true_height = true_img.shape[0]
+    true_width = true_img.shape[1]
 
-        true_img = cv2.imread(img_filename.strip())
+    sizes = [(1, 1), (0.8, 0.8), (0.5, 0.5), (0.3, 0.3)]
 
-        if true_img is None:
-            print("---- NO IMG -----")
-            continue
+    for size in sizes:
+        windowSize = (
+            int(true_width * size[1]), int(true_height * size[0]))
 
-        true_height = true_img.shape[0]
-        true_width = true_img.shape[1]
+        for (x, y, window) in sliding_window(true_img, stepSize=32, windowSize=windowSize):
+            if window.shape[0] != windowSize[1] or window.shape[1] != windowSize[0]:
+                continue
 
-        sizes = [(1, 1), (0.8, 0.8), (0.5, 0.5), (0.3, 0.3)]
+            window = cv2.resize(
+                window, (128, 128), interpolation=cv2.INTER_AREA)
+            window = cv2.cvtColor(window, cv2.COLOR_BGR2RGB)
 
-        for size in sizes:
-            windowSize = (
-                int(true_width * size[1]), int(true_height * size[0]))
-            for (x, y, window) in sliding_window(true_img, stepSize=32, windowSize=windowSize):
-                # if the window does not meet our desired window size, ignore
-                if window.shape[0] != windowSize[1] or window.shape[1] != windowSize[0]:
-                    continue
+            images.append(window)
+            boundingBoxInfo.append([x, y, windowSize[0], windowSize[1]])
 
-                # cv2.imshow("Window", window)
-                # cv2.waitKey(1)
-                # time.sleep(4)
-
-                # SET IMAGE PROPERTIES - GREYSCALE, BLUR
-                window = cv2.resize(
-                    window, (128, 128), interpolation=cv2.INTER_AREA)
-                window = cv2.cvtColor(window, cv2.COLOR_BGR2RGB)
-
-                images.append(window)
-
-        if classLabel == "a":
-            label = 0
-        elif classLabel == "b":
-            label = 1
-        else:
-            print("----- WRONG ----")
-            label = 2
-
-        count += 1
-        annotations.append(np.asarray(label))
-
-        return [np.array(images), np.asarray(label), data]
-
-    return None
+    return [true_img, np.array(images), boundingBoxInfo]
 
 
 def pretrain_read_next(csvFileName, batchSize, batchIndex):
