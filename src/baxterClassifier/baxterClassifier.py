@@ -164,12 +164,22 @@ def main(argvs):
 
             ###################################################
             # GET BATCH (FOR IMAGENET DATASET)
-            batch = inputProcessor.get_imagenet_batch(
-                "data/train_data.csv", 10)
+            # batch = inputProcessor.get_imagenet_batch(
+            #     "data/train_data.csv", 10)
+            # image_batch = batch[0]
+            # label_batch = batch[1]
+            # batch_index = batch_index + 100
+            # batch_size = len(label_batch)
+
+            ###################################################
+            # GET BATCH (FOR CALTECH DATASET)
+            batch = inputProcessor.get_caltech_dataset_batch(8)
             image_batch = batch[0]
             label_batch = batch[1]
-            batch_index = batch_index + 100
+            batch_index = batch_index + 500
             batch_size = len(label_batch)
+
+            ###################################################
 
             ###################################################
             # GET BATCH (FOR CUSTOM DATASET) => BAXTER CUSTOM READ IMAGES

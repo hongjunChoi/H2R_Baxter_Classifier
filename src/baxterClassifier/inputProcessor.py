@@ -2,6 +2,7 @@ from six.moves import xrange
 from PIL import Image
 import os
 import random
+import glob
 import tensorflow as tf
 import sys
 import cv2
@@ -278,7 +279,7 @@ def read_next(csvFileName, batchSize, batchIndex):
     return [np.array(images), np.array(annotations)]
 
 
-def getImage(filename, ymin, ymax, xmin, xmax):
+def getCroppedImage(filename, ymin, ymax, xmin, xmax):
 
     try:
         img = cv2.imread(filename.strip())
@@ -294,6 +295,24 @@ def getImage(filename, ymin, ymax, xmin, xmax):
         return None
 
     img_RGB = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
+    image = np.asarray(img_RGB)
+
+    return image
+
+
+def getImage(filename):
+
+    try:
+        img = cv2.imread(filename.strip())
+
+        if img is None:
+            return None
+
+    except Exception as e:
+        print("=======   EXCEPTION  ======= : ", filename, e)
+        return None
+
+    img_RGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     image = np.asarray(img_RGB)
 
     return image
@@ -360,7 +379,7 @@ def get_imagenet_batch(filename, batchsize):
         xmax = image_data[4]
         filename = image_data[5]
 
-        img = getImage(filename, ymin, ymax, xmin, xmax)
+        img = getCroppedImage(filename, ymin, ymax, xmin, xmax)
         if img is not None:
             try:
                 images, labels, index = augmentImage(
@@ -379,5 +398,45 @@ def get_imagenet_batch(filename, batchsize):
     return [a, b]
 
 
+def get_caltech_dataset_batch(batch_size):
+    # TODO: change the file path as needed
+    class1_path = "data/laptop_caltech/*.jpg"
+    class2_path = "data/umbrella_caltech/*.jpg"
+
+    class1Data = [(random.random(), data) for data in glob.glob(class1_path)]
+    class2Data = [(random.random(), data) for data in glob.glob(class2_path)]
+
+    class1Data.sort()
+    class2Data.sort()
+
+    half = batch_size / 2
+
+    class1Data = class1Data[0:half]
+    class2Data = class2Data[0:half]
+
+    images = class1Data + class2Data
+
+    image_batch = np.zeros([batch_size * 8, IMAGE_SIZE, IMAGE_SIZE, 3])
+    label_batch = np.zeros([batch_size * 8, 2])
+    index = 0
+
+    for i in range(len(images)):
+        if i < batch_size / 2:
+            label = 0
+        else:
+            label = 1
+
+        path = images[i][1]
+        image = getImage(path)
+        image_batch, label_batch, index = augmentImage(
+            image_batch, label_batch, image, label, index)
+
+    c = list(zip(image_batch, label_batch))
+    random.shuffle(c)
+    a, b = zip(*c)
+
+    return [a, b]
+
+
 if __name__ == '__main__':
-    get_imagenet_batch("data/train_data.csv", 50)
+    get_caltech_dataset_batch(50)
