@@ -373,7 +373,10 @@ def get_imagenet_batch(filename, batchsize):
         if index >= batchsize * 8:
             break
 
-    return [images, labels]
+    c = list(zip(images, labels))
+    random.shuffle(c)
+    a, b = zip(*c)
+    return [a, b]
 
 
 if __name__ == '__main__':

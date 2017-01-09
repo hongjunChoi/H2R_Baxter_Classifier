@@ -15,7 +15,15 @@ class BaxterClassifier:
         self.img_size = 64
         self.batch_size = tf.placeholder(tf.int32)
         self.uninitialized_var = []
-        self.learning_rate = 1e-4
+        # self.learning_rate = 1e-4
+
+        self.global_step = tf.Variable(0)
+        self.learning_rate = tf.train.exponential_decay(
+            0.1,                 # Base learning rate.
+            self.global_step,    # Current index into the dataset.
+            100,                 # Decay step.
+            0.95,                # Decay rate.
+            staircase=True)
 
         self.sess = tf.Session()
 
@@ -118,13 +126,12 @@ class BaxterClassifier:
         return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y))
 
     def trainOps(self):
-        return tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_val)
+        return tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_val, global_step=self.global_step)
 
 
 def main(argvs):
 
     baxterClassifier = BaxterClassifier(argvs)
-    batch_size = 50
 
     # Start Tensorflow Session
     with baxterClassifier.sess as sess:
@@ -161,7 +168,7 @@ def main(argvs):
                 "data/train_data.csv", 10)
             image_batch = batch[0]
             label_batch = batch[1]
-            batch_index = batch_index + 200
+            batch_index = batch_index + 100
             batch_size = len(label_batch)
 
             ###################################################
@@ -172,7 +179,7 @@ def main(argvs):
             ###################################################
 
             # PERIODIC PRINT-OUT FOR CHECKING
-            if i % 15 == 0:
+            if i % 10 == 0:
                 prediction = tf.argmax(baxterClassifier.logits, 1)
                 trueLabel = np.argmax(label_batch, 1)
 
