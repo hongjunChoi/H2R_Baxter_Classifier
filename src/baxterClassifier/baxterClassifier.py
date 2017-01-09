@@ -15,15 +15,16 @@ class BaxterClassifier:
         self.img_size = 64
         self.batch_size = tf.placeholder(tf.int32)
         self.uninitialized_var = []
-        # self.learning_rate = 1e-4
+        self.learning_rate = 1e-4
 
+        # FOR ADAPTIVE LEARNING RATE
         self.global_step = tf.Variable(0)
-        self.learning_rate = tf.train.exponential_decay(
-            0.1,                 # Base learning rate.
-            self.global_step,    # Current index into the dataset.
-            100,                 # Decay step.
-            0.95,                # Decay rate.
-            staircase=True)
+        # self.learning_rate = tf.train.exponential_decay(
+        #     0.1,                 # Base learning rate.
+        #     self.global_step,    # Current index into the dataset.
+        #     100,                 # Decay step.
+        #     0.95,                # Decay rate.
+        #     staircase=True)
 
         self.sess = tf.Session()
 
@@ -176,7 +177,7 @@ def main(argvs):
             batch = inputProcessor.get_caltech_dataset_batch(8)
             image_batch = batch[0]
             label_batch = batch[1]
-            batch_index = batch_index + 500
+            batch_index = batch_index + 100
             batch_size = len(label_batch)
 
             ###################################################
