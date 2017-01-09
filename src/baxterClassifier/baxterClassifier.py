@@ -86,7 +86,6 @@ class BaxterClassifier:
         input_shape = inputs.get_shape().as_list()
 
         if flat:
-            print(self.batch_size)
             inputs_processed = tf.reshape(inputs, [self.batch_size, -1])
             dim = input_shape[1] * input_shape[2] * input_shape[3]
 
@@ -149,6 +148,7 @@ def main(argvs):
 
             ###################################################
             # GET BATCH (FOR CIFAR DATA SET)
+            # batch_size = 50
             # batch = inputProcessor.get_next_cifar(batch_size, batch_index)
             # image_batch = batch[0]
             # label_batch = batch[1]
@@ -157,8 +157,12 @@ def main(argvs):
 
             ###################################################
             # GET BATCH (FOR IMAGENET DATASET)
-            # batch = inputProcessor.get_imagenet_batch(
-            #     "data/final_data.csv", batch_size)
+            batch = inputProcessor.get_imagenet_batch(
+                "data/train_data.csv", 10)
+            image_batch = batch[0]
+            label_batch = batch[1]
+            batch_index = batch_index + 200
+            batch_size = len(label_batch)
 
             ###################################################
             # GET BATCH (FOR CUSTOM DATASET) => BAXTER CUSTOM READ IMAGES
@@ -168,7 +172,7 @@ def main(argvs):
             ###################################################
 
             # PERIODIC PRINT-OUT FOR CHECKING
-            if i % 10 == 0:
+            if i % 15 == 0:
                 prediction = tf.argmax(baxterClassifier.logits, 1)
                 trueLabel = np.argmax(label_batch, 1)
 

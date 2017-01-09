@@ -28,7 +28,6 @@ def encodeImg(filename):
             img_resized = cv2.resize(
                 img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
         else:
-            print("cannot read image file : ", filename)
             return None, None, None
 
     except Exception as e:
@@ -55,12 +54,7 @@ def cropEncodeImg(filename, boundingBox):
                 crop_img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
 
             img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
-
-            # cv2.imshow("cam", img_resized)
-            # cv2.waitKey(1)
-            # time.sleep(3)
         else:
-            # print("cannot read image file : ", filename)
             return None
 
     except Exception as e:
@@ -70,10 +64,6 @@ def cropEncodeImg(filename, boundingBox):
     # img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
     img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
     img_RGB = cv2.blur(img_RGB, (3, 3))
-
-    # cv2.imshow("cam", img_RGB)
-    # cv2.waitKey(1)
-    # time.sleep(3)
 
     img_resized_np = np.transpose(np.asarray([img_RGB]))
     inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 1), dtype='float32')
@@ -297,7 +287,6 @@ def getImage(filename, ymin, ymax, xmin, xmax):
             crop_img = img[int(xmin):int(xmax), int(ymin):int(ymax)]
 
         else:
-            print("\n\n\n\ncannot read image file : ", filename, " \n\n\n")
             return None
 
     except Exception as e:
@@ -311,22 +300,33 @@ def getImage(filename, ymin, ymax, xmin, xmax):
 
 
 def augmentImage(image_batch, labels, image, label, index):
-    for angle in np.arange(0, 360, 45):
-
-        print("rotating...")
+    for angle in np.arange(0, 360, 90):
         rotated = imutils.rotate_bound(image, angle)
         img = cv2.resize(
             rotated, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
 
-        print(index)
         image_batch[index] = img
-        labels[index] = label
+        # cv2.imshow("cam", img)
+        # cv2.waitKey(1000)
+        # time.sleep(1)
+
+        if label == 0:
+            labels[index] = [1, 0]
+        else:
+            labels[index] = [0, 1]
+
         index += 1
 
-        print(index)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         image_batch[index] = img
-        labels[index] = label
+        # cv2.imshow("cam", img)
+        # cv2.waitKey(1000)
+        # time.sleep(1)
+
+        if label == 0:
+            labels[index] = [1, 0]
+        else:
+            labels[index] = [0, 1]
         index += 1
 
     return image_batch, labels, index
@@ -347,7 +347,7 @@ def get_imagenet_batch(filename, batchsize):
     readData.sort()
     data = readData[0:batchsize + 50]
     images = np.zeros([batchsize * 8, IMAGE_SIZE, IMAGE_SIZE, 3])
-    labels = np.zeros([batchsize * 8])
+    labels = np.zeros([batchsize * 8, 2])
     index = 0
 
     for info in data:
@@ -373,7 +373,7 @@ def get_imagenet_batch(filename, batchsize):
         if index >= batchsize * 8:
             break
 
-    return images, labels
+    return [images, labels]
 
 
 if __name__ == '__main__':
