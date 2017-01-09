@@ -10,10 +10,10 @@ import inputProcessor
 class BaxterClassifier:
 
     def __init__(self, argvs=[]):
-        self.weights_file = 'tmp/modelfull.ckpt'
+        self.weights_file = 'tmp/modelnew.ckpt'
         self.num_labels = 2
-        self.img_size = 128
-        self.batch_size = 50
+        self.img_size = 64
+        self.batch_size = tf.placeholder(tf.int32)
         self.uninitialized_var = []
         self.learning_rate = 1e-4
 
@@ -44,15 +44,6 @@ class BaxterClassifier:
         self.conv_4 = self.conv_layer(5, self.pool_3, 64, 3, 1)
         self.conv_5 = self.conv_layer(6, self.conv_4, 64, 3, 1)
         self.pool_6 = self.pooling_layer(7, self.conv_5, 2, 2)
-
-        # self.conv_7 = self.conv_layer(8, self.pool_6, 128, 3, 1)
-        # self.conv_8 = self.conv_layer(9, self.conv_7, 128, 3, 1)
-        # self.pool_9 = self.pooling_layer(10, self.conv_8, 2, 2)
-
-        # self.conv_10 = self.conv_layer(11, self.pool_9, 256, 3, 1)
-        # self.conv_11 = self.conv_layer(12, self.conv_10, 256, 3, 1)
-        # self.conv_12 = self.conv_layer(13, self.conv_11, 256, 3, 1)
-        # self.pool_13 = self.pooling_layer(14, self.conv_12, 2, 2)
 
         self.fc_25 = self.fc_layer(25, self.pool_6, 4096, flat=True)
         self.dropout_26 = self.dropout_layer(26, self.fc_25, self.dropout_rate)
@@ -95,6 +86,7 @@ class BaxterClassifier:
         input_shape = inputs.get_shape().as_list()
 
         if flat:
+            print(self.batch_size)
             inputs_processed = tf.reshape(inputs, [self.batch_size, -1])
             dim = input_shape[1] * input_shape[2] * input_shape[3]
 
@@ -133,7 +125,7 @@ class BaxterClassifier:
 def main(argvs):
 
     baxterClassifier = BaxterClassifier(argvs)
-    batch_size = baxterClassifier.batch_size
+    batch_size = 50
 
     # Start Tensorflow Session
     with baxterClassifier.sess as sess:
@@ -143,18 +135,10 @@ def main(argvs):
         cv2.waitKey(1000)
         print("starting session... ")
 
-        var = [v for v in tf.trainable_variables()]
+        # INITIALIZE VARIABLES
+        sess.run(tf.initialize_all_variables())
 
-        uninitialized_vars = []
-        for var in tf.all_variables():
-            try:
-                sess.run(var)
-            except tf.errors.FailedPreconditionError:
-                uninitialized_vars.append(var)
-
-        init_new_vars_op = tf.initialize_variables(uninitialized_vars)
-        sess.run(init_new_vars_op)
-
+        # START TRAINING
         batch_index = 0
         i = 0
         while batch_index < 50000:
@@ -163,37 +147,25 @@ def main(argvs):
                   str(batch_index) + "  training iteration..")
             i += 1
 
+            # GET BATCH
+            batch = inputProcessor.get_next_cifar(batch_size, batch_index)
+
             # batch = inputProcessor.pretrain_read_next(
             #     "data/final_data.csv", batch_size)
-
-            filename = ""
-            if batch_index < 10000:
-                filaname = "data/cifar/data_batch_1"
-            elif batch_index < 20000:
-                filaname = "data/cifar/data_batch_2"
-            elif batch_index < 30000:
-                filaname = "data/cifar/data_batch_3"
-            elif batch_index < 40000:
-                filaname = "data/cifar/data_batch_4"
-            else:
-                filaname = "data/cifar/data_batch_5"
-
-            index = batch_index % 10000
-
-            batch = inputProcessor.get_next_cifar(
-                filaname, batch_size, index)
 
             image_batch = batch[0]
             label_batch = batch[1]
             batch_index = batch_index + batch[2]
+            batch_size = len(label_batch)
 
+            # PERIODIC PRINT-OUT FOR CHECKING
             if i % 10 == 0:
-
                 prediction = tf.argmax(baxterClassifier.logits, 1)
                 trueLabel = np.argmax(label_batch, 1)
 
                 result = sess.run(prediction, feed_dict={
                     baxterClassifier.x: image_batch,
+                    baxterClassifier.batch_size: batch_size,
                     baxterClassifier.dropout_rate: 1})
 
                 print("=============")
@@ -203,15 +175,20 @@ def main(argvs):
 
                 train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: image_batch,
                                                                            baxterClassifier.y: label_batch,
+                                                                           baxterClassifier.batch_size: batch_size,
                                                                            baxterClassifier.dropout_rate: 1})
                 print("\nStep %d, Training Accuracy %.2f \n\n" % (i,
                                                                   train_accuracy))
 
+            # ACTUAL TRAINING PROCESS
             baxterClassifier.train_op.run(feed_dict={baxterClassifier.x: image_batch,
                                                      baxterClassifier.y: label_batch,
+                                                     baxterClassifier.batch_size: batch_size,
                                                      baxterClassifier.dropout_rate: 0.5})
 
-        save_path = baxterClassifier.saver.save(sess, "tmp/modelnew.ckpt")
+        # DONE.. SAVE MODEL
+        save_path = baxterClassifier.saver.save(
+            sess, baxterClassifier.weights_file)
         print("saving model to ", save_path)
 
 

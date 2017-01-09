@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-# from inception.dataset import Dataset
-from six.moves import xrange  # pylint: disable=redefined-builtin
+from six.moves import xrange
 from PIL import Image
 import os
 import random
@@ -15,7 +14,8 @@ import numpy as np
 import time
 import cPickle
 
-IMAGE_SIZE = 32
+CIFAR_IMG_SIZE = 32
+IMAGE_SIZE = 64
 CHANNELS = 3
 IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE * CHANNELS
 NUM_CLASSES = 2
@@ -64,72 +64,6 @@ def encodeImg(filename):
     return inputs, height, width
 
 
-def sliding_window(image, stepSize, windowSize):
-    # slide a window across the image
-    for y in xrange(0, image.shape[0], stepSize):
-        for x in xrange(0, image.shape[1], stepSize):
-            # yield the current window
-            yield (x, y, image[y:y + windowSize[1], x:x + windowSize[0]])
-
-
-# def getEncodeImgVersions(filename):
-#     try:
-#         img = cv2.imread(filename.strip())
-#         if img is not None:
-#             shape = img.shape
-#             height = shape[0]
-#             width = shape[1]
-#             v1 = img
-
-#             v2 = img[0:int(width/2), 0:int(height/2)]
-#             v3 = img[int(width/2):width, 0:int(height/2)]
-#             v4 = img[0:int(width/2), int(height/2):0]
-#             v5 = img[int(width/2):width, 0:int(height/2)]
-
-#             v6 = img[0:int(width/3), 0:int(height/3)]
-#             v7 = img[int(width/3):int(width/3*2), 0:int(height/3)]
-#             v8 = img[int(width/3*2):int(width), 0:int(height/3)]
-
-#             v9 = img[0:int(width/3), int(height/3):int(height/3*2)]
-#             v10 = img[int(width/3):int(width/3*2), int(height/3):int(height/3*2)]
-#             v11 = img[int(width/3*2):int(width), int(height/3):int(height/3*2)]
-
-#             v12 = img[0:int(width/3), int(height/3*2):int(height)]
-#             v13 = img[int(width/3):int(width/3*2), int(height/3*2):int(height)]
-#             v14 = img[int(width/3*2):int(width), int(height/3*2):int(height)]
-
-#             img_resized = cv2.resize(
-#                 v5, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
-#             cv2.imshow("cam", v1)
-#             cv2.waitKey(1)
-#             time.sleep(3)
-#             cv2.imshow("cam", v2)
-#             cv2.waitKey(1)
-#             time.sleep(3)
-#             cv2.imshow("cam", v3)
-#             cv2.waitKey(1)
-#             time.sleep(3)
-#         else:
-#             # print("cannot read image file : ", filename)
-#             return None
-
-#     except Exception as e:
-#         print("=======       EXCEPTION     ======= : ", filename, e)
-#         return None
-
-#     # img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
-#     img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
-#     img_RGB = cv2.blur(img_RGB, (3,3))
-
-#     # print(img_RGB.shape)
-#     # cv2.imshow("cam", img_RGB)
-#     # cv2.waitKey(1)
-#     # time.sleep(3)
-#     img_resized_np = np.transpose(np.asarray([img_RGB]))
-#     inputs = np.zeros((1, IMAGE_SIZE, IMAGE_SIZE, 1), dtype='float32')
-#     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
-#     return inputs
-
 def cropEncodeImg(filename, boundingBox):
     try:
         img = cv2.imread(filename.strip())
@@ -166,25 +100,42 @@ def cropEncodeImg(filename, boundingBox):
     return inputs
 
 
-def get_next_cifar(filename, batch_size, batchIndex):
+def get_next_cifar(batch_size, batch_index):
+
+    # GET BATCH IMAGES FOR TRAINING
+    filename = ""
+    if batch_index < 10000:
+        filename = "data/cifar/data_batch_1"
+    elif batch_index < 20000:
+        filename = "data/cifar/data_batch_2"
+    elif batch_index < 30000:
+        filename = "data/cifar/data_batch_3"
+    elif batch_index < 40000:
+        filename = "data/cifar/data_batch_4"
+    else:
+        filename = "data/cifar/data_batch_5"
+
+    index = batch_index % 10000
 
     fo = open(filename, 'rb')
     readData = cPickle.load(fo)
     fo.close()
 
-    images = np.zeros([batch_size, 128, 128, 3])
+    images = np.zeros([batch_size, IMAGE_SIZE, IMAGE_SIZE, 3])
     annotations = np.zeros([batch_size, 2])
     count = 0
-    index = batchIndex
     flag = False
 
     while count < batch_size:
-        img = np.zeros([IMAGE_SIZE, IMAGE_SIZE, 3])
+        img = np.zeros([CIFAR_IMG_SIZE, CIFAR_IMG_SIZE, 3])
         imageData = (readData['data'])[index]
 
-        img[:, :, 0] = (imageData[0:1024]).reshape([IMAGE_SIZE, IMAGE_SIZE])
-        img[:, :, 1] = (imageData[1024:2048]).reshape([IMAGE_SIZE, IMAGE_SIZE])
-        img[:, :, 2] = (imageData[2048:3072]).reshape([IMAGE_SIZE, IMAGE_SIZE])
+        img[:, :, 0] = (imageData[0:1024]).reshape(
+            [CIFAR_IMG_SIZE, CIFAR_IMG_SIZE])
+        img[:, :, 1] = (imageData[1024:2048]).reshape(
+            [CIFAR_IMG_SIZE, CIFAR_IMG_SIZE])
+        img[:, :, 2] = (imageData[2048:3072]).reshape(
+            [CIFAR_IMG_SIZE, CIFAR_IMG_SIZE])
 
         labelData = (readData['labels'])[index]
 
@@ -196,15 +147,15 @@ def get_next_cifar(filename, batch_size, batchIndex):
             label[labelData] = 1
 
             img_resized = cv2.resize(
-                img, (128, 128), interpolation=cv2.INTER_AREA)
+                img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
 
-            # cv2.imshow("img", img_resized)
+            # SHOW IMAGE
+            # cv2.imshow("img", img_resized / 255.0)
             # cv2.waitKey(1)
             # time.sleep(3)
 
             images[count] = img_resized
             annotations[count] = label
-
             count += 1
 
         index += 1
@@ -216,13 +167,20 @@ def get_next_cifar(filename, batch_size, batchIndex):
     if flag:
         skipped = batch_size
     else:
-        skipped = index - batchIndex
+        skipped = index - (batch_index % 10000)
 
     return [images, annotations, skipped]
 
 
-def read_next_image_versions(img_filename):
+def sliding_window(image, stepSize, windowSize):
+    # slide a window across the image
+    for y in xrange(0, image.shape[0], stepSize):
+        for x in xrange(0, image.shape[1], stepSize):
+            # yield the current window
+            yield (x, y, image[y:y + windowSize[1], x:x + windowSize[0]])
 
+
+def get_sliding_window_img_crops(img_filename):
     annotations = []
 
     images = []
@@ -230,7 +188,7 @@ def read_next_image_versions(img_filename):
     true_img = cv2.imread(img_filename.strip())
 
     if true_img is None:
-        print("---- NO IMG -----")
+        print("no image found in given location....")
         return None
 
     true_height = true_img.shape[0]
@@ -247,7 +205,7 @@ def read_next_image_versions(img_filename):
                 continue
 
             window = cv2.resize(
-                window, (128, 128), interpolation=cv2.INTER_AREA)
+                window, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
             window = cv2.cvtColor(window, cv2.COLOR_BGR2RGB)
 
             images.append(window)
@@ -353,7 +311,6 @@ def read_next(csvFileName, batchSize, batchIndex):
 
 
 def read_my_file_format(filename_and_label_tensor):
-
     filename, label = tf.decode_csv(
         filename_and_label_tensor, [[""], [""]], " ")
     file_contents = tf.read_file(filename)
@@ -370,7 +327,3 @@ def input_pipeline(filenames, batch_size, num_epochs=None):
     img_batch, label_batch = tf.train.shuffle_batch(
         [img, label], batch_size=batch_size)
     return img_batch, label_batch
-
-
-if __name__ == '__main__':
-    main(sys.argv)
