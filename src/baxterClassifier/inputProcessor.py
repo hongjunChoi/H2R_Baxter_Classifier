@@ -1,15 +1,11 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from six.moves import xrange
 from PIL import Image
 import os
 import random
 import tensorflow as tf
-from tensorflow.python.framework import ops
-from tensorflow.python.framework import dtypes
 import sys
 import cv2
+import imutils
 import numpy as np
 import time
 import cPickle
@@ -19,21 +15,6 @@ IMAGE_SIZE = 64
 CHANNELS = 3
 IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE * CHANNELS
 NUM_CLASSES = 2
-
-
-def encode_label(label):
-    return int(label)
-
-
-def read_label_file(file):
-    f = open(file, "r")
-    filepaths = []
-    labels = []
-    for line in f:
-        filepath, label = line.split(",")
-        filepaths.append(filepath)
-        labels.append(encode_label(label))
-    return filepaths, labels
 
 
 def encodeImg(filename):
@@ -47,11 +28,11 @@ def encodeImg(filename):
             img_resized = cv2.resize(
                 img, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
         else:
-            # print("cannot read image file : ", filename)
+            print("cannot read image file : ", filename)
             return None, None, None
 
     except Exception as e:
-        print("=======       EXCEPTION     ======= : ", filename, e)
+        print("=======   EXCEPTION     ======= : ", filename, e)
         return None, None, None
 
     img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
@@ -304,26 +285,96 @@ def read_next(csvFileName, batchSize, batchIndex):
         annotations.append(np.asarray(label))
         count += 1
 
-        # file_contents = tf.read_file(img_filename)
-        # img = tf.image.decode_png(file_contents)
-
     return [np.array(images), np.array(annotations)]
 
 
-def read_my_file_format(filename_and_label_tensor):
-    filename, label = tf.decode_csv(
-        filename_and_label_tensor, [[""], [""]], " ")
-    file_contents = tf.read_file(filename)
-    img = tf.image.decode_png(file_contents)
-    return img, label
+def getImage(filename, ymin, ymax, xmin, xmax):
+
+    try:
+        img = cv2.imread(filename.strip())
+
+        if img is not None:
+            crop_img = img[int(xmin):int(xmax), int(ymin):int(ymax)]
+
+        else:
+            print("\n\n\n\ncannot read image file : ", filename, " \n\n\n")
+            return None
+
+    except Exception as e:
+        print("=======   EXCEPTION  ======= : ", filename, e)
+        return None
+
+    img_RGB = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
+    image = np.asarray(img_RGB)
+
+    return image
 
 
-def input_pipeline(filenames, batch_size, num_epochs=None):
-    filename_queue = tf.train.string_input_producer(
-        filenames, num_epochs=num_epochs, shuffle=True)
+def augmentImage(image_batch, labels, image, label, index):
+    for angle in np.arange(0, 360, 45):
 
-    img, label = read_my_file_format(filename_queue)
+        print("rotating...")
+        rotated = imutils.rotate_bound(image, angle)
+        img = cv2.resize(
+            rotated, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
 
-    img_batch, label_batch = tf.train.shuffle_batch(
-        [img, label], batch_size=batch_size)
-    return img_batch, label_batch
+        print(index)
+        image_batch[index] = img
+        labels[index] = label
+        index += 1
+
+        print(index)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        image_batch[index] = img
+        labels[index] = label
+        index += 1
+
+    return image_batch, labels, index
+
+
+###
+# TODO :
+# 1) parse data csv file
+# 2) randomly get batch size amount of images
+# 3) augment each image data (rotation / flip / parity / blur..)
+# 4) put all images into np array
+###
+def get_imagenet_batch(filename, batchsize):
+
+    with open(filename, 'r') as source:
+        readData = [(random.random(), line) for line in source]
+
+    readData.sort()
+    data = readData[0:batchsize + 50]
+    images = np.zeros([batchsize * 8, IMAGE_SIZE, IMAGE_SIZE, 3])
+    labels = np.zeros([batchsize * 8])
+    index = 0
+
+    for info in data:
+        line = info[1]
+        image_data = line.split(",")
+        class_label = image_data[0]
+        ymin = image_data[1]
+        ymax = image_data[2]
+        xmin = image_data[3]
+        xmax = image_data[4]
+        filename = image_data[5]
+
+        img = getImage(filename, ymin, ymax, xmin, xmax)
+        if img is not None:
+            try:
+                images, labels, index = augmentImage(
+                    images, labels, img, int(class_label), index)
+
+            except Exception as e:
+                print("EXCEPTION : ", e)
+                continue
+
+        if index >= batchsize * 8:
+            break
+
+    return images, labels
+
+
+if __name__ == '__main__':
+    get_imagenet_batch("data/train_data.csv", 50)

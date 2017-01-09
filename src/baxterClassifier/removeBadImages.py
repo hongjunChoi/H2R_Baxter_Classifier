@@ -1,11 +1,6 @@
 import os
 import filecmp
 
-count = 0
-for filename in os.listdir('./images'):
-	print(filename)
-	if filecmp.cmp('./images/'+filename, './error.png'):
-		count+=1
-		os.remove('./images/'+filename)
-
-print count
+for filename in os.listdir('./data/images'):
+    if filecmp.cmp('./data/images/' + filename, './data/error.png'):
+        os.remove('./data/images/' + filename)

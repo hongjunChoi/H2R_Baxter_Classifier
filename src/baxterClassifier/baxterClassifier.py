@@ -147,16 +147,25 @@ def main(argvs):
                   str(batch_index) + "  training iteration..")
             i += 1
 
-            # GET BATCH
-            batch = inputProcessor.get_next_cifar(batch_size, batch_index)
+            ###################################################
+            # GET BATCH (FOR CIFAR DATA SET)
+            # batch = inputProcessor.get_next_cifar(batch_size, batch_index)
+            # image_batch = batch[0]
+            # label_batch = batch[1]
+            # batch_index = batch_index + batch[2]
+            # batch_size = len(label_batch)
 
-            # batch = inputProcessor.pretrain_read_next(
+            ###################################################
+            # GET BATCH (FOR IMAGENET DATASET)
+            # batch = inputProcessor.get_imagenet_batch(
             #     "data/final_data.csv", batch_size)
 
-            image_batch = batch[0]
-            label_batch = batch[1]
-            batch_index = batch_index + batch[2]
-            batch_size = len(label_batch)
+            ###################################################
+            # GET BATCH (FOR CUSTOM DATASET) => BAXTER CUSTOM READ IMAGES
+            #
+            #
+
+            ###################################################
 
             # PERIODIC PRINT-OUT FOR CHECKING
             if i % 10 == 0:

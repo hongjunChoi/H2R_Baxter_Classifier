@@ -1,71 +1,76 @@
 import glob
 from xml.dom import minidom
-import urllib
+import urllib.request as myurl
 import socket
 import re
 import imghdr
 import os
 
 
-
-
 def main():
-    socket.setdefaulttimeout(3)
-    class1 = "airplane/airplane/"
-    class2 = "scissor/scissoraa/"
-    spoonList = glob.glob(class1+"*.xml")
-    forkList = glob.glob(class2+"*.xml")
-    spoonUrl = []
-    forkUrl = []
-    spoonSet = set()
-    forkSet = set()
-    for i in range(len(spoonList)):
-        xml = spoonList[i].split("/")[2]
+    # TODO: change this part depending on class label
+    class1 = "data/hammer/hammer/"
+    class2 = "data/scissor/scissor/"
+
+    class1List = glob.glob(class1 + "*.xml")
+    class2List = glob.glob(class2 + "*.xml")
+    class1Url = []
+    class2Url = []
+    class1Set = set()
+    class2Set = set()
+
+    for i in range(len(class1List)):
+        xml = class1List[i].split("/")[3]
         img_id = xml.split(".")[0]
-        print(img_id)
-        spoonList[i] = img_id
-        spoonSet.add(img_id)
-    for j in range(len(forkList)):
-        line = forkList[j]
-        xml = line.split("/")
-        img_id = xml[2].split(".")[0]
-        print(img_id)
-        forkList[j] = img_id
-        forkSet.add(img_id)
-    print(forkSet)
-    print(spoonSet)
+        class1List[i] = img_id
+        class1Set.add(img_id)
+
+    for j in range(len(class2List)):
+        xml = class2List[j].split("/")[3]
+        img_id = xml.split(".")[0]
+        class2List[j] = img_id
+        class2Set.add(img_id)
+
+    print(class1Set)
+    print(class2Set)
+
     # GET URLs
-    with open("object_data_url.txt", "r") as ins:
-        # OPEN WRTE FOR CSV FILE
-        # Open a file
-        fo = open("trial.csv", "wb")
+    socket.setdefaulttimeout(3)
+    fo = open("data/data.csv", "w")
+    with open("data/object_data_url.txt", "r") as urlFile:
         count = 0
-        for line in ins:
+        for line in urlFile:
             arr = line.split()
             img_id = arr[0]
-            url = ""
-            if img_id in spoonSet or img_id in forkSet:
-                print("---")
+
+            if img_id in class1Set or img_id in class2Set:
                 url = arr[1]
                 # DOWNLAOD IMAGE
-                localFileName = "images/" + img_id + ".png"
-                print(url)
+                localFileName = "data/images/" + img_id + ".png"
+
                 try:
-                    a = urllib.urlretrieve(url, localFileName)
-                    # if (a[1]["Content-Type"])
+                    print("fetching image .....", url)
+                    myurl.urlretrieve(url, localFileName)
+
                     if imghdr.what(localFileName) == None:
-                        os.remove(localFileName)
+                        if os.path.exists(localFileName):
+                            os.remove(localFileName)
                         continue
-                except Exception:
+
+                except Exception as e:
+                    print("error in downloading image ...",
+                          url, "  / error : ", e)
+                    if os.path.exists(localFileName):
+                        os.remove(localFileName)
                     continue
-                if img_id in spoonSet:
-                    print("A")
+
+                if img_id in class1Set:
                     xmldoc = minidom.parse(class1 + img_id + ".xml")
-                    classId = "a"
-                elif img_id in forkSet:
-                    print("B")
+                    classId = "0"
+                elif img_id in class2Set:
                     xmldoc = minidom.parse(class2 + img_id + ".xml")
-                    classId = "b"
+                    classId = "1"
+
                 # FIND THE ANNOTATION FILE
                 ymin = xmldoc.getElementsByTagName(
                     'ymin')[0].firstChild.nodeValue
@@ -79,6 +84,7 @@ def main():
                     str(ymin) + " , " + str(ymax) + \
                     "," + str(xmin) + "," + str(xmax) + \
                     "," + str(localFileName)
+
                 # APPEND TO CSV FILE WITH DOWNLOADED URL & ANNOTATION (WRITE)
                 print(data)
                 fo.write(data + "\n")
