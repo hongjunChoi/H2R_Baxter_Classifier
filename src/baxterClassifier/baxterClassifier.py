@@ -173,19 +173,13 @@ def main(argvs):
             # batch_size = len(label_batch)
 
             ###################################################
-            # GET BATCH (FOR CALTECH DATASET)
-            batch = inputProcessor.get_caltech_dataset_batch(8)
+            # GET BATCH FOR CUSTOM DATASET AND (FOR CALTECH DATASET)
+            batch = inputProcessor.get_custom_dataset_batch(
+                50, "data/custom_train_data.csv")
             image_batch = batch[0]
             label_batch = batch[1]
             batch_index = batch_index + 100
             batch_size = len(label_batch)
-
-            ###################################################
-
-            ###################################################
-            # GET BATCH (FOR CUSTOM DATASET) => BAXTER CUSTOM READ IMAGES
-            #
-            #
 
             ###################################################
 

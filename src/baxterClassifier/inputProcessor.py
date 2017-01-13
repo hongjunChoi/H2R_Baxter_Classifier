@@ -438,5 +438,41 @@ def get_caltech_dataset_batch(batch_size):
     return [a, b]
 
 
+def get_custom_dataset_batch(batch_size, train_dataset_path):
+    image_batch = np.zeros([batch_size * 8, IMAGE_SIZE, IMAGE_SIZE, 3])
+    label_batch = np.zeros([batch_size * 8, 2])
+    with open(train_dataset_path, 'r') as source:
+        data = [(random.random(), line) for line in source]
+        data.sort()
+
+        count = 0
+        index = 0
+
+        while(count < batch_size):
+            line = data[index][1].split(",")
+            path = str(line[0])
+            classLabel = int(line[1])
+            image = getImage(path)
+
+            if image is None:
+                index = index + 1
+                continue
+
+            img_resized = cv2.resize(
+                image, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+
+            if classLabel is 0:
+                label = [1, 0]
+            else:
+                label = [0, 1]
+
+            image_batch[count] = img_resized
+            label_batch[count] = label
+            index = index + 1
+            count = count + 1
+
+    return [image_batch, label_batch]
+
+
 if __name__ == '__main__':
     get_caltech_dataset_batch(50)

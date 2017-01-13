@@ -264,9 +264,35 @@ def divideImageSet(classPath1, classPath2):
     # For directory containing images of each class, combine all images path
     # create custom_training_set.csv with training image path and label
     # create custom_test_set.csv with test image path and label
+    class1List = glob.glob(classPath1 + "/*.jpg")
+    class2List = glob.glob(classPath2 + "/*.jpg")
+
+    combined_list = []
+    for class1_path in class1List:
+        combined_list.append([class1_path, 0])
+
+    for class2_path in class2List:
+        combined_list.append([class2_path, 1])
+
+    data = [(random.random(), l) for l in combined_list]
+    data.sort()
+
+    train_data = data[0:int(len(data) * 0.9)]
+    test_data = data[int(len(data) * 0.9):]
+
+    with open('data/custom_train_data.csv', 'w') as train_file:
+        for data in train_data:
+            line = str(data[1][0]) + " , " + str(data[1][1]) + "\n"
+            train_file.write(line)
+    with open('data/custom_test_data.csv', 'w') as test_file:
+        for data in test_data:
+            line = str(data[1][0]) + " , " + str(data[1][1]) + "\n"
+            test_file.write(line)
+
     return
 
-# FOR TESTING PURPOSE ONLY
+
 if __name__ == "__main__":
-    augmentImages("data/umbrella_caltech_test")
-    # demo()
+    augmentImages("data/umbrella_caltech")
+    augmentImages("data/laptop_caltech")
+    divideImageSet("data/umbrella_caltech", "data/laptop_caltech")
