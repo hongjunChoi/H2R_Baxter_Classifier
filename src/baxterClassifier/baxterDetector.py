@@ -8,14 +8,6 @@ import inputProcessor
 import baxterClassifier as baxter
 
 
-def cropDisplayImage(img, boundingBox):
-    crop_img = img[int(boundingBox[1]):int(boundingBox[2]), int(
-        boundingBox[3]):int(boundingBox[4])]
-    cv2.imshow("cam", crop_img)
-    cv2.waitKey(1)
-    time.sleep(3)
-
-
 def main(argvs):
 
     baxterClassifier = baxter.BaxterClassifier(argvs)
@@ -89,7 +81,7 @@ def main(argvs):
 
             cv2.imshow("Window", original_img)
             cv2.waitKey(1000)
-            time.sleep(5)
+            time.sleep(1)
 
 
 if __name__ == '__main__':

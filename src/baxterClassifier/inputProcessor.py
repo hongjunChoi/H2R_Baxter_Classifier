@@ -325,9 +325,9 @@ def augmentImage(image_batch, labels, image, label, index):
             rotated, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
 
         image_batch[index] = img
-        # cv2.imshow("cam", img)
-        # cv2.waitKey(1000)
-        # time.sleep(1)
+        cv2.imshow("cam", img)
+        cv2.waitKey(1000)
+        time.sleep(1)
 
         if label == 0:
             labels[index] = [1, 0]
@@ -338,9 +338,9 @@ def augmentImage(image_batch, labels, image, label, index):
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         image_batch[index] = img
-        # cv2.imshow("cam", img)
-        # cv2.waitKey(1000)
-        # time.sleep(1)
+        cv2.imshow("cam", img)
+        cv2.waitKey(1000)
+        time.sleep(1)
 
         if label == 0:
             labels[index] = [1, 0]

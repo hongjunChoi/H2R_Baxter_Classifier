@@ -10,7 +10,7 @@ import inputProcessor
 class BaxterClassifier:
 
     def __init__(self, argvs=[]):
-        self.weights_file = 'tmp/modelnew.ckpt'
+        self.weights_file = 'model/modelnew.ckpt'
         self.num_labels = 2
         self.img_size = 64
         self.batch_size = tf.placeholder(tf.int32)
