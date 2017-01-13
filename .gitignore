@@ -11,10 +11,10 @@ src/tensorbox/data/*
 src/tensorbox/output/*
 src/darknet/data/*
 src/darknet/results/*
-src/baxterClassifier/cv.py
-src/baxterClassifier/cv2.so
-src/baxterClassifier/data/cifar/*
-*.ckpt*
+src/baxterClassifier/data/*
+src.baxterClassifier/model/*
+*.ckpt
+*.ckpt.meta
 *.gz
 *.xml
 *.txt
@@ -22,3 +22,6 @@ src/baxterClassifier/data/cifar/*
 *.png
 *.DS*
 *.csv
+*.jpg
+*.jpeg
+
