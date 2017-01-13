@@ -439,8 +439,8 @@ def get_caltech_dataset_batch(batch_size):
 
 
 def get_custom_dataset_batch(batch_size, train_dataset_path):
-    image_batch = np.zeros([batch_size * 8, IMAGE_SIZE, IMAGE_SIZE, 3])
-    label_batch = np.zeros([batch_size * 8, 2])
+    image_batch = np.zeros([batch_size, IMAGE_SIZE, IMAGE_SIZE, 3])
+    label_batch = np.zeros([batch_size, 2])
     with open(train_dataset_path, 'r') as source:
         data = [(random.random(), line) for line in source]
         data.sort()
@@ -475,4 +475,9 @@ def get_custom_dataset_batch(batch_size, train_dataset_path):
 
 
 if __name__ == '__main__':
-    get_caltech_dataset_batch(50)
+    [image_batch, label_batch] = get_custom_dataset_batch(
+        25, "data/custom_train_data.csv")
+
+    print(image_batch.shape)
+    print(label_batch.shape)
+    print(label_batch)

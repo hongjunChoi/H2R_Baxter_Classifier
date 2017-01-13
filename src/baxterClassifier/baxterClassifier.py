@@ -18,7 +18,7 @@ class BaxterClassifier:
         self.learning_rate = 1e-4
 
         # FOR ADAPTIVE LEARNING RATE
-        self.global_step = tf.Variable(0)
+        # self.global_step = tf.Variable(0)
         # self.learning_rate = tf.train.exponential_decay(
         #     0.1,                 # Base learning rate.
         #     self.global_step,    # Current index into the dataset.
@@ -127,7 +127,7 @@ class BaxterClassifier:
         return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y))
 
     def trainOps(self):
-        return tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_val, global_step=self.global_step)
+        return tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_val)
 
 
 def main(argvs):
@@ -178,7 +178,7 @@ def main(argvs):
                 50, "data/custom_train_data.csv")
             image_batch = batch[0]
             label_batch = batch[1]
-            batch_index = batch_index + 100
+            batch_index = batch_index + 50
             batch_size = len(label_batch)
 
             ###################################################
