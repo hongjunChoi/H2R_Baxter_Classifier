@@ -12,10 +12,11 @@ class BaxterClassifier:
     def __init__(self, argvs=[]):
         self.weights_file = 'model/modelnew.ckpt'
         self.num_labels = 2
-        self.img_size = 64
+        self.img_size = 128
         self.batch_size = tf.placeholder(tf.int32)
         self.uninitialized_var = []
         self.learning_rate = 1e-4
+        self.weight_vars = []
 
         # FOR ADAPTIVE LEARNING RATE
         # self.global_step = tf.Variable(0)
@@ -47,12 +48,12 @@ class BaxterClassifier:
     def build_pretrain_network(self):
 
         self.conv_1 = self.conv_layer(1, self.x, 32, 3, 1)
-        self.conv_2 = self.conv_layer(3, self.conv_1, 32, 3, 1)
-        self.pool_3 = self.pooling_layer(4, self.conv_2, 2, 2)
+        self.conv_2 = self.conv_layer(2, self.conv_1, 32, 3, 1)
+        self.pool_3 = self.pooling_layer(3, self.conv_2, 2, 2)
 
-        self.conv_4 = self.conv_layer(5, self.pool_3, 64, 3, 1)
-        self.conv_5 = self.conv_layer(6, self.conv_4, 64, 3, 1)
-        self.pool_6 = self.pooling_layer(7, self.conv_5, 2, 2)
+        self.conv_4 = self.conv_layer(4, self.pool_3, 64, 3, 1)
+        self.conv_5 = self.conv_layer(5, self.conv_4, 64, 3, 1)
+        self.pool_6 = self.pooling_layer(6, self.conv_5, 2, 2)
 
         self.fc_25 = self.fc_layer(25, self.pool_6, 4096, flat=True)
         self.dropout_26 = self.dropout_layer(26, self.fc_25, self.dropout_rate)
@@ -72,6 +73,9 @@ class BaxterClassifier:
         channels = inputs.get_shape()[3]
         weight = tf.Variable(tf.truncated_normal(
             [size, size, int(channels), filters], stddev=0.1), name="weight" + str(varIndex))
+
+        self.weight_vars.append(weight)
+
         biases = tf.Variable(tf.constant(
             0.1, shape=[filters]), name="bias" + str(varIndex))
 
@@ -105,6 +109,8 @@ class BaxterClassifier:
         weight = tf.Variable(tf.truncated_normal(
             [dim, hiddens], stddev=0.1))
 
+        self.weight_vars.append(weight)
+
         biases = tf.Variable(tf.constant(
             0.1, shape=[hiddens]), name='fc_bias' + str(varIndex))
 
@@ -117,6 +123,8 @@ class BaxterClassifier:
     def softmax_layer(self, varIndex, inputs, hidden, num_labels):
         weights = tf.Variable(tf.truncated_normal(
             [hidden, num_labels], stddev=1 / hidden))
+        self.weight_vars.append(weights)
+
         biases = tf.Variable(tf.constant(0.1, shape=[num_labels]))
 
         softmax_linear = tf.add(
@@ -124,15 +132,17 @@ class BaxterClassifier:
         return softmax_linear
 
     def lossVal(self):
-        return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y))
+        l2Loss = tf.add_n([tf.nn.l2_loss(v) for v in self.weight_vars]) * 0.001
+        return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y)) + l2Loss
 
     def trainOps(self):
         return tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_val)
 
 
 def main(argvs):
-
     baxterClassifier = BaxterClassifier(argvs)
+    [meanImage, std] = inputProcessor.getNormalizationData(
+        "data/custom_train_data.csv")
 
     # Start Tensorflow Session
     with baxterClassifier.sess as sess:
@@ -175,16 +185,16 @@ def main(argvs):
             ###################################################
             # GET BATCH FOR CUSTOM DATASET AND (FOR CALTECH DATASET)
             batch = inputProcessor.get_custom_dataset_batch(
-                50, "data/custom_train_data.csv")
+                32, "data/custom_train_data.csv", meanImage, std)
             image_batch = batch[0]
             label_batch = batch[1]
-            batch_index = batch_index + 50
+            batch_index = batch_index + 75
             batch_size = len(label_batch)
 
             ###################################################
 
             # PERIODIC PRINT-OUT FOR CHECKING
-            if i % 10 == 0:
+            if i % 20 == 0:
                 prediction = tf.argmax(baxterClassifier.logits, 1)
                 trueLabel = np.argmax(label_batch, 1)
 

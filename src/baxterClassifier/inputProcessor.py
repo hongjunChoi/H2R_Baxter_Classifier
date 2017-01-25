@@ -12,7 +12,7 @@ import time
 import cPickle
 
 CIFAR_IMG_SIZE = 32
-IMAGE_SIZE = 64
+IMAGE_SIZE = 128
 CHANNELS = 3
 IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE * CHANNELS
 NUM_CLASSES = 2
@@ -163,6 +163,9 @@ def get_sliding_window_img_crops(img_filename):
         print("no image found in given location....")
         return None
 
+    true_img = cv2.resize(
+        true_img, (300, 300), interpolation=cv2.INTER_AREA)
+
     true_height = true_img.shape[0]
     true_width = true_img.shape[1]
 
@@ -175,10 +178,9 @@ def get_sliding_window_img_crops(img_filename):
         for (x, y, window) in sliding_window(true_img, stepSize=32, windowSize=windowSize):
             if window.shape[0] != windowSize[1] or window.shape[1] != windowSize[0]:
                 continue
-
+            window = cv2.cvtColor(window, cv2.COLOR_BGR2RGB)
             window = cv2.resize(
                 window, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
-            window = cv2.cvtColor(window, cv2.COLOR_BGR2RGB)
 
             images.append(window)
             boundingBoxInfo.append([x, y, windowSize[0], windowSize[1]])
@@ -438,7 +440,38 @@ def get_caltech_dataset_batch(batch_size):
     return [a, b]
 
 
-def get_custom_dataset_batch(batch_size, train_dataset_path):
+def getNormalizationData(trainingDataPath):
+
+    with open(trainingDataPath, 'r') as f:
+        num_lines = sum(1 for line in f)
+        imageList = np.zeros([num_lines, IMAGE_SIZE, IMAGE_SIZE, 3])
+
+    with open(trainingDataPath, 'r') as source:
+        index = 0
+
+        for line in source:
+            path = line.split(",")[0]
+            image = getImage(path)
+
+            if image is None:
+                print("ERROR ! IMAGE CANNOT BE FETCHED...")
+
+            img_resized = cv2.resize(
+                image, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+
+            imageList[index] = img_resized
+            index = index + 1
+
+        meanImage = np.mean(imageList, axis=0)
+        std = np.std(imageList, axis=0)
+        return [meanImage, std]
+
+
+def preprocessImage(image, meanImage, std):
+    return (image - meanImage) / std
+
+
+def get_custom_dataset_batch(batch_size, train_dataset_path, meanImage, std):
     image_batch = np.zeros([batch_size, IMAGE_SIZE, IMAGE_SIZE, 3])
     label_batch = np.zeros([batch_size, 2])
     with open(train_dataset_path, 'r') as source:
@@ -466,7 +499,7 @@ def get_custom_dataset_batch(batch_size, train_dataset_path):
             else:
                 label = [0, 1]
 
-            image_batch[count] = img_resized
+            image_batch[count] = preprocessImage(img_resized, meanImage, std)
             label_batch[count] = label
             index = index + 1
             count = count + 1

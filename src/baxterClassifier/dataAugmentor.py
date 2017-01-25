@@ -136,68 +136,8 @@ def crop_around_center(image, width, height):
     return image[y1:y2, x1:x2]
 
 
-def demo():
-    """
-    Demos the largest_rotated_rect function
-    """
-
-    image = cv2.imread("data/test_caltech/both1.jpeg")
-    image_height, image_width = image.shape[0:2]
-
-    cv2.imshow("Original Image", image)
-
-    print("Press [enter] to begin the demo")
-    print("Press [q] or Escape to quit")
-
-    key = cv2.waitKey(0)
-    if key == ord("q") or key == 27:
-        exit()
-
-    for i in np.arange(0, 360, 0.5):
-        image_orig = np.copy(image)
-        image_rotated = rotate_image(image, i)
-        image_rotated_cropped = crop_around_center(
-            image_rotated,
-            *largest_rotated_rect(
-                image_width,
-                image_height,
-                math.radians(i)
-            )
-        )
-
-        key = cv2.waitKey(2)
-        if(key == ord("q") or key == 27):
-            exit()
-
-        # cv2.imshow("Original Image", image_orig)
-        # cv2.imshow("Rotated Image", image_rotated)
-        cv2.imshow("Cropped Image", image_rotated_cropped)
-
-    print("Done")
-
-
-def rotateSaveDemo():
-    image = cv2.imread("data/test_caltech/both1.jpeg")
-    image_height, image_width = image.shape[0:2]
-
-    rotationDegree = 45
-    image_orig = np.copy(image)
-    image_rotated = rotate_image(image, rotationDegree)
-    image_rotated_cropped = crop_around_center(
-        image_rotated,
-        *largest_rotated_rect(
-            image_width,
-            image_height,
-            math.radians(rotationDegree)
-        )
-    )
-
-    cv2.imwrite("test_image_save.jpeg", image_rotated_cropped)
-    return
-
-
 def randomCropImage(image):
-    # TODO : given an image, return an randomly cropped image
+    # given an image, return an randomly cropped image
     # get lower bound and upper bound for x and y
     height, width = image.shape[:2]
     xLowerBound = int(width * (random.random() / 4.0))
@@ -211,6 +151,25 @@ def randomCropImage(image):
 
 def perturbateColor(image):
     return 255 - image
+
+
+def augmentColor(path, index):
+    image = cv2.imread(path)
+    cv2.imshow("cam1", image)
+    cv2.waitKey(1000)
+    time.sleep(1)
+    rand = random.random() * 20 + 20
+    shape = image.shape
+    x = shape[0]
+    y = shape[1]
+    for i in range(x):
+        for j in range(y):
+            image[i][j][index] = image[i][j][index] + rand
+
+    cv2.imshow("cam2", image)
+    cv2.waitKey(1000)
+    time.sleep(1)
+    return
 
 
 def saveImage(image, originalPath, count):
@@ -293,6 +252,7 @@ def divideImageSet(classPath1, classPath2):
 
 
 if __name__ == "__main__":
-    augmentImages("data/umbrella_caltech")
-    augmentImages("data/laptop_caltech")
-    divideImageSet("data/umbrella_caltech", "data/laptop_caltech")
+    augmentColor("data/test_caltech/umbrella2.jpeg", 2)
+    # augmentImages("data/umbrella_caltech")
+    # augmentImages("data/laptop_caltech")
+    # divideImageSet("data/umbrella_caltech", "data/laptop_caltech")

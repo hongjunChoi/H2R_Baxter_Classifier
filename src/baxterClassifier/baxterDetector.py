@@ -9,7 +9,8 @@ import baxterClassifier as baxter
 
 
 def main(argvs):
-
+    [meanImage, std] = inputProcessor.getNormalizationData(
+        "data/custom_train_data.csv")
     baxterClassifier = baxter.BaxterClassifier(argvs)
     top_results = 2  # number of crops to show for detection
 
@@ -43,7 +44,7 @@ def main(argvs):
                 [len(image_batch), baxterClassifier.img_size, baxterClassifier.img_size, 3])
 
             for x in range(batch_size):
-                input_image[x] = image_batch[x]
+                input_image[x] = (image_batch[x] - meanImage) / std
 
             # RUN CASCADING DETECTOR
             print("batch size : ", batch_size)
@@ -56,12 +57,9 @@ def main(argvs):
 
             # filter correctly detected crops
             for y in range(batch_size):
-                prob = np.amax(prediction[y])
-                predClass = np.argmax(prediction[y])
-
-                if predClass == predictingClass:
-                    boundingBox = boundingBoxInfo[y]
-                    predictions.append([prob, boundingBox])
+                prob = prediction[y][predictingClass]
+                boundingBox = boundingBoxInfo[y]
+                predictions.append([prob, boundingBox])
 
             # sort crops by logit values
             predictions.sort(reverse=True)
