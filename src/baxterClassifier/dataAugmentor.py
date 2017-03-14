@@ -140,10 +140,10 @@ def randomCropImage(image):
     # given an image, return an randomly cropped image
     # get lower bound and upper bound for x and y
     height, width = image.shape[:2]
-    xLowerBound = int(width * (random.random() / 4.0))
-    xUpperBound = int(width * (0.75 + random.random() / 4.0))
-    yLowerBound = int(height * (random.random() / 4.0))
-    yUpperBound = int(height * (0.75 + random.random() / 4.0))
+    xLowerBound = int(width * (random.random() / 5.0))
+    xUpperBound = int(width * (0.8 + random.random() / 5.0))
+    yLowerBound = int(height * (random.random() / 5.0))
+    yUpperBound = int(height * (0.8 + random.random() / 5.0))
 
     croppedImage = image[yLowerBound:yUpperBound, xLowerBound:xUpperBound]
     return croppedImage
@@ -153,23 +153,24 @@ def perturbateColor(image):
     return 255 - image
 
 
-def augmentColor(path, index):
-    image = cv2.imread(path)
-    cv2.imshow("cam1", image)
-    cv2.waitKey(1000)
-    time.sleep(1)
-    rand = random.random() * 20 + 20
+def augmentColor(image):
+
+    rand = random.random() * 10 + 20
+    multiplier = 1
+    if random.random > 0.5:
+        multiplier = -1
+
+    index = round(random.random() * 2)
+
     shape = image.shape
     x = shape[0]
     y = shape[1]
     for i in range(x):
         for j in range(y):
-            image[i][j][index] = image[i][j][index] + rand
+            image[i][j][index] = int(
+                image[i][j][index] + int(multiplier * rand))
 
-    cv2.imshow("cam2", image)
-    cv2.waitKey(1000)
-    time.sleep(1)
-    return
+    return image
 
 
 def saveImage(image, originalPath, count):
@@ -184,16 +185,20 @@ def augmentImages(path):
     imagePathList = glob.glob(path + "/*.jpg")
 
     # TODO : Loop through each image
+
     for imagePath in imagePathList:
+        original_image = cv2.imread(imagePath)
+        original_height, original_width = original_image.shape[0:2]
+        max_length = original_height
+        if original_width > max_length:
+            max_length = original_width
+
+        ratio = int(max_length / 256)
+
+        # TODO : reshape the size if greater
         count = 0
-        image = cv2.imread(imagePath)
-        # TODO: 5 random crop image and save
-        for x in range(2):
-            croppedImage = randomCropImage(image)
-            saveImage(croppedImage, imagePath, count)
-            count += 1
-            saveImage(perturbateColor(croppedImage), imagePath, count)
-            count += 1
+        image = cv2.resize(
+            original_image, (int(original_height / ratio), int(original_width / ratio)), interpolation=cv2.INTER_AREA)
 
         # TODO : For each image, rotate and color permutate image
         for i in np.arange(0, 360, 45):
@@ -212,7 +217,25 @@ def augmentImages(path):
 
                 saveImage(image_rotated_cropped, imagePath, count)
                 count += 1
-                saveImage(perturbateColor(
+
+                if i % 90 == 0:
+                    saveImage(randomCropImage(
+                        image_rotated_cropped), imagePath, count)
+                    count += 1
+
+                    saveImage(randomCropImage(
+                        image_rotated_cropped), imagePath, count)
+                    count += 1
+
+                    saveImage(randomCropImage(
+                        image_rotated_cropped), imagePath, count)
+                    count += 1
+
+                saveImage(augmentColor(
+                    image_rotated_cropped), imagePath, count)
+                count += 1
+
+                saveImage(augmentColor(
                     image_rotated_cropped), imagePath, count)
                 count += 1
 
@@ -252,7 +275,7 @@ def divideImageSet(classPath1, classPath2):
 
 
 if __name__ == "__main__":
-    augmentColor("data/test_caltech/umbrella2.jpeg", 2)
-    # augmentImages("data/umbrella_caltech")
-    # augmentImages("data/laptop_caltech")
-    # divideImageSet("data/umbrella_caltech", "data/laptop_caltech")
+    # augmentColor("data/test_caltech/umbrella2.jpeg", 2)
+    augmentImages("data/custom_spoon")
+    augmentImages("data/custom_block")
+    divideImageSet("data/custom_spoon", "data/custom_block")

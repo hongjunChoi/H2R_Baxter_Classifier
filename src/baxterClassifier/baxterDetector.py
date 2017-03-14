@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.examples.tutorials.mnist import input_data
 import cv2
 import time
 import sys
@@ -33,11 +32,18 @@ def main(argvs):
             predictingClass = int(raw_input('class value: '))
 
             # GET IMAGE FROM USER INPUT
-            batch = inputProcessor.get_sliding_window_img_crops(img_filename)
+            batch = inputProcessor.regionProposal(img_filename)
+            if batch is None:
+                print("wrong user input regarding image or labels ")
+                continue
+
             original_img = batch[0]
             image_batch = batch[1]
             boundingBoxInfo = batch[2]
             batch_size = len(image_batch)
+
+            print("==== number of regions proposals ====")
+            print(batch_size)
 
             # CREATE INPUT IMAGE BATCH
             input_image = np.zeros(
@@ -45,10 +51,6 @@ def main(argvs):
 
             for x in range(batch_size):
                 input_image[x] = (image_batch[x] - meanImage) / std
-
-            # RUN CASCADING DETECTOR
-            print("batch size : ", batch_size)
-            print("input tensor size : ", input_image.shape)
 
             prediction = sess.run(baxterClassifier.logits, feed_dict={
                 baxterClassifier.x: input_image,
@@ -68,10 +70,10 @@ def main(argvs):
                 boundingBoxData = predictions[i]
                 print(boundingBoxData)
 
-                x = boundingBoxData[1][0]
-                y = boundingBoxData[1][1]
-                winW = boundingBoxData[1][2]
-                winH = boundingBoxData[1][3]
+                x = int(boundingBoxData[1][0])
+                y = int(boundingBoxData[1][1])
+                winW = int(boundingBoxData[1][2])
+                winH = int(boundingBoxData[1][3])
 
                 # if boundingBoxData[0] > threshold:
                 cv2.rectangle(original_img, (x, y),

@@ -1,5 +1,7 @@
 from six.moves import xrange
 from PIL import Image
+import skimage
+import selectivesearch
 import os
 import random
 import glob
@@ -11,8 +13,9 @@ import numpy as np
 import time
 import cPickle
 
+
 CIFAR_IMG_SIZE = 32
-IMAGE_SIZE = 128
+IMAGE_SIZE = 64
 CHANNELS = 3
 IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE * CHANNELS
 NUM_CLASSES = 2
@@ -150,42 +153,6 @@ def sliding_window(image, stepSize, windowSize):
         for x in xrange(0, image.shape[1], stepSize):
             # yield the current window
             yield (x, y, image[y:y + windowSize[1], x:x + windowSize[0]])
-
-
-def get_sliding_window_img_crops(img_filename):
-    annotations = []
-
-    images = []
-    boundingBoxInfo = []
-    true_img = cv2.imread(img_filename.strip())
-
-    if true_img is None:
-        print("no image found in given location....")
-        return None
-
-    true_img = cv2.resize(
-        true_img, (300, 300), interpolation=cv2.INTER_AREA)
-
-    true_height = true_img.shape[0]
-    true_width = true_img.shape[1]
-
-    sizes = [(1, 1), (0.8, 0.8), (0.5, 0.5), (0.3, 0.3)]
-
-    for size in sizes:
-        windowSize = (
-            int(true_width * size[1]), int(true_height * size[0]))
-
-        for (x, y, window) in sliding_window(true_img, stepSize=32, windowSize=windowSize):
-            if window.shape[0] != windowSize[1] or window.shape[1] != windowSize[0]:
-                continue
-            window = cv2.cvtColor(window, cv2.COLOR_BGR2RGB)
-            window = cv2.resize(
-                window, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
-
-            images.append(window)
-            boundingBoxInfo.append([x, y, windowSize[0], windowSize[1]])
-
-    return [true_img, np.array(images), boundingBoxInfo]
 
 
 def pretrain_read_next(csvFileName, batchSize, batchIndex):
@@ -507,10 +474,106 @@ def get_custom_dataset_batch(batch_size, train_dataset_path, meanImage, std):
     return [image_batch, label_batch]
 
 
-if __name__ == '__main__':
-    [image_batch, label_batch] = get_custom_dataset_batch(
-        25, "data/custom_train_data.csv")
+def get_sliding_window_img_crops(img_filename):
+    annotations = []
 
-    print(image_batch.shape)
-    print(label_batch.shape)
-    print(label_batch)
+    images = []
+    boundingBoxInfo = []
+    true_img = cv2.imread(img_filename.strip())
+
+    if true_img is None:
+        print("no image found in given location....")
+        return None
+
+    true_img = cv2.resize(
+        true_img, (300, 300), interpolation=cv2.INTER_AREA)
+
+    true_height = true_img.shape[0]
+    true_width = true_img.shape[1]
+
+    sizes = [(1, 1), (0.8, 0.8), (0.5, 0.5), (0.3, 0.3)]
+
+    for size in sizes:
+        windowSize = (
+            int(true_width * size[1]), int(true_height * size[0]))
+
+        for (x, y, window) in sliding_window(true_img, stepSize=32, windowSize=windowSize):
+            if window.shape[0] != windowSize[1] or window.shape[1] != windowSize[0]:
+                continue
+            window = cv2.cvtColor(window, cv2.COLOR_BGR2RGB)
+            window = cv2.resize(
+                window, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+
+            images.append(window)
+            boundingBoxInfo.append([x, y, windowSize[0], windowSize[1]])
+
+    return [true_img, np.array(images), boundingBoxInfo]
+
+
+def regionProposal(image_filename):
+    true_image = skimage.io.imread(image_filename)
+    if true_image is None:
+        return None
+
+    true_image = cv2.resize(
+        true_image, (500, 500), interpolation=cv2.INTER_AREA)
+
+    img_size = true_image.shape
+    boundingBoxInfo = []
+    images = []
+    aspect_ratio_x = float(img_size[0]) / 300.0
+    aspect_ratio_y = float(img_size[1]) / 300.0
+
+    img = cv2.resize(
+        true_image, (300, 300), interpolation=cv2.INTER_AREA)
+
+    img_lbl, regions = selectivesearch.selective_search(
+        img, scale=100, sigma=7)
+
+    candidates = set()
+
+    for r in regions:
+        # excluding same rectangle (with different segments)
+        if r['rect'] in candidates:
+            continue
+        # # excluding regions smaller than 400 pixels
+        if r['size'] < 400:
+            continue
+        # distorted rects
+        x, y, w, h = r['rect']
+        if w == 0 or h == 0:
+            continue
+
+        candidates.add(r['rect'])
+
+    for x, y, w, h in candidates:
+        window = img[x: x + w, y: y + h]
+        window = cv2.resize(
+            window, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+        images.append(window)
+
+        new_x = int(x * aspect_ratio_x)
+        new_y = int(y * aspect_ratio_y)
+        new_w = int(w * aspect_ratio_x)
+        new_h = int(h * aspect_ratio_y)
+
+        boundingBoxInfo.append([new_x, new_y, new_w, new_h])
+        cv2.rectangle(true_image, (new_x, new_y),
+                      (new_x + new_w, new_y + new_h), (0, 255, 0), 2)
+
+    cv2.imshow("Window", true_image)
+    cv2.waitKey(1000)
+    time.sleep(10)
+
+    return [true_image, np.array(images), boundingBoxInfo]
+
+
+if __name__ == '__main__':
+    regionProposal('data/test_custom/both3.jpg')
+
+    # [image_batch, label_batch] = get_custom_dataset_batch(
+    #     25, "data/custom_train_data.csv")
+
+    # print(image_batch.shape)
+    # print(label_batch.shape)
+    # print(label_batch
