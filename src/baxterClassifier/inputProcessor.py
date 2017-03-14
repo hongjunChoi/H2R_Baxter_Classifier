@@ -558,12 +558,12 @@ def regionProposal(image_filename):
         new_h = int(h * aspect_ratio_y)
 
         boundingBoxInfo.append([new_x, new_y, new_w, new_h])
-        cv2.rectangle(true_image, (new_x, new_y),
-                      (new_x + new_w, new_y + new_h), (0, 255, 0), 2)
+    #     cv2.rectangle(true_image, (new_x, new_y),
+    #                   (new_x + new_w, new_y + new_h), (0, 255, 0), 2)
 
-    cv2.imshow("Window", true_image)
-    cv2.waitKey(1000)
-    time.sleep(10)
+    # cv2.imshow("Window", true_image)
+    # cv2.waitKey(1000)
+    # time.sleep(10)
 
     return [true_image, np.array(images), boundingBoxInfo]
 

@@ -11,11 +11,10 @@ def main(argvs):
     [meanImage, std] = inputProcessor.getNormalizationData(
         "data/custom_train_data.csv")
     baxterClassifier = baxter.BaxterClassifier(argvs)
-    top_results = 2  # number of crops to show for detection
 
     # Start Tensorflow Session
     with baxterClassifier.sess as sess:
-
+        top_results = 2  # number of crops to show for detection
         baxterClassifier.saver = tf.train.Saver()
         print("weight file to restore ... : ", baxterClassifier.weights_file)
 
@@ -28,11 +27,14 @@ def main(argvs):
         while True:
             # GET USER INPUT
             predictions = []
-            img_filename = raw_input('image location: ')
-            predictingClass = int(raw_input('class value: '))
+            try:
+                img_filename = raw_input('image location: ')
+                predictingClass = int(raw_input('class value: '))
+                batch = inputProcessor.regionProposal(img_filename)
+            except:
+                print("Incorrect user input..")
+                continue
 
-            # GET IMAGE FROM USER INPUT
-            batch = inputProcessor.regionProposal(img_filename)
             if batch is None:
                 print("wrong user input regarding image or labels ")
                 continue
@@ -41,9 +43,6 @@ def main(argvs):
             image_batch = batch[1]
             boundingBoxInfo = batch[2]
             batch_size = len(image_batch)
-
-            print("==== number of regions proposals ====")
-            print(batch_size)
 
             # CREATE INPUT IMAGE BATCH
             input_image = np.zeros(
@@ -65,6 +64,9 @@ def main(argvs):
 
             # sort crops by logit values
             predictions.sort(reverse=True)
+
+            if len(predictions) < top_results:
+                top_results = len(predictions)
 
             for i in range(top_results):
                 boundingBoxData = predictions[i]
