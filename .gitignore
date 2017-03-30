@@ -5,6 +5,7 @@
 *.jpg
 *.jpeg
 *.weights
+*.npz
 data/*
 results/*
 src/tensorbox/data/*
@@ -19,9 +20,6 @@ src.baxterClassifier/model/*
 *.xml
 *.txt
 *.zip
-*.png
 *.DS*
 *.csv
-*.jpg
-*.jpeg
-
+*.pyc

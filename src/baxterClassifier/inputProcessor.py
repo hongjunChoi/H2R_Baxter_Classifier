@@ -421,7 +421,7 @@ def getNormalizationData(trainingDataPath):
             image = getImage(path)
 
             if image is None:
-                print("ERROR ! IMAGE CANNOT BE FETCHED...")
+                continue
 
             img_resized = cv2.resize(
                 image, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
@@ -466,7 +466,9 @@ def get_custom_dataset_batch(batch_size, train_dataset_path, meanImage, std):
             else:
                 label = [0, 1]
 
-            image_batch[count] = preprocessImage(img_resized, meanImage, std)
+            processed_image = preprocessImage(img_resized, meanImage, std)
+
+            image_batch[count] = processed_image
             label_batch[count] = label
             index = index + 1
             count = count + 1
@@ -510,25 +512,46 @@ def get_sliding_window_img_crops(img_filename):
     return [true_img, np.array(images), boundingBoxInfo]
 
 
-def regionProposal(image_filename):
+def intersection_over_union(boxA, boxB):
+    # determine the (x, y)-coordinates of the intersection rectangle
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2], boxB[2])
+    yB = min(boxA[3], boxB[3])
+
+    # compute the area of intersection rectangle
+    interArea = (xB - xA + 1) * (yB - yA + 1)
+
+    # compute the area of both the prediction and ground-truth
+    # rectangles
+    boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+    boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+
+    # compute the intersection over union by taking the intersection
+    # area and dividing it by the sum of prediction + ground-truth
+    # areas - the interesection area
+    iou = interArea / float(boxAArea + boxBArea - interArea)
+
+    # return the intersection over union value
+    return iou
+
+
+def regionProposal(image_filename, size):
     true_image = skimage.io.imread(image_filename)
     if true_image is None:
+        print("CANNOT FIND IMAGE TO CONDUCT DETECTION")
         return None
 
-    true_image = cv2.resize(
-        true_image, (500, 500), interpolation=cv2.INTER_AREA)
+    img = cv2.resize(
+        true_image, (300, int(300.0 * float(true_image.shape[0]) / float(true_image.shape[1]))), interpolation=cv2.INTER_AREA)
 
     img_size = true_image.shape
     boundingBoxInfo = []
     images = []
-    aspect_ratio_x = float(img_size[0]) / 300.0
-    aspect_ratio_y = float(img_size[1]) / 300.0
-
-    img = cv2.resize(
-        true_image, (300, 300), interpolation=cv2.INTER_AREA)
+    aspect_ratio = float(img_size[1]) / 300.0
 
     img_lbl, regions = selectivesearch.selective_search(
-        img, scale=100, sigma=7)
+        img, scale=250, sigma=1)
 
     candidates = set()
 
@@ -536,30 +559,34 @@ def regionProposal(image_filename):
         # excluding same rectangle (with different segments)
         if r['rect'] in candidates:
             continue
-        # # excluding regions smaller than 400 pixels
+        # # # excluding regions smaller than 400 pixels
         if r['size'] < 400:
             continue
-        # distorted rects
+        # # distorted rects
         x, y, w, h = r['rect']
-        if w == 0 or h == 0:
+        if (w > 280 or h > 280) or (w < 15 or h < 15):
             continue
 
         candidates.add(r['rect'])
 
     for x, y, w, h in candidates:
-        window = img[x: x + w, y: y + h]
+
+        window = img[y: y + h, x: x + w]
+
         window = cv2.resize(
-            window, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+            window, (size, size), interpolation=cv2.INTER_AREA)
+
         images.append(window)
 
-        new_x = int(x * aspect_ratio_x)
-        new_y = int(y * aspect_ratio_y)
-        new_w = int(w * aspect_ratio_x)
-        new_h = int(h * aspect_ratio_y)
+        new_x = int(x * aspect_ratio)
+        new_y = int(y * aspect_ratio)
+        new_w = int(w * aspect_ratio)
+        new_h = int(h * aspect_ratio)
 
         boundingBoxInfo.append([new_x, new_y, new_w, new_h])
-    #     cv2.rectangle(true_image, (new_x, new_y),
-    #                   (new_x + new_w, new_y + new_h), (0, 255, 0), 2)
+
+        cv2.rectangle(true_image, (new_x, new_y),
+                      (new_x + new_w, new_y + new_h), (0, 0, 255), 1)
 
     # cv2.imshow("Window", true_image)
     # cv2.waitKey(1000)
@@ -569,8 +596,10 @@ def regionProposal(image_filename):
 
 
 if __name__ == '__main__':
-    regionProposal('data/test_custom/both3.jpg')
+    regionProposal('data/synthetic_test/both1.png', 200)
+    # regionProposal('data/test_custom/both5.jpg', 200)
 
+    # regionProposal('data/fromJohn/testImages/spoon2.png')
     # [image_batch, label_batch] = get_custom_dataset_batch(
     #     25, "data/custom_train_data.csv")
 

@@ -10,7 +10,7 @@ import baxterClassifier as baxter
 
 def main(argvs):
     [meanImage, std] = inputProcessor.getNormalizationData(
-        "data/custom_train_data.csv")
+        "data/synthetic_train_data.csv")
     baxterClassifier = baxter.BaxterClassifier(argvs)
     top_results = 2  # number of crops to show for detection
 
@@ -27,7 +27,7 @@ def main(argvs):
         print("starting session... ")
 
         batch = inputProcessor.get_custom_dataset_batch(
-            50, "data/custom_test_data.csv", meanImage, std)
+            50, "data/synthetic_test_data.csv", meanImage, std)
         image_batch = batch[0]
         label_batch = batch[1]
         batch_size = len(label_batch)

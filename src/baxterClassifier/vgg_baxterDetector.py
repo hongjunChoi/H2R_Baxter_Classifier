@@ -5,37 +5,29 @@ import time
 import sys
 import inputProcessor
 import baxterClassifier as baxter
+from imagenet_classes import class_names
+import vgg16 as v
 
 
 def main(argvs):
-    [meanImage, std] = inputProcessor.getNormalizationData(
-        "data/synthetic_train_data.csv")
-    baxterClassifier = baxter.BaxterClassifier(argvs)
 
     # Start Tensorflow Session
-    with baxterClassifier.sess as sess:
+    with tf.Session() as sess:
         top_results = 3  # number of crops to show for detection
-        threshold = 0.7
+        threshold = 0.007
         overlap_bonus = 1.1
         overlap_threshold = 0.7
 
-        baxterClassifier.saver = tf.train.Saver()
-        print("weight file to restore ... : ", baxterClassifier.weights_file)
-
-        baxterClassifier.saver.restore(
-            baxterClassifier.sess, baxterClassifier.weights_file)
-
-        cv2.waitKey(1000)
-        print("starting session... ")
+        imgs = tf.placeholder(tf.float32, [None, 224, 224, 3])
+        vgg = v.vgg16(imgs, 'model/vgg16_weights.npz', sess)
 
         while True:
             # GET USER INPUT
             predictions = []
             try:
-                img_filename = raw_input('image location: ')
-                predictingClass = int(raw_input('class value: '))
-                batch = inputProcessor.regionProposal(
-                    img_filename, baxterClassifier.img_size)
+                img_filename = str(raw_input('image location: '))
+                predictingClass = str(raw_input('class value: '))
+                batch = inputProcessor.regionProposal(img_filename, 224)
             except:
                 print("Incorrect user input..")
                 continue
@@ -45,27 +37,37 @@ def main(argvs):
                 continue
 
             original_img = batch[0]
-
             image_batch = batch[1]
             boundingBoxInfo = batch[2]
             batch_size = len(image_batch)
 
             # CREATE INPUT IMAGE BATCH
-            input_image = np.zeros(
-                [len(image_batch), baxterClassifier.img_size, baxterClassifier.img_size, 3])
+            input_image = np.zeros([len(image_batch), 224, 224, 3])
 
             for x in range(batch_size):
-                input_image[x] = (image_batch[x] - meanImage) / std
+                input_image[x] = image_batch[x]
 
-            prediction = sess.run(baxterClassifier.logits, feed_dict={
-                baxterClassifier.x: input_image,
-                baxterClassifier.batch_size: batch_size,
-                baxterClassifier.dropout_rate: 1})
+            prediction = sess.run(vgg.probs, feed_dict={vgg.imgs: input_image})
 
             # filter correctly detected crops
             for y in range(batch_size):
-                prob = prediction[y][predictingClass]
-                if prob > threshold:
+                prob = prediction[y]
+                preds = (np.argsort(prob)[::-1])[0:10]
+
+                # ONLY CONTINUE IF THE CLASS WE ARE LOOKING FOR IS WITHIN TOP 5
+                # PREDICTIONS
+                detected = False
+                detection_probability = 0
+
+                for p in preds:
+                    if predictingClass in class_names[p]:
+                        detected = True
+                        detection_probability = prob[p]
+
+                if not detected:
+                    continue
+
+                if detection_probability > threshold:
                     boundingBox = boundingBoxInfo[y]
                     box1 = [boundingBox[0], boundingBox[1], boundingBox[
                         0] + boundingBox[2], boundingBox[1] + boundingBox[3]]
@@ -80,16 +82,17 @@ def main(argvs):
                             0] + box[2], box[1] + box[3]]
                         if overlap_threshold < inputProcessor.intersection_over_union(box1, box2):
                             flag = False
-                            if box_prob > prob:
+                            if box_prob > detection_probability:
                                 predictions[idx][0] = predictions[
                                     idx][0] * overlap_bonus
 
                             else:
                                 predictions[idx] = [
-                                    prob * overlap_bonus, boundingBox]
+                                    detection_probability * overlap_bonus, boundingBox]
                             break
                     if flag:
-                        predictions.append([prob, boundingBox])
+                        predictions.append(
+                            [detection_probability, boundingBox])
 
             # sort crops by logit values
             predictions.sort(reverse=True)
@@ -99,8 +102,6 @@ def main(argvs):
 
             for i in range(top_results):
                 boundingBoxData = predictions[i]
-                print(boundingBoxData)
-
                 x = int(boundingBoxData[1][0])
                 y = int(boundingBoxData[1][1])
                 winW = int(boundingBoxData[1][2])

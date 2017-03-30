@@ -10,7 +10,7 @@ import inputProcessor
 class BaxterClassifier:
 
     def __init__(self, argvs=[]):
-        self.weights_file = 'model/modelnew.ckpt'
+        self.weights_file = 'model/synthetic_model.ckpt'
         self.num_labels = 2
         self.img_size = 64
         self.batch_size = tf.placeholder(tf.int32)
@@ -142,7 +142,7 @@ class BaxterClassifier:
 def main(argvs):
     baxterClassifier = BaxterClassifier(argvs)
     [meanImage, std] = inputProcessor.getNormalizationData(
-        "data/custom_train_data.csv")
+        "data/synthetic_train_data.csv")
 
     # Start Tensorflow Session
     with baxterClassifier.sess as sess:
@@ -185,10 +185,10 @@ def main(argvs):
             ###################################################
             # GET BATCH FOR CUSTOM DATASET AND (FOR CALTECH DATASET)
             batch = inputProcessor.get_custom_dataset_batch(
-                32, "data/custom_train_data.csv", meanImage, std)
+                32, "data/synthetic_train_data.csv", meanImage, std)
             image_batch = batch[0]
             label_batch = batch[1]
-            batch_index = batch_index + 75
+            batch_index = batch_index + 64
             batch_size = len(label_batch)
 
             ###################################################

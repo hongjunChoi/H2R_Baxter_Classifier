@@ -1,2 +1,2 @@
-model_checkpoint_path: "modelnew.ckpt"
-all_model_checkpoint_paths: "modelnew.ckpt"
+model_checkpoint_path: "synthetic_model.ckpt"
+all_model_checkpoint_paths: "synthetic_model.ckpt"

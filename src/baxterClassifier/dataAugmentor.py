@@ -4,6 +4,9 @@ import time
 import math
 import numpy as np
 import glob
+import random
+import os
+import imutils
 from PIL import Image
 import PIL.ImageOps
 
@@ -154,13 +157,12 @@ def perturbateColor(image):
 
 
 def augmentColor(image):
-
     rand = random.random() * 10 + 20
     multiplier = 1
     if random.random > 0.5:
         multiplier = -1
 
-    index = round(random.random() * 2)
+    index = int(round(random.random() * 2))
 
     shape = image.shape
     x = shape[0]
@@ -171,13 +173,6 @@ def augmentColor(image):
                 image[i][j][index] + int(multiplier * rand))
 
     return image
-
-
-def saveImage(image, originalPath, count):
-    name = originalPath.split(".")
-    new_name = name[0] + "_" + str(count) + ".jpg"
-    cv2.imwrite(new_name, image)
-    return
 
 
 def augmentImages(path):
@@ -197,8 +192,8 @@ def augmentImages(path):
 
         # TODO : reshape the size if greater
         count = 0
-        image = cv2.resize(
-            original_image, (int(original_height / ratio), int(original_width / ratio)), interpolation=cv2.INTER_AREA)
+        image = cv2.resize(original_image, (int(original_height / ratio),
+                                            int(original_width / ratio)), interpolation=cv2.INTER_AREA)
 
         # TODO : For each image, rotate and color permutate image
         for i in np.arange(0, 360, 45):
@@ -262,11 +257,11 @@ def divideImageSet(classPath1, classPath2):
     train_data = data[0:int(len(data) * 0.9)]
     test_data = data[int(len(data) * 0.9):]
 
-    with open('data/custom_train_data.csv', 'w') as train_file:
+    with open('data/synthetic_train_data.csv', 'w') as train_file:
         for data in train_data:
             line = str(data[1][0]) + " , " + str(data[1][1]) + "\n"
             train_file.write(line)
-    with open('data/custom_test_data.csv', 'w') as test_file:
+    with open('data/synthetic_test_data.csv', 'w') as test_file:
         for data in test_data:
             line = str(data[1][0]) + " , " + str(data[1][1]) + "\n"
             test_file.write(line)
@@ -274,8 +269,113 @@ def divideImageSet(classPath1, classPath2):
     return
 
 
+def saveImage(image, targetPath, count):
+    new_name = targetPath + "_" + str(count) + ".jpg"
+    cv2.imwrite(new_name, image)
+    return
+
+
+def create_synthetic_data(path, backgroundPath, targetPath):
+    backgroundPath = backgroundPath + "/*.png"
+    backgrounds_paths = glob.glob(backgroundPath)
+
+    paths = glob.glob(path + '/*')
+    for path in paths:
+        maskPath = path + "/mask.png"
+        objectPath = path + "/rgb.png"
+        object_id = objectPath.split('/')[3]
+
+        for background in backgrounds_paths:
+
+            background_id = background.split('/')[3].split('.')[0].strip()
+            savePath = targetPath + "/" + \
+                str(object_id).strip() + "_" + background_id
+
+            backGroundSelection(background, objectPath, maskPath, savePath)
+
+
+def backGroundSelection(backgroundPath, imagePath, maskPath, targetPath):
+    # Load two images
+    backgroundImage = cv2.imread(backgroundPath)
+    backgroundImage = backgroundImage[0:210, :]
+
+    image = cv2.imread(imagePath)
+    object_mask = cv2.imread(maskPath)
+
+    background_x = backgroundImage.shape[0]
+    background_y = backgroundImage.shape[1]
+
+    count = 0
+
+    for angle in np.arange(0, 360, 30):
+        for i in range(2):
+            bImage = np.copy(backgroundImage)
+            maskImage = np.copy(object_mask)
+
+            objectImage = imutils.rotate_bound(image, angle)
+            maskImage = imutils.rotate_bound(maskImage, angle)
+
+            if objectImage.shape[0] > background_x or objectImage.shape[1] > background_y:
+                objectImage = cv2.resize(
+                    objectImage, (objectImage.shape[0] / 2, objectImage.shape[1] / 2), interpolation=cv2.INTER_AREA)
+                maskImage = cv2.resize(
+                    maskImage, (maskImage.shape[0] / 2, maskImage.shape[1] / 2), interpolation=cv2.INTER_AREA)
+
+            img2gray = cv2.cvtColor(maskImage, cv2.COLOR_BGR2GRAY)
+            ret, mask = cv2.threshold(img2gray, 240, 255, cv2.THRESH_BINARY)
+            mask_inv = cv2.bitwise_not(mask)
+
+            rows, cols, channels = objectImage.shape
+            x = int((background_x - rows) * random.random())
+            y = int((background_y - cols) * random.random())
+            roi = bImage[x:x + rows, y:y + cols]
+
+            # Now black-out the area in ROI
+            img1_bg = cv2.bitwise_and(roi, roi, mask=mask_inv)
+
+            # Take only region of object from object image.
+            img2_fg = cv2.bitwise_and(objectImage, objectImage, mask=mask)
+
+            # Put cropped object in ROI and modify the main image
+            dst = cv2.add(img1_bg, img2_fg)
+            bImage[x:x + rows, y:y + cols] = dst
+
+            saveImage(bImage, targetPath, count)
+            count += 1
+
+            saveImage(randomCropImage(
+                bImage), targetPath, count)
+            count += 1
+
+            saveImage(randomCropImage(
+                bImage), targetPath, count)
+            count += 1
+
+            saveImage(randomCropImage(
+                bImage), targetPath, count)
+            count += 1
+
+            # saveImage(augmentColor(
+            #     bImage), targetPath, count)
+            # count += 1
+
+            # saveImage(augmentColor(
+            #     bImage), targetPath, count)
+            # count += 1
+
+
 if __name__ == "__main__":
+    create_synthetic_data("data/fromJohn/deepWoodenSpoons",
+                          "data/fromJohn/deepBackgrounds", "data/synthetic_spoon")
+
+    create_synthetic_data("data/fromJohn/deepMarkers",
+                          "data/fromJohn/deepBackgrounds", "data/synthetic_marker")
+
+    divideImageSet("data/synthetic_spoon", "data/synthetic_marker")
+
+    # backGroundSelection("data/fromJohn/deepBackgrounds/1/rgb.png",
+    # "data/fromJohn/deepWoodenSpoons/1/rgb.png", "data/fromJohn/deepWoodenSpoons/1/mask.png")
     # augmentColor("data/test_caltech/umbrella2.jpeg", 2)
-    augmentImages("data/custom_spoon")
-    augmentImages("data/custom_block")
-    divideImageSet("data/custom_spoon", "data/custom_block")
+    # augmentImages("data/custom_spoon")
+    # augmentImages("data/custom_block")
+    # divideImageSet("data/custom_spoon", "data/custom_block")
