@@ -6,6 +6,7 @@ import cPickle
 import inputProcessor
 import xml.etree.ElementTree as ET
 import copy
+import baxterDetector as detector
 
 
 CIFAR_IMG_SIZE = 32
@@ -31,7 +32,7 @@ def calculatePrecision(detectedBoxList, annotatedData):
             box1 = d['box']
             class1 = d['category']
 
-            if class0 == class1 or class0 is None:
+            if class0 == class1 or class0 == None:
                 if inputProcessor.intersection_over_union(box0, box1) > 0.5:
                     count = count + 1
                     groundTruth.remove(g)
@@ -71,7 +72,8 @@ def parseAnnotatedData(xmlFilePath):
     boxData = []
     for boundingBoxObject in root.findall('object'):
         box = []
-        category = boundingBoxObject.find('name').text
+        category = convertCategory2Label(boundingBoxObject.find('name').text)
+
         polygon = boundingBoxObject.find('polygon')
         points = polygon.findall('pt')
         x = int(points[0].find('x').text)
@@ -82,15 +84,35 @@ def parseAnnotatedData(xmlFilePath):
         boxData.append({'category': category,
                         'box': box})
 
-    return box
+    return boxData
+
+
+def convertCategory2Label(category):
+    if category == "spoon":
+        return 0
+    else:
+        return 1
+
+
+def getAllTestImages(path):
+    return
 
 
 def plotRegionPRCurve():
     return
 
 
-def plotDetectionPRCurve():
+def plotDetectionPRCurve(groundTruthPath, testImagePath, label):
+    baxterDetector = detector.BaxterDetector()
+    boundingBoxData = baxterDetector.detectObject(label, testImagePath)
+    annotatedData = parseAnnotatedData(groundTruthPath)
+
+    precision = calculatePrecision(boundingBoxData, annotatedData)
+    recall = calculateRecall(boundingBoxData, annotatedData)
+
     return
 
 if __name__ == '__main__':
-    parseAnnotatedData("data/synthetic_test_annotations/test1.xml")
+    # parseAnnotatedData("data/synthetic_test_annotations/test1.xml")
+    plotDetectionPRCurve(
+        "data/synthetic_test_annotations/test5.xml", "data/synthetic_test/test5.jpg", 0)
