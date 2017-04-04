@@ -530,13 +530,17 @@ def intersection_over_union(boxA, boxB):
     # compute the intersection over union by taking the intersection
     # area and dividing it by the sum of prediction + ground-truth
     # areas - the interesection area
+
+    if float(boxAArea + boxBArea - interArea) == 0:
+        return 0
+
     iou = interArea / float(boxAArea + boxBArea - interArea)
 
     # return the intersection over union value
     return iou
 
 
-def regionProposal(image_filename, size):
+def regionProposal(image_filename, size, scale=250, sigma=1):
     true_image = skimage.io.imread(image_filename)
     if true_image is None:
         print("CANNOT FIND IMAGE TO CONDUCT DETECTION")
@@ -551,7 +555,7 @@ def regionProposal(image_filename, size):
     aspect_ratio = float(img_size[1]) / 300.0
 
     img_lbl, regions = selectivesearch.selective_search(
-        img, scale=250, sigma=1)
+        img, scale=scale, sigma=sigma)
 
     candidates = set()
 
@@ -596,13 +600,10 @@ def regionProposal(image_filename, size):
 
 
 if __name__ == '__main__':
-    regionProposal('data/synthetic_test/both1.png', 200)
+    print("hello world...")
+    # regionProposal('data/synthetic_test/both1.png', 200)
     # regionProposal('data/test_custom/both5.jpg', 200)
 
     # regionProposal('data/fromJohn/testImages/spoon2.png')
     # [image_batch, label_batch] = get_custom_dataset_batch(
     #     25, "data/custom_train_data.csv")
-
-    # print(image_batch.shape)
-    # print(label_batch.shape)
-    # print(label_batch

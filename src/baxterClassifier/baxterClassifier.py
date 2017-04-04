@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.examples.tutorials.mnist import input_data
 import cv2
 import time
 import sys
@@ -9,7 +8,7 @@ import inputProcessor
 
 class BaxterClassifier:
 
-    def __init__(self, argvs=[]):
+    def __init__(self):
         self.weights_file = 'model/synthetic_model.ckpt'
         self.num_labels = 2
         self.img_size = 64
@@ -90,7 +89,8 @@ class BaxterClassifier:
         return tf.nn.relu(conv_biased)
 
     def pooling_layer(self, varIndex, inputs, size, stride):
-        return tf.nn.max_pool(inputs, ksize=[1, size, size, 1], strides=[1, stride, stride, 1], padding='SAME', name=str(varIndex) + '_pool')
+return tf.nn.max_pool(inputs, ksize=[1, size, size, 1], strides=[1,
+                                                                 stride, stride, 1], padding='SAME', name=str(varIndex) + '_pool')
 
     def dropout_layer(self, varIndex, inputs, dropout_rate):
         return tf.nn.dropout(inputs, dropout_rate)
@@ -118,7 +118,7 @@ class BaxterClassifier:
             (self.uninitialized_var).append(weight)
             (self.uninitialized_var).append(biases)
 
-        return tf.nn.relu(tf.add(tf.matmul(inputs_processed, weight), biases))
+return tf.nn.relu(tf.add(tf.matmul(inputs_processed, weight), biases))
 
     def softmax_layer(self, varIndex, inputs, hidden, num_labels):
         weights = tf.Variable(tf.truncated_normal(
@@ -133,14 +133,18 @@ class BaxterClassifier:
 
     def lossVal(self):
         l2Loss = tf.add_n([tf.nn.l2_loss(v) for v in self.weight_vars]) * 0.001
-        return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits, self.y)) + l2Loss
+return
+tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits,
+                                                       self.y)) + l2Loss
 
     def trainOps(self):
-        return tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_val)
+return
+tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_val)
 
 
-def main(argvs):
-    baxterClassifier = BaxterClassifier(argvs)
+def main():
+    print("please please please ")
+    baxterClassifier = BaxterClassifier()
     [meanImage, std] = inputProcessor.getNormalizationData(
         "data/synthetic_train_data.csv")
 
@@ -228,4 +232,6 @@ def main(argvs):
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    print("11111111111")
+    print("hello world please...")
+    main()

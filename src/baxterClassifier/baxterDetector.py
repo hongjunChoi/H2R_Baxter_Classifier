@@ -9,95 +9,97 @@ import baxterClassifier as baxter
 
 class BaxterDetector:
 
-    def __init__(self, argvs=[]):
+    def __init__(self, detection_threshold=0.7):
         self.classifier = baxter.BaxterClassifier()
         self.training_file = "data/synthetic_train_data.csv"
         self.top_results = 3
-        self.overlap_threshold = 0.7  # IOU threshold to combine two overlapping bounding box
-        self.threshold = 0.7          # logit threshold to be considered as detection
-        self.overlap_bonus = 1.1      # Coefficient applied when two boxes are merged
+        # IOU threshold to combine two overlapping bounding box
+        self.overlap_threshold = 0.7
+        # logit threshold to be considered as detection
+        self.threshold = detection_threshold
+        # Coefficient applied when two boxes are merged
+        self.overlap_bonus = 1.1
         [self.image_mean, self.image_std] = inputProcessor.getNormalizationData(
             self.training_file)
+        self.classifier.saver = tf.train.Saver()
+        self.classifier.saver.restore(
+            self.classifier.sess, self.classifier.weights_file)
+
+    def terminateSession(self):
+        self.classifier.session.close()
+        return
 
     def detectObject(self, label, imagePath):
         # Start Tensorflow Session
         predictions = []
-        with self.classifier.sess as sess:
 
-            self.classifier.saver = tf.train.Saver()
-            print("weight file to restore ... : ",
-                  self.classifier.weights_file)
+        batch = inputProcessor.regionProposal(
+            imagePath, self.classifier.img_size)
 
-            self.classifier.saver.restore(
-                self.classifier.sess, self.classifier.weights_file)
+        if batch is None:
+            print("wrong user input regarding image or labels ")
+            raise ValueError(
+                'User input file path or lable contains error ')
+            return
 
-            batch = inputProcessor.regionProposal(
-                imagePath, self.classifier.img_size)
+        original_img = batch[0]
+        image_batch = batch[1]
+        boundingBoxInfo = batch[2]
+        batch_size = len(image_batch)
 
-            if batch is None:
-                print("wrong user input regarding image or labels ")
-                raise ValueError(
-                    'User input file path or lable contains error ')
-                return
+        # CREATE INPUT IMAGE BATCH
+        input_image = np.zeros(
+            [len(image_batch), self.classifier.img_size, self.classifier.img_size, 3])
 
-            original_img = batch[0]
-            image_batch = batch[1]
-            boundingBoxInfo = batch[2]
-            batch_size = len(image_batch)
+        for x in range(batch_size):
+            input_image[x] = (
+                image_batch[x] - self.image_mean) / self.image_std
 
-            # CREATE INPUT IMAGE BATCH
-            input_image = np.zeros(
-                [len(image_batch), self.classifier.img_size, self.classifier.img_size, 3])
+        prediction = self.classifier.sess.run(self.classifier.logits, feed_dict={
+            self.classifier.x: input_image,
+            self.classifier.batch_size: batch_size,
+            self.classifier.dropout_rate: 1})
 
-            for x in range(batch_size):
-                input_image[x] = (
-                    image_batch[x] - self.image_mean) / self.image_std
+        # filter correctly detected crops
+        for y in range(batch_size):
+            prob = prediction[y][label]
+            if prob > self.threshold:
+                boundingBox = boundingBoxInfo[y]
+                box1 = [boundingBox[0], boundingBox[1], boundingBox[
+                    0] + boundingBox[2], boundingBox[1] + boundingBox[3]]
 
-            prediction = sess.run(self.classifier.logits, feed_dict={
-                self.classifier.x: input_image,
-                self.classifier.batch_size: batch_size,
-                self.classifier.dropout_rate: 1})
+                # non maximal suppression , thresholding , and merging here
+                flag = True
+                for idx in range(len(predictions)):
+                    p = predictions[idx]
+                    box = p[1]
+                    box_prob = p[0]
+                    box2 = [box[0], box[1], box[
+                        0] + box[2], box[1] + box[3]]
+                    if self.overlap_threshold < inputProcessor.intersection_over_union(box1, box2):
+                        flag = False
+                        if box_prob > prob:
+                            predictions[idx][0] = predictions[
+                                idx][0] * self.overlap_bonus
 
-            # filter correctly detected crops
-            for y in range(batch_size):
-                prob = prediction[y][label]
-                if prob > self.threshold:
-                    boundingBox = boundingBoxInfo[y]
-                    box1 = [boundingBox[0], boundingBox[1], boundingBox[
-                        0] + boundingBox[2], boundingBox[1] + boundingBox[3]]
+                        else:
+                            predictions[idx] = [
+                                prob * self.overlap_bonus, boundingBox]
+                        break
+                if flag:
+                    predictions.append([prob, boundingBox])
 
-                    # non maximal suppression , thresholding , and merging here
-                    flag = True
-                    for idx in range(len(predictions)):
-                        p = predictions[idx]
-                        box = p[1]
-                        box_prob = p[0]
-                        box2 = [box[0], box[1], box[
-                            0] + box[2], box[1] + box[3]]
-                        if self.overlap_threshold < inputProcessor.intersection_over_union(box1, box2):
-                            flag = False
-                            if box_prob > prob:
-                                predictions[idx][0] = predictions[
-                                    idx][0] * self.overlap_bonus
+        # sort crops by logit values
+        predictions.sort(reverse=True)
 
-                            else:
-                                predictions[idx] = [
-                                    prob * self.overlap_bonus, boundingBox]
-                            break
-                    if flag:
-                        predictions.append([prob, boundingBox])
+        # visualize detection results
+        # self.visualizeDetectionResult(original_img, predictions)
 
-            # sort crops by logit values
-            predictions.sort(reverse=True)
+        boxData = []
+        for box in predictions:
+            boxData.append({'category': label, 'box': box[1]})
 
-            # visualize detection results
-            # self.visualizeDetectionResult(original_img, predictions)
-
-            boxData = []
-            for box in predictions:
-                boxData.append({'category': label, 'box': box[1]})
-
-            return boxData
+        return boxData
 
     def visualizeDetectionResult(self, image, boxData):
         for i in range(self.top_results):
