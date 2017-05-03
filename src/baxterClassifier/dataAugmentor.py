@@ -241,8 +241,8 @@ def divideImageSet(classPath1, classPath2):
     # For directory containing images of each class, combine all images path
     # create custom_training_set.csv with training image path and label
     # create custom_test_set.csv with test image path and label
-    class1List = glob.glob(classPath1 + "/*.jpg")
-    class2List = glob.glob(classPath2 + "/*.jpg")
+    class1List = glob.glob(classPath1 + "/*")
+    class2List = glob.glob(classPath2 + "/*")
 
     combined_list = []
     for class1_path in class1List:
@@ -257,11 +257,11 @@ def divideImageSet(classPath1, classPath2):
     train_data = data[0:int(len(data) * 0.9)]
     test_data = data[int(len(data) * 0.9):]
 
-    with open('data/synthetic_train_data.csv', 'w') as train_file:
+    with open('data/imagenet_spoon_train_data.csv', 'w') as train_file:
         for data in train_data:
             line = str(data[1][0]) + " , " + str(data[1][1]) + "\n"
             train_file.write(line)
-    with open('data/synthetic_test_data.csv', 'w') as test_file:
+    with open('data/imagenet_spoon_test_data.csv', 'w') as test_file:
         for data in test_data:
             line = str(data[1][0]) + " , " + str(data[1][1]) + "\n"
             test_file.write(line)
@@ -275,17 +275,29 @@ def saveImage(image, targetPath, count):
     return
 
 
-def create_synthetic_data(path, backgroundPath, targetPath):
+def create_synthetic_data(path, backgroundPath, targetPath, autoMasking=False):
     backgroundPath = backgroundPath + "/*.png"
     backgrounds_paths = glob.glob(backgroundPath)
-
+    object_id = 0
     paths = glob.glob(path + '/*')
+
+    if autoMasking is True:
+        paths = glob.glob(path + '/*.jpg')
+
     for path in paths:
         maskPath = path + "/mask.png"
         objectPath = path + "/rgb.png"
-        object_id = objectPath.split('/')[3]
+
+        if autoMasking is True:
+            objectPath = path
+            maskPath = objectPath
+
+        object_id = object_id + 1
 
         for background in backgrounds_paths:
+
+            print("\n\nmask path : " + str(maskPath) +
+                  "   / object path : " + str(objectPath) + " / background path : " + str(background) + " \n\n")
 
             background_id = background.split('/')[3].split('.')[0].strip()
             savePath = targetPath + "/" + \
@@ -296,19 +308,31 @@ def create_synthetic_data(path, backgroundPath, targetPath):
 
 def backGroundSelection(backgroundPath, imagePath, maskPath, targetPath):
     # Load two images
-    backgroundImage = cv2.imread(backgroundPath)
-    backgroundImage = backgroundImage[0:210, :]
-
-    image = cv2.imread(imagePath)
-    object_mask = cv2.imread(maskPath)
-
-    background_x = backgroundImage.shape[0]
-    background_y = backgroundImage.shape[1]
-
+    bg = cv2.imread(backgroundPath)
+    bg_shape = bg.shape
     count = 0
 
-    for angle in np.arange(0, 360, 30):
+    for angle in np.arange(0, 360, 45):
         for i in range(2):
+            # get random portion from background
+
+            if bg_shape[0] < 180 or bg_shape[1] < 180:
+
+                backgroundImage = cv2.resize(
+                    bg, (180, 180), interpolation=cv2.INTER_AREA)
+            else:
+                bg_x = int((bg_shape[0] - 180) * random.random())
+                bg_y = int((bg_shape[1] - 180) * random.random())
+                print("x : " + str(bg_x) + "/  y : " + str(bg_y))
+                backgroundImage = bg[
+                    bg_x:bg_x + 180, bg_y:bg_y + 180]
+
+            image = cv2.imread(imagePath)
+            object_mask = cv2.imread(maskPath)
+
+            background_x = 180
+            background_y = 180
+
             bImage = np.copy(backgroundImage)
             maskImage = np.copy(object_mask)
 
@@ -316,13 +340,16 @@ def backGroundSelection(backgroundPath, imagePath, maskPath, targetPath):
             maskImage = imutils.rotate_bound(maskImage, angle)
 
             if objectImage.shape[0] > background_x or objectImage.shape[1] > background_y:
+                ratio = math.ceil(max(float(objectImage.shape[
+                    0]) / float(background_x), float(objectImage.shape[1]) / float(background_y)))
+                ratio = int(ratio)
                 objectImage = cv2.resize(
-                    objectImage, (objectImage.shape[0] / 2, objectImage.shape[1] / 2), interpolation=cv2.INTER_AREA)
+                    objectImage, (int(objectImage.shape[0] / (ratio)), int(objectImage.shape[1] / (ratio))), interpolation=cv2.INTER_AREA)
                 maskImage = cv2.resize(
-                    maskImage, (maskImage.shape[0] / 2, maskImage.shape[1] / 2), interpolation=cv2.INTER_AREA)
+                    maskImage, (int(maskImage.shape[0] / (ratio)), int(maskImage.shape[1] / (ratio))), interpolation=cv2.INTER_AREA)
 
             img2gray = cv2.cvtColor(maskImage, cv2.COLOR_BGR2GRAY)
-            ret, mask = cv2.threshold(img2gray, 240, 255, cv2.THRESH_BINARY)
+            ret, mask = cv2.threshold(img2gray, 50, 255, cv2.THRESH_BINARY)
             mask_inv = cv2.bitwise_not(mask)
 
             rows, cols, channels = objectImage.shape
@@ -343,17 +370,9 @@ def backGroundSelection(backgroundPath, imagePath, maskPath, targetPath):
             saveImage(bImage, targetPath, count)
             count += 1
 
-            saveImage(randomCropImage(
-                bImage), targetPath, count)
-            count += 1
-
-            saveImage(randomCropImage(
-                bImage), targetPath, count)
-            count += 1
-
-            saveImage(randomCropImage(
-                bImage), targetPath, count)
-            count += 1
+            # saveImage(randomCropImage(
+            #     bImage), targetPath, count)
+            # count += 1
 
             # saveImage(augmentColor(
             #     bImage), targetPath, count)
@@ -362,20 +381,38 @@ def backGroundSelection(backgroundPath, imagePath, maskPath, targetPath):
             # saveImage(augmentColor(
             #     bImage), targetPath, count)
             # count += 1
+
+
+def create_anti_label_image(data_path, target_path, label):
+    label_paths = glob.glob(data_path + "/*")
+    count = 0
+
+    for path in label_paths:
+        temp = path.split('/')
+        if label.strip().lower() not in temp[len(temp) - 1].strip().lower():
+            image_path = path + "/*.jpg"
+            images = glob.glob(image_path)
+            for i in range(30):
+                img = cv2.imread(images[i])
+                saveImage(img, target_path, count)
+                count = count + 1
+
+    return
 
 
 if __name__ == "__main__":
-    create_synthetic_data("data/fromJohn/deepWoodenSpoons",
-                          "data/fromJohn/deepBackgrounds", "data/synthetic_spoon")
+    # Create Dataset of 'non spoons'
+    # create_anti_label_image("data/caltech_dataset",
+    #                         "data/TRAIN/not_spoon", "spoon")
 
-    create_synthetic_data("data/fromJohn/deepMarkers",
-                          "data/fromJohn/deepBackgrounds", "data/synthetic_marker")
+    # create_synthetic_data("data/TRAIN",
+    # "data/fromJohn/deepBackgrounds", "data/TRAIN/spoon", autoMasking=True)
+    divideImageSet("data/TRAIN/imagenet_spoon", "data/TRAIN/not_spoon")
 
-    divideImageSet("data/synthetic_spoon", "data/synthetic_marker")
+    # create_synthetic_data("data/fromJohn/deepWoodenSpoons",
+    #                       "data/fromJohn/deepBackgrounds", "data/synthetic_spoon")
 
-    # backGroundSelection("data/fromJohn/deepBackgrounds/1/rgb.png",
-    # "data/fromJohn/deepWoodenSpoons/1/rgb.png", "data/fromJohn/deepWoodenSpoons/1/mask.png")
-    # augmentColor("data/test_caltech/umbrella2.jpeg", 2)
-    # augmentImages("data/custom_spoon")
-    # augmentImages("data/custom_block")
-    # divideImageSet("data/custom_spoon", "data/custom_block")
+    # create_synthetic_data("data/fromJohn/deepMarkers",
+    #                       "data/fromJohn/deepBackgrounds", "data/synthetic_marker")
+
+    # divideImageSet("data/synthetic_spoon", "data/synthetic_marker")

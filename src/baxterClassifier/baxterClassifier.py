@@ -9,7 +9,8 @@ import inputProcessor
 class BaxterClassifier:
 
     def __init__(self):
-        self.weights_file = 'model/synthetic_model.ckpt'
+        self.weights_file = 'model/imagenet_spoon_model.ckpt'
+        self.training_file = "data/imagenet_spoon_train_data.csv"
         self.num_labels = 2
         self.img_size = 64
         self.batch_size = tf.placeholder(tf.int32)
@@ -26,15 +27,11 @@ class BaxterClassifier:
         #     0.95,                # Decay rate.
         #     staircase=True)
 
-        self.sess = tf.Session()
-
         self.x = tf.placeholder(
             tf.float32, shape=[None, self.img_size, self.img_size, 3])
-
         self.y = tf.placeholder(tf.float32, shape=[None, self.num_labels])
-
         self.dropout_rate = tf.placeholder(tf.float32)
-
+        self.sess = tf.Session()
         self.logits = self.build_pretrain_network()
         self.loss_val = self.lossVal()
         self.train_op = self.trainOps()
@@ -43,23 +40,19 @@ class BaxterClassifier:
             tf.argmax(self.logits, 1), tf.argmax(self.y, 1))
         self.accuracy = tf.reduce_mean(
             tf.cast(self.correct_prediction, tf.float32))
+        # tf.summary.tensor_summary('accuracy', self.accuracy)
 
     def build_pretrain_network(self):
-
         self.conv_1 = self.conv_layer(1, self.x, 32, 3, 1)
         self.conv_2 = self.conv_layer(2, self.conv_1, 32, 3, 1)
         self.pool_3 = self.pooling_layer(3, self.conv_2, 2, 2)
-
         self.conv_4 = self.conv_layer(4, self.pool_3, 64, 3, 1)
         self.conv_5 = self.conv_layer(5, self.conv_4, 64, 3, 1)
         self.pool_6 = self.pooling_layer(6, self.conv_5, 2, 2)
-
         self.fc_25 = self.fc_layer(25, self.pool_6, 4096, flat=True)
         self.dropout_26 = self.dropout_layer(26, self.fc_25, self.dropout_rate)
-
         self.fc_27 = self.fc_layer(27, self.dropout_26, 4096, flat=False)
         self.dropout_28 = self.dropout_layer(28, self.fc_27, self.dropout_rate)
-
         self.fc_29 = self.fc_layer(29, self.dropout_28, 1024, flat=False)
         self.dropout_30 = self.dropout_layer(30, self.fc_29, self.dropout_rate)
 
@@ -89,8 +82,8 @@ class BaxterClassifier:
         return tf.nn.relu(conv_biased)
 
     def pooling_layer(self, varIndex, inputs, size, stride):
-return tf.nn.max_pool(inputs, ksize=[1, size, size, 1], strides=[1,
-                                                                 stride, stride, 1], padding='SAME', name=str(varIndex) + '_pool')
+        return tf.nn.max_pool(inputs, ksize=[1, size, size, 1], strides=[1,
+                                                                         stride, stride, 1], padding='SAME', name=str(varIndex) + '_pool')
 
     def dropout_layer(self, varIndex, inputs, dropout_rate):
         return tf.nn.dropout(inputs, dropout_rate)
@@ -117,8 +110,7 @@ return tf.nn.max_pool(inputs, ksize=[1, size, size, 1], strides=[1,
         if initialize:
             (self.uninitialized_var).append(weight)
             (self.uninitialized_var).append(biases)
-
-return tf.nn.relu(tf.add(tf.matmul(inputs_processed, weight), biases))
+        return tf.nn.relu(tf.add(tf.matmul(inputs_processed, weight), biases))
 
     def softmax_layer(self, varIndex, inputs, hidden, num_labels):
         weights = tf.Variable(tf.truncated_normal(
@@ -133,36 +125,35 @@ return tf.nn.relu(tf.add(tf.matmul(inputs_processed, weight), biases))
 
     def lossVal(self):
         l2Loss = tf.add_n([tf.nn.l2_loss(v) for v in self.weight_vars]) * 0.001
-return
-tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits,
-                                                       self.y)) + l2Loss
+        loss_value = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(self.logits,
+                                                                            self.y)) + l2Loss
+        # tf.summary.tensor_summary('cross_entropy', loss_value)
+        return loss_value
 
     def trainOps(self):
-return
-tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_val)
+        return tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_val)
 
 
 def main():
-    print("please please please ")
     baxterClassifier = BaxterClassifier()
     [meanImage, std] = inputProcessor.getNormalizationData(
-        "data/synthetic_train_data.csv")
+        baxterClassifier.training_file)
 
     # Start Tensorflow Session
     with baxterClassifier.sess as sess:
-
         baxterClassifier.saver = tf.train.Saver()
-
         cv2.waitKey(1000)
         print("starting session... ")
 
         # INITIALIZE VARIABLES
-        sess.run(tf.initialize_all_variables())
+        # merged = tf.summary.merge(["accuracy", "cross_entropy"])
+        # train_writer = tf.summary.FileWriter("model/summary/")
 
+        sess.run(tf.initialize_all_variables())
         # START TRAINING
         batch_index = 0
         i = 0
-        while batch_index < 50000:
+        while batch_index < 30000:
 
             print("starting  " + str(i) + "th  with batch index :  " +
                   str(batch_index) + "  training iteration..")
@@ -189,7 +180,7 @@ def main():
             ###################################################
             # GET BATCH FOR CUSTOM DATASET AND (FOR CALTECH DATASET)
             batch = inputProcessor.get_custom_dataset_batch(
-                32, "data/synthetic_train_data.csv", meanImage, std)
+                32, baxterClassifier.training_file, meanImage, std)
             image_batch = batch[0]
             label_batch = batch[1]
             batch_index = batch_index + 64
@@ -212,10 +203,18 @@ def main():
                 print(trueLabel)
                 print("=============\n\n")
 
+                # summary, train_accuracy = sess.run(
+                #     [merged, baxterClassifier.accuracy], feed_dict={baxterClassifier.x: image_batch,
+                #                                                     baxterClassifier.y: label_batch,
+                #                                                     baxterClassifier.batch_size: batch_size,
+                #                                                     baxterClassifier.dropout_rate: 1})
+                # train_writer.add_summary(summary, i)
+
                 train_accuracy = baxterClassifier.accuracy.eval(feed_dict={baxterClassifier.x: image_batch,
                                                                            baxterClassifier.y: label_batch,
                                                                            baxterClassifier.batch_size: batch_size,
                                                                            baxterClassifier.dropout_rate: 1})
+
                 print("\nStep %d, Training Accuracy %.2f \n\n" % (i,
                                                                   train_accuracy))
 
@@ -232,6 +231,4 @@ def main():
 
 
 if __name__ == '__main__':
-    print("11111111111")
-    print("hello world please...")
     main()

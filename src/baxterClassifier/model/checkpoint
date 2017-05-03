@@ -1,2 +1,2 @@
-model_checkpoint_path: "synthetic_model.ckpt"
-all_model_checkpoint_paths: "synthetic_model.ckpt"
+model_checkpoint_path: "imagenet_spoon_model.ckpt"
+all_model_checkpoint_paths: "imagenet_spoon_model.ckpt"

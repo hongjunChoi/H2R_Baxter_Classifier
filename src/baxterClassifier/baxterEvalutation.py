@@ -11,7 +11,6 @@ import inputProcessor
 import xml.etree.ElementTree as ET
 import copy
 import baxterDetector as detector
-import matplotlib.pyplot as plt
 
 
 def calculatePrecision(label, detectedBoxList, annotatedData):
@@ -28,7 +27,7 @@ def calculatePrecision(label, detectedBoxList, annotatedData):
 
     if total == 0:
         print("no bounding box detected due to high threshold...")
-        return 0
+        return 1
 
     for d in detectedList:
         for g in groundTruth:
@@ -52,7 +51,6 @@ def calculateRecall(label, detectedBoxList, annotatedData):
     # actually detected.
     groundTruth = copy.deepcopy(annotatedData)
     detectedList = copy.deepcopy(detectedBoxList)
-
     total = 0
     count = 0
 
@@ -92,14 +90,21 @@ def parseAnnotatedData(xmlFilePath):
 
         polygon = boundingBoxObject.find('polygon')
         points = polygon.findall('pt')
-        x = int(points[0].find('x').text)
-        y = int(points[0].find('y').text)
-        w = (int(points[1].find('x').text) -
-             int(points[0].find('x').text))
-        h = (int(points[3].find('y').text) -
-             int(points[0].find('y').text))
 
-        box = [x, y, w, h]
+        x_list = [int(points[0].find('x').text), int(points[1].find('x').text), int(
+            points[2].find('x').text), int(points[3].find('x').text)]
+        y_list = [int(points[0].find('y').text), int(points[1].find('y').text), int(
+            points[2].find('y').text), int(points[3].find('y').text)]
+
+        x_min = min(x_list)
+        y_min = min(y_list)
+        x_max = max(x_list)
+        y_max = max(y_list)
+
+        w = x_max - x_min
+        h = y_max - y_min
+
+        box = [x_min, y_min, w, h]
         boxData.append({'category': category,
                         'box': box})
 
@@ -136,12 +141,121 @@ def validateAnnotation(testImagePath, annotationPath):
     time.sleep(10)
 
 
-def plotDetectionPRCurve(groundTruthPath, testImagePath, label):
-    threshold_list = [0.1, 0.5, 0.7, 1, 1.3, 1.7, 2,
-                      2.5, 3, 3.5, 4, 4.5, 5, 6, 7, 8, 9, 10, 11, 12]
+def exportAnnotationData(testImageFolderPath):
+    test_image_path_list = glob.glob(testImageFolderPath + "*.jpg")
+    annotation_data = []
+
+    for i in range(len(test_image_path_list)):
+        test_image_path = test_image_path_list[i]
+
+        temp = test_image_path.split('/')
+        annotation_path = "data/TEST/annotations/" + \
+            (temp[len(temp) - 1]).split('.')[0] + ".xml"
+        ground_truth = parseAnnotatedData(annotation_path)
+        for g in range(len(ground_truth)):
+            ground_truth[g]['filename'] = test_image_path
+            annotation_data.append(ground_truth[g])
+
+    with open('annotation.txt', 'w') as result_file:
+        for truth in annotation_data:
+            box = truth['box']
+            file = truth['filename']
+
+            line = str(file) + " " + str(box[0]) + " " + str(box[1]) + \
+                " " + str(box[0] + box[2]) + " " + str(box[1] + box[3]) + "\n"
+
+            result_file.write(line)
+
+    return
+
+
+def exportDetectionData(testImageFolderPath, label):
+    baxterDetector = detector.BaxterDetector()
+    # baxterDetector.threshold = 2
+    test_image_path_list = glob.glob(testImageFolderPath + "*.jpg")
+    data = []
+
+    for i in range(len(test_image_path_list)):
+        test_image_path = test_image_path_list[i]
+
+        temp = test_image_path.split('/')
+        annotation_path = "data/TEST/annotations/" + \
+            (temp[len(temp) - 1]).split('.')[0] + ".xml"
+
+        boundingBoxData = baxterDetector.detectObject(label, test_image_path)
+        for i in range(len(boundingBoxData)):
+            boundingBoxData[i]['filename'] = test_image_path
+            data.append(boundingBoxData[i])
+
+    with open('detection_result.txt', 'w') as result_file:
+        for boxData in data:
+            box = boxData['box']
+            confidence = boxData['confidence']
+
+            print("-----------------")
+            print(boxData['confidence'])
+
+            line = str(boxData['filename']) + " " + str(box[0]) + " " + str(box[1]) + \
+                " " + str(box[0] + box[2]) + " " + str(box[1] + box[3]) + \
+                " " + str(confidence) + "\n"
+
+            result_file.write(line)
+
+    return
+
+
+def plotAverageDetectionPRCurve(annotationFolderPath, testImageFolderPath, label):
+    baxterDetector = detector.BaxterDetector()
+    threshold_list = [0.1, 0.5, 1, 1.5,  2,  2.5, 3, 3.5, 4]
+    iou_list = [0.2, 0.3, 0.4, 0.5]
+    test_image_path_list = glob.glob(testImageFolderPath + "*.jpg")
+    annotation_path_list = glob.glob(annotationFolderPath + "*.xml")
+
+    precision_data = np.zeros((len(test_image_path_list), 12))
+    recall_data = np.zeros((len(test_image_path_list), 12))
+
+    for i in range(len(test_image_path_list)):
+        test_image_path = test_image_path_list[i]
+
+        temp = test_image_path.split('/')
+        annotation_path = "data/TEST/annotations/" + \
+            (temp[len(temp) - 1]).split('.')[0] + ".xml"
+
+        [recall_list, precision_list] = plotDetectionPRCurve(baxterDetector,
+                                                             annotation_path, test_image_path, label)
+        precision_data[i] = precision_list
+        recall_data[i] = recall_list
+
+    baxterDetector.terminateSession()
+
+    mean_precision = np.mean(precision_data, axis=0)
+    mean_recall = np.mean(recall_data, axis=0)
+
+    mean_precision_list = [x for (y, x) in sorted(
+        zip(mean_recall, mean_precision))]
+    mean_recall.sort()
+
+    mean_precision_list = np.insert(mean_precision_list, 0, 1)
+    mean_recall = np.insert(mean_recall, 0, 0)
+
+    mean_precision_list = np.insert(
+        mean_precision_list, len(mean_precision_list), 0)
+    mean_recall = np.insert(mean_recall, len(mean_recall), 1)
+
+    print("======= AVERAGE PRECISION AND RECALL =============")
+    print(mean_precision_list)
+    print(mean_recall)
+
+    plot_PR_curve("PR Curve",  mean_recall, mean_precision_list,
+                  "recall", "precision", "precision-recall values")
+
+    return
+
+
+def plotDetectionPRCurve(baxterDetector, groundTruthPath, testImagePath, label):
+    threshold_list = [0.1, 0.5, 1, 1.5,  2,  2.5, 3, 3.5, 4]
     precision_list = []
     recall_list = []
-    baxterDetector = detector.BaxterDetector()
 
     for threshold in threshold_list:
         baxterDetector.threshold = threshold
@@ -150,22 +264,27 @@ def plotDetectionPRCurve(groundTruthPath, testImagePath, label):
 
         precision = calculatePrecision(label, boundingBoxData, annotatedData)
         recall = calculateRecall(label, boundingBoxData, annotatedData)
-        precision_list.append(precision)
+
+        print("precision : " + str(precision) + " /  recall : " + str(recall))
+        if precision == 0 and recall == 0:
+            print("note! both precision and recall is 0... on file : " +
+                  str(testImagePath))
+
         recall_list.append(recall)
+        precision_list.append(precision)
 
-    precision_list.insert(0, 1)
-    recall_list.insert(0, 0)
+    # precision_list = [x for (y, x) in sorted(
+    #     zip(recall_list, precision_list))]
+    # recall_list.sort()
 
-    precision_list = [x for (y, x) in sorted(
-        zip(recall_list, precision_list))]
-    recall_list.sort()
+    # plot_PR_curve("PR Curve", recall_list, precision_list,
+    #               "recall", "precision", "precision-recall values")
 
-    plot_PR_curve("PR Curve", recall_list, precision_list,
-                  "recall", "precision", "precision-recall values")
-    return
+    return [recall_list, precision_list]
 
 
 def plot_PR_curve(title, recall_x, precision_y, x_label, y_label, label, y_min=0, y_max=1):
+    import matplotlib.pyplot as plt
     plt.figure()
     plt.title(title)
     ylim = (y_min, y_max)
@@ -234,6 +353,11 @@ def plot_region_proposal_results():
 if __name__ == '__main__':
     # plot_region_proposal_results()
     # plot_region_proposal_recall_curve()
+    # baxterDetector = detector.BaxterDetector()
+    # plotDetectionPRCurve(baxterDetector,
+    #                      "data/TEST/annotations/frame0002.xml", "data/TEST/frame0002.jpg", 0)
+    # plotAverageDetectionPRCurve("data/TEST/annotations/", "data/TEST/", 0)
 
-    plotDetectionPRCurve(
-        "data/synthetic_test_annotations/test18.xml", "data/synthetic_test/test18.jpg", 1)
+    exportDetectionData("data/TEST/", 0)
+    # exportAnnotationData("data/TEST/")
+    # parseAnnotatedData("data/TEST/annotations/frame0002.xml")

@@ -1,6 +1,7 @@
 from six.moves import xrange
 from PIL import Image
 import skimage
+from skimage import color
 import selectivesearch
 import os
 import random
@@ -514,6 +515,9 @@ def get_sliding_window_img_crops(img_filename):
 
 def intersection_over_union(boxA, boxB):
     # determine the (x, y)-coordinates of the intersection rectangle
+    boxA = [boxA[0], boxA[1], boxA[0] + boxA[2], boxA[1] + boxA[3]]
+    boxB = [boxB[0], boxB[1], boxB[0] + boxB[2], boxB[1] + boxB[3]]
+
     xA = max(boxA[0], boxB[0])
     yA = max(boxA[1], boxB[1])
     xB = min(boxA[2], boxB[2])
@@ -600,8 +604,7 @@ def regionProposal(image_filename, size, scale=250, sigma=1):
 
 
 if __name__ == '__main__':
-    print("hello world...")
-    # regionProposal('data/synthetic_test/both1.png', 200)
+    regionProposal('data/synthetic_test/both1.png', 200)
     # regionProposal('data/test_custom/both5.jpg', 200)
 
     # regionProposal('data/fromJohn/testImages/spoon2.png')

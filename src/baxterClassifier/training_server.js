@@ -10,14 +10,31 @@ app.use(express.static(path.join(__dirname, '/public')));
 app.set('views', __dirname + '/public');
 
 app.get('/', function(req, res) {
-    console.log("\n\n============ HERE ===================\n");
+    console.log("============ HERE ===================\n");
+    res.status(200).end("ok");
 
     var spawn = require('child_process').spawn;
     var py = spawn('python', ['baxterTrain.py']);
 
+    py.on('error', function(err) {
+        console.log('ERROR : Failed to start child process.    ', err);
+    });
+
     py.stdout.on('data', function(data) {
         console.log(data.toString());
     });
+
+    py.stderr.on('data', function(data) {
+        console.log('ps stderr:  ERROR ', data.toString());
+    });
+
+    py.on('close', function(code) {
+        if (code !== 0) {
+            console.log(`ps process exited with code ${code}`);
+        }
+        console.log("close .....");
+    });
+
 
     py.stdout.on('end', function() {
         console.log('done.... ');
@@ -33,6 +50,7 @@ app.get('/', function(req, res) {
     //     console.log(message);
     // });
 
+
     // // end the input stream and allow the process to exit 
     // pyshell.end(function(err) {
     //     if (err) {
@@ -41,7 +59,7 @@ app.get('/', function(req, res) {
     //         return;
     //     }
 
-    //     console.log('finished');
+    //     console.log('finished without error ..');
     // });
 
 });

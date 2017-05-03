@@ -183,117 +183,97 @@ def getImage(filename):
     return image
 
 
-def main():
+if __name__ == '__main__':
     print("starting main function...")
     [meanImage, std] = getNormalizationData(
         "data/synthetic_train_data.csv")
+    print("000")
+    sess = tf.Session()
 
-    # Start Tensorflow Session
-    with tf.Session() as sess:
-        print("session started....")
-        weights_file = 'model/synthetic_model.ckpt'
-        num_labels = 2
-        img_size = 64
-        # batch_size = tf.placeholder(tf.int32)
-        uninitialized_var = []
-        learning_rate = 1e-4
-        weight_vars = []
+    print("session started....")
 
-        print("11111")
+    weights_file = 'model/synthetic_model.ckpt'
+    num_labels = 2
+    img_size = 64
+    uninitialized_var = []
+    learning_rate = 1e-4
+    weight_vars = []
 
-        x = tf.placeholder(tf.float32, shape=[None, img_size, img_size, 3])
-        y = tf.placeholder(tf.float32, shape=[None, num_labels])
-        dropout_rate = tf.placeholder(tf.float32)
+    print("11111")
 
-        print("22222")
-        logits = build_pretrain_network(x, dropout_rate, num_labels)
-        loss_val = lossVal(logits, y)
-        train_op = trainOps(learning_rate, loss_val)
+    x = tf.placeholder(tf.float32, shape=[None, img_size, img_size, 3])
+    y = tf.placeholder(tf.float32, shape=[None, num_labels])
+    dropout_rate = tf.placeholder(tf.float32)
 
-        print("3333")
-        correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    print("22222")
 
-        saver = tf.train.Saver()
-        print("444444")
+    logits = build_pretrain_network(x, dropout_rate, num_labels)
+    loss_val = lossVal(logits, y)
+    train_op = trainOps(learning_rate, loss_val)
 
-        # INITIALIZE VARIABLES
-        sess.run(tf.initialize_all_variables())
-        print("5555555")
+    print("3333")
 
-        # START TRAINING
-        batch_index = 0
-        i = 0
-        while batch_index < 50000:
+    correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    saver = tf.train.Saver()
 
-            print("starting  " + str(i) + "th  with batch index :  " +
-                  str(batch_index) + "  training iteration..")
-            i += 1
+    print("444444")
 
-            ###################################################
-            # GET BATCH (FOR CIFAR DATA SET)
-            # batch_size = 50
-            # batch = inputProcessor.get_next_cifar(batch_size, batch_index)
-            # image_batch = batch[0]
-            # label_batch = batch[1]
-            # batch_index = batch_index + batch[2]
-            # batch_size = len(label_batch)
+    # INITIALIZE VARIABLES
+    sess.run(tf.initialize_all_variables())
+    print("5555555")
 
-            ###################################################
-            # GET BATCH (FOR IMAGENET DATASET)
-            # batch = inputProcessor.get_imagenet_batch(
-            #     "data/train_data.csv", 10)
-            # image_batch = batch[0]
-            # label_batch = batch[1]
-            # batch_index = batch_index + 100
-            # batch_size = len(label_batch)
+    batch_index = 0
+    i = 0
+    while batch_index < 50000:
 
-            ###################################################
-            # GET BATCH FOR CUSTOM DATASET AND (FOR CALTECH DATASET)
-            batch = get_custom_dataset_batch(
-                32, "data/synthetic_train_data.csv", meanImage, std)
-            image_batch = batch[0]
-            label_batch = batch[1]
-            batch_index = batch_index + 64
-            batch_size = len(label_batch)
+        print("starting  " + str(i) + "th  with batch index :  " +
+              str(batch_index) + "  training iteration..")
+        i += 1
 
-            ###################################################
+        ###################################################
+        # GET BATCH FOR CUSTOM DATASET AND (FOR CALTECH DATASET)
+        batch = get_custom_dataset_batch(
+            32, "data/synthetic_train_data.csv", meanImage, std)
+        image_batch = batch[0]
+        label_batch = batch[1]
+        batch_index = batch_index + 64
+        batch_size = len(label_batch)
 
-            # PERIODIC PRINT-OUT FOR CHECKING
-            if i % 20 == 0:
-                prediction = tf.argmax(logits, 1)
-                trueLabel = np.argmax(label_batch, 1)
+        # ###################################################
+        print("66666")
 
-                result = sess.run(prediction, feed_dict={
-                    x: image_batch,
-                    # batch_size: batch_size,
-                    dropout_rate: 1})
+        # # # PERIODIC PRINT-OUT FOR CHECKING
+        # if i % 20 == 0:
+        #     prediction = tf.argmax(logits, 1)
+        #     trueLabel = np.argmax(label_batch, 1)
 
-                print("=============")
-                print(result)
-                print(trueLabel)
-                print("=============\n\n")
+        #     result = sess.run(prediction, feed_dict={
+        #         x: image_batch,
+        #         # batch_size: batch_size,
+        #         dropout_rate: 1})
 
-                train_accuracy = accuracy.eval(feed_dict={x: image_batch,
-                                                          y: label_batch,
-                                                          # batch_size:
-                                                          # batch_size,
-                                                          dropout_rate: 1})
-                print("\nStep %d, Training Accuracy %.2f \n\n" % (i,
-                                                                  train_accuracy))
+        #     print("=============")
+        #     print(result)
+        #     print(trueLabel)
+        #     print("=============\n\n")
 
-            # ACTUAL TRAINING PROCESS
-            train_op.run(feed_dict={x: image_batch,
-                                    y: label_batch,
-                                    # batch_size: batch_size,
-                                    dropout_rate: 0.5})
+        #     train_accuracy = sess.run(accuracy, feed_dict={x: image_batch,
+        #                                                    y: label_batch,
+        #                                                    dropout_rate: 1})
 
-        # DONE.. SAVE MODEL
-        save_path = saver.save(sess, weights_file)
-        print("saving model to ", save_path)
+        #     print("\nStep %d, Training Accuracy %.2f \n\n" % (i,
+        #                                                       train_accuracy))
 
+        print("77777")
 
-if __name__ == '__main__':
-    print("11111111111")
-    print("hello world please...")
-    main()
+        # ACTUAL TRAINING PROCESS
+        sess.run(train_op, feed_dict={x: image_batch,
+                                      y: label_batch,
+                                      dropout_rate: 0.5})
+        print("8888888")
+
+    # # DONE.. SAVE MODEL
+    # print("99999")
+    # save_path = saver.save(sess, weights_file)
+    # print("saving model to ", save_path)
